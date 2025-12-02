@@ -1,0 +1,2085 @@
+datasource db {
+  provider = "mysql" // Example: This external one is MySQL
+  url      = env("DATABASE_URL_EXTERNAL")
+  // Generate the client into a different specific folder
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/external_client"
+  moduleFormat = "esm"
+}
+
+model bc_address {
+  address_id   Int    @id @default(autoincrement())
+  customer_id  Int
+  firstname    String @db.VarChar(32)
+  lastname     String @db.VarChar(32)
+  company      String @db.VarChar(40)
+  address_1    String @db.VarChar(128)
+  address_2    String @db.VarChar(128)
+  city         String @db.VarChar(128)
+  postcode     String @db.VarChar(10)
+  country_id   Int    @default(0)
+  zone_id      Int    @default(0)
+  custom_field String @db.Text
+
+  @@index([customer_id], map: "customer_id")
+}
+
+model bc_address_simple_fields {
+  address_id Int     @id
+  metadata   String? @db.Text
+  field20    String? @db.Text
+}
+
+model bc_af_filter {
+  filter_id   Int
+  language_id Int
+  image       String @db.VarChar(255)
+
+  @@id([filter_id, language_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_af_translit {
+  type        String @db.VarChar(64)
+  group_id    Int
+  value       Int
+  language_id Int
+  text        String @db.VarChar(256)
+
+  @@ignore
+}
+
+model bc_af_values {
+  af_value_id Int    @id @default(autoincrement())
+  type        String @db.VarChar(64)
+  group_id    Int
+  value       Int
+
+  @@unique([type, group_id, value], map: "type")
+}
+
+model bc_api {
+  api_id        Int      @id @default(autoincrement())
+  username      String   @db.VarChar(64)
+  key           String   @db.Text
+  status        Boolean
+  date_added    DateTime @db.DateTime(0)
+  date_modified DateTime @db.DateTime(0)
+}
+
+model bc_api_ip {
+  api_ip_id Int    @id @default(autoincrement())
+  api_id    Int
+  ip        String @db.VarChar(40)
+}
+
+model bc_api_session {
+  api_session_id Int      @id @default(autoincrement())
+  api_id         Int
+  session_id     String   @db.VarChar(32)
+  ip             String   @db.VarChar(40)
+  date_added     DateTime @db.DateTime(0)
+  date_modified  DateTime @db.DateTime(0)
+}
+
+model bc_article {
+  article_id     Int      @id @default(autoincrement())
+  image          String?  @db.VarChar(255)
+  date_available DateTime @db.Date
+  sort_order     Int      @default(0)
+  article_review Boolean  @default(false)
+  status         Boolean  @default(false)
+  noindex        Boolean  @default(true)
+  date_added     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  date_modified  DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  viewed         Int      @default(0)
+  gstatus        Int      @default(0)
+}
+
+model bc_article_description {
+  article_id       Int
+  language_id      Int
+  name             String @db.VarChar(255)
+  description      String @db.Text
+  meta_description String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_title       String @db.VarChar(255)
+  meta_h1          String @db.VarChar(255)
+  tag              String @db.Text
+
+  @@id([article_id, language_id])
+  @@index([name], map: "name")
+}
+
+model bc_article_image {
+  article_image_id Int     @id @default(autoincrement())
+  article_id       Int
+  image            String? @db.VarChar(255)
+  sort_order       Int     @default(0)
+}
+
+model bc_article_related {
+  article_id Int
+  related_id Int
+
+  @@id([article_id, related_id])
+}
+
+model bc_article_related_mn {
+  article_id      Int
+  manufacturer_id Int
+
+  @@id([article_id, manufacturer_id])
+}
+
+model bc_article_related_product {
+  article_id Int
+  product_id Int
+
+  @@id([article_id, product_id])
+}
+
+model bc_article_related_wb {
+  article_id  Int
+  category_id Int
+
+  @@id([article_id, category_id])
+}
+
+model bc_article_to_blog_category {
+  article_id         Int
+  blog_category_id   Int
+  main_blog_category Boolean @default(false)
+
+  @@id([article_id, blog_category_id])
+}
+
+model bc_article_to_download {
+  article_id  Int
+  download_id Int
+
+  @@id([article_id, download_id])
+}
+
+model bc_article_to_layout {
+  article_id Int
+  store_id   Int
+  layout_id  Int
+
+  @@id([article_id, store_id])
+}
+
+model bc_article_to_store {
+  article_id Int
+  store_id   Int @default(0)
+
+  @@id([article_id, store_id])
+}
+
+model bc_attribute {
+  attribute_id       Int @id @default(autoincrement())
+  attribute_group_id Int
+  sort_order         Int
+}
+
+model bc_attribute_description {
+  attribute_id Int
+  language_id  Int
+  name         String @db.VarChar(64)
+
+  @@id([attribute_id, language_id])
+}
+
+model bc_attribute_group {
+  attribute_group_id Int @id @default(autoincrement())
+  sort_order         Int
+}
+
+model bc_attribute_group_description {
+  attribute_group_id Int
+  language_id        Int
+  name               String @db.VarChar(64)
+
+  @@id([attribute_group_id, language_id])
+}
+
+model bc_banner {
+  banner_id Int     @id @default(autoincrement())
+  name      String  @db.VarChar(64)
+  status    Boolean
+}
+
+model bc_banner_image {
+  banner_image_id Int    @id @default(autoincrement())
+  banner_id       Int
+  language_id     Int
+  title           String @db.VarChar(64)
+  title2          String @db.VarChar(64)
+  link            String @db.VarChar(255)
+  image           String @db.VarChar(255)
+  sort_order      Int    @default(0)
+}
+
+model bc_blog_category {
+  blog_category_id Int      @id @default(autoincrement())
+  image            String?  @db.VarChar(255)
+  parent_id        Int      @default(0)
+  top              Boolean
+  column           Int
+  sort_order       Int      @default(0)
+  status           Boolean
+  noindex          Boolean  @default(true)
+  date_added       DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  date_modified    DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+}
+
+model bc_blog_category_description {
+  blog_category_id Int
+  language_id      Int
+  name             String @default("") @db.VarChar(255)
+  description      String @db.Text
+  meta_description String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_title       String @db.VarChar(255)
+  meta_h1          String @db.VarChar(255)
+
+  @@id([blog_category_id, language_id])
+  @@index([name], map: "name")
+}
+
+model bc_blog_category_path {
+  blog_category_id Int
+  path_id          Int
+  level            Int
+
+  @@id([blog_category_id, path_id])
+}
+
+model bc_blog_category_to_layout {
+  blog_category_id Int
+  store_id         Int
+  layout_id        Int
+
+  @@id([blog_category_id, store_id])
+}
+
+model bc_blog_category_to_store {
+  blog_category_id Int
+  store_id         Int
+
+  @@id([blog_category_id, store_id])
+}
+
+model bc_cart {
+  cart_id      Int      @id @default(autoincrement()) @db.UnsignedInt
+  api_id       Int
+  customer_id  Int
+  session_id   String   @db.VarChar(32)
+  product_id   Int
+  recurring_id Int
+  option       String   @db.Text
+  quantity     Int
+  date_added   DateTime @db.DateTime(0)
+
+  @@index([api_id, customer_id, session_id, product_id, recurring_id], map: "cart_id")
+}
+
+model bc_category {
+  category_id   Int      @id @default(autoincrement())
+  image         String?  @db.VarChar(255)
+  parent_id     Int      @default(0)
+  top           Boolean
+  column        Int
+  sort_order    Int      @default(0)
+  status        Boolean
+  date_added    DateTime @db.DateTime(0)
+  date_modified DateTime @db.DateTime(0)
+  noindex       Boolean  @default(true)
+  code          String?  @db.VarChar(64)
+
+  @@index([parent_id], map: "parent_id")
+}
+
+model bc_category_description {
+  category_id      Int
+  language_id      Int
+  name             String @db.VarChar(255)
+  description      String @db.Text
+  meta_title       String @db.VarChar(255)
+  meta_description String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_h1          String @db.VarChar(255)
+  seo_keyword      String @db.VarChar(255)
+  seo_h1           String @db.VarChar(255)
+  seo_h2           String @db.VarChar(255)
+  seo_h3           String @db.VarChar(255)
+
+  @@id([category_id, language_id])
+  @@index([name], map: "name")
+}
+
+model bc_category_filter {
+  category_id Int
+  filter_id   Int
+
+  @@id([category_id, filter_id])
+}
+
+model bc_category_path {
+  category_id Int
+  path_id     Int
+  level       Int
+
+  @@id([category_id, path_id])
+}
+
+model bc_category_to_layout {
+  category_id Int
+  store_id    Int
+  layout_id   Int
+
+  @@id([category_id, store_id])
+}
+
+model bc_category_to_store {
+  category_id Int
+  store_id    Int
+
+  @@id([category_id, store_id])
+}
+
+model bc_city {
+  city_id    Int     @id @default(autoincrement())
+  zone_id    Int
+  name       String  @db.VarChar(128)
+  status     Boolean @default(true)
+  code       String  @db.VarChar(32)
+  sort_order Int     @default(0)
+}
+
+model bc_country {
+  country_id        Int     @id @default(autoincrement())
+  name              String  @db.VarChar(128)
+  iso_code_2        String  @db.VarChar(2)
+  iso_code_3        String  @db.VarChar(3)
+  address_format    String  @db.Text
+  postcode_required Boolean
+  status            Boolean @default(true)
+}
+
+model bc_coupon {
+  coupon_id     Int      @id @default(autoincrement())
+  name          String   @db.VarChar(128)
+  code          String   @db.VarChar(20)
+  type          String   @db.Char(1)
+  discount      Decimal  @db.Decimal(15, 4)
+  logged        Boolean
+  shipping      Boolean
+  total         Decimal  @db.Decimal(15, 4)
+  date_start    DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  date_end      DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  uses_total    Int
+  uses_customer String   @db.VarChar(11)
+  status        Boolean
+  date_added    DateTime @db.DateTime(0)
+}
+
+model bc_coupon_category {
+  coupon_id   Int
+  category_id Int
+
+  @@id([coupon_id, category_id])
+}
+
+model bc_coupon_history {
+  coupon_history_id Int      @id @default(autoincrement())
+  coupon_id         Int
+  order_id          Int
+  customer_id       Int
+  amount            Decimal  @db.Decimal(15, 4)
+  date_added        DateTime @db.DateTime(0)
+}
+
+model bc_coupon_product {
+  coupon_product_id Int @id @default(autoincrement())
+  coupon_id         Int
+  product_id        Int
+}
+
+model bc_currency {
+  currency_id   Int      @id @default(autoincrement())
+  title         String   @db.VarChar(32)
+  code          String   @db.VarChar(3)
+  symbol_left   String   @db.VarChar(12)
+  symbol_right  String   @db.VarChar(12)
+  decimal_place String   @db.Char(1)
+  value         Float
+  status        Boolean
+  date_modified DateTime @db.DateTime(0)
+}
+
+model bc_custom_field {
+  custom_field_id Int     @id @default(autoincrement())
+  type            String  @db.VarChar(32)
+  value           String  @db.Text
+  validation      String  @db.VarChar(255)
+  location        String  @db.VarChar(10)
+  status          Boolean
+  sort_order      Int
+}
+
+model bc_custom_field_customer_group {
+  custom_field_id   Int
+  customer_group_id Int
+  required          Boolean
+
+  @@id([custom_field_id, customer_group_id])
+}
+
+model bc_custom_field_description {
+  custom_field_id Int
+  language_id     Int
+  name            String @db.VarChar(128)
+
+  @@id([custom_field_id, language_id])
+}
+
+model bc_custom_field_value {
+  custom_field_value_id Int @id @default(autoincrement())
+  custom_field_id       Int
+  sort_order            Int
+}
+
+model bc_custom_field_value_description {
+  custom_field_value_id Int
+  language_id           Int
+  custom_field_id       Int
+  name                  String @db.VarChar(128)
+
+  @@id([custom_field_value_id, language_id])
+}
+
+model bc_customer {
+  customer_id       Int      @id @default(autoincrement())
+  customer_group_id Int
+  store_id          Int      @default(0)
+  language_id       Int
+  firstname         String   @db.VarChar(32)
+  lastname          String   @db.VarChar(32)
+  email             String   @db.VarChar(96)
+  telephone         String   @db.VarChar(32)
+  fax               String   @db.VarChar(32)
+  password          String   @db.VarChar(40)
+  salt              String   @db.VarChar(9)
+  cart              String?  @db.Text
+  wishlist          String?  @db.Text
+  newsletter        Boolean  @default(false)
+  address_id        Int      @default(0)
+  custom_field      String   @db.Text
+  ip                String   @db.VarChar(40)
+  status            Boolean
+  safe              Boolean
+  token             String   @db.Text
+  code              String   @db.VarChar(40)
+  date_added        DateTime @db.DateTime(0)
+}
+
+model bc_customer_activity {
+  customer_activity_id Int      @id @default(autoincrement())
+  customer_id          Int
+  key                  String   @db.VarChar(64)
+  data                 String   @db.Text
+  ip                   String   @db.VarChar(40)
+  date_added           DateTime @db.DateTime(0)
+}
+
+model bc_customer_affiliate {
+  customer_id         Int      @id
+  company             String   @db.VarChar(40)
+  website             String   @db.VarChar(255)
+  tracking            String   @db.VarChar(64)
+  commission          Decimal  @default(0.00) @db.Decimal(4, 2)
+  tax                 String   @db.VarChar(64)
+  payment             String   @db.VarChar(6)
+  cheque              String   @db.VarChar(100)
+  paypal              String   @db.VarChar(64)
+  bank_name           String   @db.VarChar(64)
+  bank_branch_number  String   @db.VarChar(64)
+  bank_swift_code     String   @db.VarChar(64)
+  bank_account_name   String   @db.VarChar(64)
+  bank_account_number String   @db.VarChar(64)
+  custom_field        String   @db.Text
+  status              Boolean
+  date_added          DateTime @db.DateTime(0)
+}
+
+model bc_customer_approval {
+  customer_approval_id Int      @id @default(autoincrement())
+  customer_id          Int
+  type                 String   @db.VarChar(9)
+  date_added           DateTime @db.DateTime(0)
+}
+
+model bc_customer_group {
+  customer_group_id Int @id @default(autoincrement())
+  approval          Int
+  sort_order        Int
+}
+
+model bc_customer_group_description {
+  customer_group_id Int
+  language_id       Int
+  name              String @db.VarChar(32)
+  description       String @db.Text
+
+  @@id([customer_group_id, language_id])
+}
+
+model bc_customer_history {
+  customer_history_id Int      @id @default(autoincrement())
+  customer_id         Int
+  comment             String   @db.Text
+  date_added          DateTime @db.DateTime(0)
+}
+
+model bc_customer_ip {
+  customer_ip_id Int      @id @default(autoincrement())
+  customer_id    Int
+  ip             String   @db.VarChar(40)
+  date_added     DateTime @db.DateTime(0)
+
+  @@index([ip], map: "ip")
+}
+
+model bc_customer_login {
+  customer_login_id Int      @id @default(autoincrement())
+  email             String   @db.VarChar(96)
+  ip                String   @db.VarChar(40)
+  total             Int
+  date_added        DateTime @db.DateTime(0)
+  date_modified     DateTime @db.DateTime(0)
+
+  @@index([email], map: "email")
+  @@index([ip], map: "ip")
+}
+
+model bc_customer_online {
+  ip          String   @id @db.VarChar(40)
+  customer_id Int
+  url         String   @db.Text
+  referer     String   @db.Text
+  date_added  DateTime @db.DateTime(0)
+}
+
+model bc_customer_reward {
+  customer_reward_id Int      @id @default(autoincrement())
+  customer_id        Int      @default(0)
+  order_id           Int      @default(0)
+  description        String   @db.Text
+  points             Int      @default(0)
+  date_added         DateTime @db.DateTime(0)
+}
+
+model bc_customer_search {
+  customer_search_id Int      @id @default(autoincrement())
+  store_id           Int
+  language_id        Int
+  customer_id        Int
+  keyword            String   @db.VarChar(255)
+  category_id        Int?
+  sub_category       Boolean
+  description        Boolean
+  products           Int
+  ip                 String   @db.VarChar(40)
+  date_added         DateTime @db.DateTime(0)
+}
+
+model bc_customer_simple_fields {
+  customer_id Int     @id
+  metadata    String? @db.Text
+}
+
+model bc_customer_transaction {
+  customer_transaction_id Int      @id @default(autoincrement())
+  customer_id             Int
+  order_id                Int
+  description             String   @db.Text
+  amount                  Decimal  @db.Decimal(15, 4)
+  date_added              DateTime @db.DateTime(0)
+}
+
+model bc_customer_wishlist {
+  customer_id Int
+  product_id  Int
+  date_added  DateTime @db.DateTime(0)
+
+  @@id([customer_id, product_id])
+}
+
+model bc_download {
+  download_id Int      @id @default(autoincrement())
+  filename    String   @db.VarChar(160)
+  mask        String   @db.VarChar(128)
+  date_added  DateTime @db.DateTime(0)
+}
+
+model bc_download_description {
+  download_id Int
+  language_id Int
+  name        String @db.VarChar(64)
+
+  @@id([download_id, language_id])
+}
+
+model bc_easyphoto_rename_image {
+  item_id    Int      @id @default(autoincrement())
+  product_id Int
+  main       Int
+  old        String   @db.VarChar(512)
+  new        String   @db.VarChar(512)
+  date_added DateTime @db.DateTime(0)
+}
+
+model bc_event {
+  event_id   Int     @id @default(autoincrement())
+  code       String  @db.VarChar(64)
+  trigger    String  @db.Text
+  action     String  @db.Text
+  status     Boolean
+  sort_order Int
+}
+
+model bc_extension {
+  extension_id Int    @id @default(autoincrement())
+  type         String @db.VarChar(32)
+  code         String @db.VarChar(32)
+}
+
+model bc_extension_install {
+  extension_install_id  Int      @id @default(autoincrement())
+  extension_download_id Int
+  filename              String   @db.VarChar(255)
+  date_added            DateTime @db.DateTime(0)
+}
+
+model bc_extension_path {
+  extension_path_id    Int      @id @default(autoincrement())
+  extension_install_id Int
+  path                 String   @db.VarChar(255)
+  date_added           DateTime @db.DateTime(0)
+}
+
+model bc_filter {
+  filter_id       Int @id @default(autoincrement())
+  filter_group_id Int
+  sort_order      Int
+}
+
+model bc_filter_description {
+  filter_id       Int
+  language_id     Int
+  filter_group_id Int
+  name            String @db.VarChar(64)
+
+  @@id([filter_id, language_id])
+}
+
+model bc_filter_group {
+  filter_group_id Int @id @default(autoincrement())
+  sort_order      Int
+}
+
+model bc_filter_group_description {
+  filter_group_id Int
+  language_id     Int
+  name            String @db.VarChar(64)
+
+  @@id([filter_group_id, language_id])
+}
+
+model bc_geo_zone {
+  geo_zone_id   Int      @id @default(autoincrement())
+  name          String   @db.VarChar(32)
+  description   String   @db.VarChar(255)
+  date_added    DateTime @db.DateTime(0)
+  date_modified DateTime @db.DateTime(0)
+}
+
+model bc_information {
+  information_id Int     @id @default(autoincrement())
+  bottom         Int     @default(0)
+  sort_order     Int     @default(0)
+  status         Boolean @default(true)
+  noindex        Boolean @default(true)
+}
+
+model bc_information_description {
+  information_id   Int
+  language_id      Int
+  title            String @db.VarChar(64)
+  description      String @db.MediumText
+  meta_title       String @db.VarChar(255)
+  meta_description String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_h1          String @db.VarChar(255)
+  seo_keyword      String @db.VarChar(255)
+  seo_h1           String @db.VarChar(255)
+  seo_h2           String @db.VarChar(255)
+  seo_h3           String @db.VarChar(255)
+
+  @@id([information_id, language_id])
+}
+
+model bc_information_to_layout {
+  information_id Int
+  store_id       Int
+  layout_id      Int
+
+  @@id([information_id, store_id])
+}
+
+model bc_information_to_store {
+  information_id Int
+  store_id       Int
+
+  @@id([information_id, store_id])
+}
+
+model bc_language {
+  language_id Int     @id @default(autoincrement())
+  name        String  @db.VarChar(32)
+  code        String  @db.VarChar(5)
+  locale      String  @db.VarChar(255)
+  image       String  @db.VarChar(64)
+  directory   String  @db.VarChar(32)
+  sort_order  Int     @default(0)
+  status      Boolean
+
+  @@index([name], map: "name")
+}
+
+model bc_layout {
+  layout_id Int    @id @default(autoincrement())
+  name      String @db.VarChar(64)
+}
+
+model bc_layout_module {
+  layout_module_id Int    @id @default(autoincrement())
+  layout_id        Int
+  code             String @db.VarChar(64)
+  position         String @db.VarChar(14)
+  sort_order       Int
+}
+
+model bc_layout_route {
+  layout_route_id Int    @id @default(autoincrement())
+  layout_id       Int
+  store_id        Int
+  route           String @db.VarChar(64)
+}
+
+model bc_length_class {
+  length_class_id Int     @id @default(autoincrement())
+  value           Decimal @db.Decimal(15, 8)
+}
+
+model bc_length_class_description {
+  length_class_id Int
+  language_id     Int
+  title           String @db.VarChar(32)
+  unit            String @db.VarChar(4)
+
+  @@id([length_class_id, language_id])
+}
+
+model bc_location {
+  location_id Int     @id @default(autoincrement())
+  name        String  @db.VarChar(32)
+  address     String  @db.Text
+  telephone   String  @db.VarChar(32)
+  fax         String  @db.VarChar(32)
+  geocode     String  @db.VarChar(32)
+  image       String? @db.VarChar(255)
+  open        String  @db.Text
+  comment     String  @db.Text
+
+  @@index([name], map: "name")
+}
+
+model bc_manufacturer {
+  manufacturer_id Int     @id @default(autoincrement())
+  name            String  @db.VarChar(64)
+  image           String? @db.VarChar(255)
+  sort_order      Int
+  noindex         Boolean @default(true)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_manufacturer_description {
+  manufacturer_id  Int    @default(0)
+  language_id      Int    @default(0)
+  description      String @db.Text
+  description3     String @db.Text
+  meta_description String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_title       String @db.VarChar(255)
+  meta_h1          String @db.VarChar(255)
+
+  @@ignore
+}
+
+model bc_manufacturer_to_layout {
+  manufacturer_id Int
+  store_id        Int
+  layout_id       Int
+
+  @@id([manufacturer_id, store_id])
+}
+
+model bc_manufacturer_to_store {
+  manufacturer_id Int
+  store_id        Int
+
+  @@id([manufacturer_id, store_id])
+}
+
+model bc_marketing {
+  marketing_id Int      @id @default(autoincrement())
+  name         String   @db.VarChar(32)
+  description  String   @db.Text
+  code         String   @db.VarChar(64)
+  clicks       Int      @default(0)
+  date_added   DateTime @db.DateTime(0)
+}
+
+model bc_modification {
+  modification_id      Int      @id @default(autoincrement())
+  extension_install_id Int
+  name                 String   @db.VarChar(64)
+  code                 String   @db.VarChar(64)
+  author               String   @db.VarChar(64)
+  version              String   @db.VarChar(32)
+  link                 String   @db.VarChar(255)
+  xml                  String   @db.MediumText
+  status               Boolean
+  date_added           DateTime @db.DateTime(0)
+  date_modified        DateTime @db.DateTime(0)
+}
+
+model bc_module {
+  module_id Int    @id @default(autoincrement())
+  name      String @db.VarChar(64)
+  code      String @db.VarChar(32)
+  setting   String @db.Text
+}
+
+model bc_notify_price_change {
+  id           Int      @id @default(autoincrement())
+  id_product   Int
+  product_name String   @db.VarChar(256)
+  language     String   @db.VarChar(256)
+  date         DateTime @db.DateTime(0)
+  name         String   @db.VarChar(256)
+  email        String   @db.VarChar(256)
+}
+
+model bc_notify_price_change_cron {
+  id         Int     @id @default(autoincrement())
+  id_product Int
+  price_old  Decimal @db.Decimal(15, 4)
+  price_new  Decimal @db.Decimal(15, 4)
+}
+
+model bc_novaposhta_cities {
+  CityID                      Int
+  Ref                         String  @id @db.VarChar(36)
+  Description                 String  @db.VarChar(200)
+  DescriptionRu               String  @db.VarChar(200)
+  Area                        String  @db.VarChar(36)
+  SettlementType              String  @db.VarChar(36)
+  SettlementTypeDescription   String  @db.VarChar(200)
+  SettlementTypeDescriptionRu String  @db.VarChar(200)
+  Delivery1                   Boolean
+  Delivery2                   Boolean
+  Delivery3                   Boolean
+  Delivery4                   Boolean
+  Delivery5                   Boolean
+  Delivery6                   Boolean
+  Delivery7                   Boolean
+  Conglomerates               String  @db.Text
+  PreventEntryNewStreetsUser  String  @db.Text
+  IsBranch                    Boolean
+  SpecialCashCheck            Boolean
+
+  @@index([Area], map: "Area")
+  @@index([CityID], map: "CityID")
+  @@index([SettlementType], map: "SettlementType")
+}
+
+model bc_novaposhta_references {
+  type  String @unique(map: "type") @db.VarChar(100)
+  value String @db.MediumText
+}
+
+model bc_novaposhta_warehouses {
+  SiteKey               Int
+  Ref                   String  @id @db.VarChar(36)
+  Description           String  @db.VarChar(500)
+  DescriptionRu         String  @db.VarChar(500)
+  ShortAddress          String  @db.VarChar(500)
+  ShortAddressRu        String  @db.VarChar(500)
+  TypeOfWarehouse       String  @db.VarChar(36)
+  CityRef               String  @db.VarChar(36)
+  CityDescription       String  @db.VarChar(200)
+  CityDescriptionRu     String  @db.VarChar(200)
+  Number                Int
+  Phone                 String  @db.VarChar(50)
+  Longitude             Float
+  Latitude              Float
+  PostFinance           Boolean
+  BicycleParking        Boolean
+  PaymentAccess         Boolean
+  POSTerminal           Boolean
+  InternationalShipping Boolean
+  TotalMaxWeightAllowed Int
+  PlaceMaxWeightAllowed Int
+  Reception             String  @db.Text
+  Delivery              String  @db.Text
+  Schedule              String  @db.Text
+  DistrictCode          String  @db.VarChar(20)
+  WarehouseStatus       String  @db.VarChar(20)
+  CategoryOfWarehouse   String  @db.VarChar(20)
+
+  @@index([CityRef], map: "CityRef")
+  @@index([SiteKey], map: "SiteKey")
+  @@index([TypeOfWarehouse], map: "TypeOfWarehouse")
+}
+
+model bc_ocfilter_option {
+  option_id  Int     @id @default(autoincrement())
+  type       String  @default("checkbox") @db.VarChar(16)
+  keyword    String  @default("") @db.VarChar(255)
+  selectbox  Boolean @default(false)
+  grouping   Int     @default(0) @db.TinyInt
+  color      Boolean @default(false)
+  image      Boolean @default(false)
+  status     Boolean @default(true)
+  sort_order Int     @default(0)
+
+  @@index([keyword], map: "keyword")
+  @@index([sort_order], map: "sort_order")
+}
+
+model bc_ocfilter_option_description {
+  option_id   Int
+  language_id Int    @db.TinyInt
+  name        String @default("") @db.VarChar(255)
+  postfix     String @default("") @db.VarChar(32)
+  description String @default("") @db.VarChar(255)
+
+  @@id([option_id, language_id])
+}
+
+model bc_ocfilter_option_to_category {
+  option_id   Int
+  category_id Int
+
+  @@id([category_id, option_id])
+  @@index([category_id], map: "category_id")
+}
+
+model bc_ocfilter_option_to_store {
+  option_id Int
+  store_id  Int
+
+  @@id([store_id, option_id])
+}
+
+model bc_ocfilter_option_value {
+  value_id   BigInt @id @default(autoincrement())
+  option_id  Int    @default(0)
+  keyword    String @default("") @db.VarChar(255)
+  color      String @default("") @db.VarChar(6)
+  image      String @default("") @db.VarChar(255)
+  sort_order Int    @default(0)
+
+  @@index([keyword], map: "keyword")
+  @@index([option_id], map: "option_id")
+}
+
+model bc_ocfilter_option_value_description {
+  value_id    BigInt
+  option_id   Int
+  language_id Int    @db.TinyInt
+  name        String @default("") @db.VarChar(255)
+
+  @@id([value_id, language_id])
+  @@index([name], map: "name")
+  @@index([option_id], map: "option_id")
+}
+
+model bc_ocfilter_option_value_to_product {
+  ocfilter_option_value_to_product_id Int     @id @default(autoincrement())
+  product_id                          Int
+  option_id                           Int
+  value_id                            BigInt
+  slide_value_min                     Decimal @default(0.0000) @db.Decimal(15, 4)
+  slide_value_max                     Decimal @default(0.0000) @db.Decimal(15, 4)
+
+  @@unique([option_id, value_id, product_id], map: "option_id_value_id_product_id")
+  @@index([product_id], map: "product_id")
+  @@index([slide_value_min, slide_value_max], map: "slide_value_min_slide_value_max")
+}
+
+model bc_ocfilter_option_value_to_product_description {
+  product_id  Int
+  value_id    BigInt
+  option_id   Int
+  language_id Int    @db.TinyInt
+  description String @default("") @db.VarChar(255)
+
+  @@id([product_id, value_id, option_id, language_id])
+}
+
+model bc_ocfilter_page {
+  ocfilter_page_id Int     @id @default(autoincrement())
+  category_id      Int     @default(0)
+  keyword          String  @db.VarChar(255)
+  params           String  @db.VarChar(255)
+  over             String  @default("category")
+  status           Boolean @default(true)
+
+  @@index([category_id, params], map: "category_id_params")
+  @@index([keyword], map: "keyword")
+}
+
+model bc_ocfilter_page_description {
+  ocfilter_page_id Int    @default(0)
+  language_id      Int    @default(0)
+  meta_title       String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_description String @db.VarChar(255)
+  description      String @db.Text
+  title            String @db.VarChar(128)
+
+  @@id([ocfilter_page_id, language_id])
+}
+
+model bc_option {
+  option_id  Int    @id @default(autoincrement())
+  type       String @db.VarChar(32)
+  sort_order Int
+}
+
+model bc_option_description {
+  option_id   Int
+  language_id Int
+  name        String @db.VarChar(128)
+
+  @@id([option_id, language_id])
+}
+
+model bc_option_value {
+  option_value_id Int    @id @default(autoincrement())
+  option_id       Int
+  image           String @db.VarChar(255)
+  sort_order      Int
+}
+
+model bc_option_value_description {
+  option_value_id Int
+  language_id     Int
+  option_id       Int
+  name            String @db.VarChar(128)
+
+  @@id([option_value_id, language_id])
+}
+
+model bc_order {
+  order_id                Int      @id @default(autoincrement())
+  invoice_no              Int      @default(0)
+  invoice_prefix          String   @db.VarChar(26)
+  novaposhta_cn_number    String   @db.VarChar(100)
+  novaposhta_cn_ref       String   @db.VarChar(100)
+  store_id                Int      @default(0)
+  store_name              String   @db.VarChar(64)
+  store_url               String   @db.VarChar(255)
+  customer_id             Int      @default(0)
+  customer_group_id       Int      @default(0)
+  firstname               String   @db.VarChar(32)
+  lastname                String   @db.VarChar(32)
+  email                   String   @db.VarChar(96)
+  telephone               String   @db.VarChar(32)
+  fax                     String   @db.VarChar(32)
+  custom_field            String   @db.Text
+  payment_firstname       String   @db.VarChar(32)
+  payment_lastname        String   @db.VarChar(32)
+  payment_company         String   @db.VarChar(60)
+  payment_address_1       String   @db.VarChar(128)
+  payment_address_2       String   @db.VarChar(128)
+  payment_city            String   @db.VarChar(128)
+  payment_postcode        String   @db.VarChar(10)
+  payment_country         String   @db.VarChar(128)
+  payment_country_id      Int
+  payment_zone            String   @db.VarChar(128)
+  payment_zone_id         Int
+  payment_address_format  String   @db.Text
+  payment_custom_field    String   @db.Text
+  payment_method          String   @db.VarChar(128)
+  payment_code            String   @db.VarChar(128)
+  shipping_firstname      String   @db.VarChar(32)
+  shipping_lastname       String   @db.VarChar(32)
+  shipping_company        String   @db.VarChar(40)
+  shipping_address_1      String   @db.VarChar(128)
+  shipping_address_2      String   @db.VarChar(128)
+  shipping_city           String   @db.VarChar(128)
+  shipping_postcode       String   @db.VarChar(10)
+  shipping_country        String   @db.VarChar(128)
+  shipping_country_id     Int
+  shipping_zone           String   @db.VarChar(128)
+  shipping_zone_id        Int
+  shipping_address_format String   @db.Text
+  shipping_custom_field   String   @db.Text
+  shipping_method         String   @db.VarChar(128)
+  shipping_code           String   @db.VarChar(128)
+  comment                 String   @db.Text
+  total                   Decimal  @default(0.0000) @db.Decimal(15, 4)
+  order_status_id         Int      @default(0)
+  affiliate_id            Int
+  commission              Decimal  @db.Decimal(15, 4)
+  marketing_id            Int
+  tracking                String   @db.VarChar(64)
+  language_id             Int
+  currency_id             Int
+  currency_code           String   @db.VarChar(3)
+  currency_value          Decimal  @default(1.00000000) @db.Decimal(15, 8)
+  ip                      String   @db.VarChar(40)
+  forwarded_ip            String   @db.VarChar(40)
+  user_agent              String   @db.VarChar(255)
+  accept_language         String   @db.VarChar(255)
+  date_added              DateTime @db.DateTime(0)
+  date_modified           DateTime @db.DateTime(0)
+}
+
+model bc_order_history {
+  order_history_id Int      @id @default(autoincrement())
+  order_id         Int
+  order_status_id  Int
+  notify           Boolean  @default(false)
+  comment          String   @db.Text
+  date_added       DateTime @db.DateTime(0)
+}
+
+model bc_order_option {
+  order_option_id         Int    @id @default(autoincrement())
+  order_id                Int
+  order_product_id        Int
+  product_option_id       Int
+  product_option_value_id Int    @default(0)
+  name                    String @db.VarChar(255)
+  value                   String @db.Text
+  type                    String @db.VarChar(32)
+}
+
+model bc_order_product {
+  order_product_id Int     @id @default(autoincrement())
+  order_id         Int
+  product_id       Int
+  name             String  @db.VarChar(255)
+  model            String  @db.VarChar(64)
+  quantity         Int
+  price            Decimal @default(0.0000) @db.Decimal(15, 4)
+  total            Decimal @default(0.0000) @db.Decimal(15, 4)
+  tax              Decimal @default(0.0000) @db.Decimal(15, 4)
+  reward           Int
+
+  @@index([order_id], map: "order_id")
+}
+
+model bc_order_recurring {
+  order_recurring_id    Int      @id @default(autoincrement())
+  order_id              Int
+  reference             String   @db.VarChar(255)
+  product_id            Int
+  product_name          String   @db.VarChar(255)
+  product_quantity      Int
+  recurring_id          Int
+  recurring_name        String   @db.VarChar(255)
+  recurring_description String   @db.VarChar(255)
+  recurring_frequency   String   @db.VarChar(25)
+  recurring_cycle       Int      @db.SmallInt
+  recurring_duration    Int      @db.SmallInt
+  recurring_price       Decimal  @db.Decimal(10, 4)
+  trial                 Boolean
+  trial_frequency       String   @db.VarChar(25)
+  trial_cycle           Int      @db.SmallInt
+  trial_duration        Int      @db.SmallInt
+  trial_price           Decimal  @db.Decimal(10, 4)
+  status                Int      @db.TinyInt
+  date_added            DateTime @db.DateTime(0)
+}
+
+model bc_order_recurring_transaction {
+  order_recurring_transaction_id Int      @id @default(autoincrement())
+  order_recurring_id             Int
+  reference                      String   @db.VarChar(255)
+  type                           String   @db.VarChar(255)
+  amount                         Decimal  @db.Decimal(10, 4)
+  date_added                     DateTime @db.DateTime(0)
+}
+
+model bc_order_shipment {
+  order_shipment_id   Int      @id @default(autoincrement())
+  order_id            Int
+  date_added          DateTime @db.DateTime(0)
+  shipping_courier_id String   @default("") @db.VarChar(255)
+  tracking_number     String   @default("") @db.VarChar(255)
+}
+
+model bc_order_simple_fields {
+  order_id         Int     @id
+  metadata         String? @db.Text
+  payment_field20  String? @db.Text
+  shipping_field20 String? @db.Text
+}
+
+model bc_order_status {
+  order_status_id Int    @default(autoincrement())
+  language_id     Int
+  name            String @db.VarChar(32)
+
+  @@id([order_status_id, language_id])
+}
+
+model bc_order_total {
+  order_total_id Int     @id @default(autoincrement())
+  order_id       Int
+  code           String  @db.VarChar(32)
+  title          String  @db.VarChar(255)
+  value          Decimal @default(0.0000) @db.Decimal(15, 4)
+  sort_order     Int
+
+  @@index([order_id], map: "order_id")
+}
+
+model bc_order_voucher {
+  order_voucher_id Int     @id @default(autoincrement())
+  order_id         Int
+  voucher_id       Int
+  description      String  @db.VarChar(255)
+  code             String  @db.VarChar(10)
+  from_name        String  @db.VarChar(64)
+  from_email       String  @db.VarChar(96)
+  to_name          String  @db.VarChar(64)
+  to_email         String  @db.VarChar(96)
+  voucher_theme_id Int
+  message          String  @db.Text
+  amount           Decimal @db.Decimal(15, 4)
+}
+
+model bc_pavnewsletter_draft {
+  draft_id          Int       @id @default(autoincrement())
+  store_id          Int?      @default(0)
+  to                String?   @db.VarChar(200)
+  subject           String?   @db.VarChar(200)
+  message           String?   @db.Text
+  customer_group_id Int?
+  customer          String?   @db.VarChar(255)
+  affiliate         String?   @db.VarChar(255)
+  product           String?   @db.VarChar(255)
+  date_added        DateTime? @db.DateTime(0)
+}
+
+model bc_pavnewsletter_email {
+  email_id               Int       @id @default(autoincrement())
+  template_id            Int?
+  language_id            Int?
+  subject                String?   @db.VarChar(200)
+  attach                 String?   @db.VarChar(200)
+  message                String?   @db.Text
+  customer_group_id      Int?
+  affiliate              String?   @db.VarChar(255)
+  customer               String?   @db.VarChar(255)
+  product                String?   @db.VarChar(255)
+  defined                String?   @db.VarChar(255)
+  special                String?   @db.VarChar(255)
+  latest                 String?   @db.VarChar(255)
+  popular                String?   @db.VarChar(255)
+  defined_categories     String?   @db.VarChar(255)
+  categories             String?   @db.VarChar(255)
+  defined_products       String?   @db.VarChar(255)
+  defined_products_more  String?   @db.VarChar(255)
+  only_selected_language Int?
+  store_id               Int?
+  to                     String?   @db.VarChar(200)
+  date_added             DateTime? @db.DateTime(0)
+}
+
+model bc_pavnewsletter_history {
+  id          Int       @id @default(autoincrement())
+  language_id Int
+  template_id Int
+  public_id   Int
+  store_id    Int
+  to          String    @db.VarChar(255)
+  subject     String?   @db.Text
+  message     String?   @db.Text
+  date_added  DateTime? @db.DateTime(0)
+}
+
+model bc_pavnewsletter_subscribe {
+  subscribe_id Int     @id @default(autoincrement())
+  customer_id  Int?    @default(0)
+  store_id     Int?
+  email        String? @db.VarChar(200)
+  action       Int?    @default(1) @db.TinyInt
+}
+
+model bc_pavnewsletter_template {
+  template_id   Int       @id @default(autoincrement())
+  name          String?   @db.VarChar(200)
+  hits          Int?      @default(0) @db.TinyInt
+  template_file String?   @db.VarChar(200)
+  is_default    Boolean?  @default(false)
+  date_added    DateTime? @db.DateTime(0)
+  ordering      Int?
+  date_modified DateTime? @db.DateTime(0)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_pavnewsletter_template_description {
+  template_id      Int?
+  language_id      Int?
+  subject          String? @db.VarChar(200)
+  template_message String? @db.Text
+
+  @@ignore
+}
+
+model bc_product {
+  product_id      Int      @id @default(autoincrement())
+  model           String   @db.VarChar(64)
+  sku             String   @db.VarChar(64)
+  upc             String   @db.VarChar(12)
+  ean             String   @db.VarChar(14)
+  jan             String   @db.VarChar(13)
+  isbn            String   @db.VarChar(17)
+  mpn             String   @db.VarChar(64)
+  location        String   @db.VarChar(128)
+  quantity        Int      @default(0)
+  stock_status_id Int
+  image           String?  @db.VarChar(255)
+  manufacturer_id Int
+  shipping        Boolean  @default(true)
+  price           Decimal  @default(0.0000) @db.Decimal(15, 4)
+  points          Int      @default(0)
+  tax_class_id    Int
+  date_available  DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  weight          Decimal  @default(0.00000000) @db.Decimal(15, 8)
+  weight_class_id Int      @default(0)
+  length          Decimal  @default(0.00000000) @db.Decimal(15, 8)
+  width           Decimal  @default(0.00000000) @db.Decimal(15, 8)
+  height          Decimal  @default(0.00000000) @db.Decimal(15, 8)
+  length_class_id Int      @default(0)
+  subtract        Boolean  @default(true)
+  minimum         Int      @default(1)
+  sort_order      Int      @default(0)
+  status          Boolean  @default(false)
+  viewed          Int      @default(0)
+  date_added      DateTime @db.DateTime(0)
+  date_modified   DateTime @db.DateTime(0)
+  noindex         Boolean  @default(true)
+  af_values       String?  @db.Text
+  af_tags         String?  @db.Text
+  extra_special   String   @db.VarChar(1023)
+  import_batch    String?  @db.VarChar(64)
+  meta_robots     String   @db.VarChar(40)
+  seo_canonical   String   @db.VarChar(32)
+  new             Int?     @default(0) @db.TinyInt
+  rasprodaja      Int?     @default(0) @db.TinyInt
+
+  @@fulltext([af_tags], map: "af_tags")
+  @@fulltext([af_values], map: "af_values")
+}
+
+model bc_product_attribute {
+  product_id   Int
+  attribute_id Int
+  language_id  Int
+  text         String @db.Text
+
+  @@id([product_id, attribute_id, language_id])
+}
+
+model bc_product_description {
+  product_id       Int
+  language_id      Int
+  name             String @db.VarChar(255)
+  description      String @db.Text
+  tag              String @db.Text
+  meta_title       String @db.VarChar(255)
+  meta_description String @db.VarChar(255)
+  meta_keyword     String @db.VarChar(255)
+  meta_h1          String @db.VarChar(255)
+  seo_keyword      String @db.VarChar(255)
+  seo_h1           String @db.VarChar(255)
+  seo_h2           String @db.VarChar(255)
+  seo_h3           String @db.VarChar(255)
+  image_title      String @db.VarChar(255)
+  image_alt        String @db.VarChar(255)
+
+  @@id([product_id, language_id])
+  @@index([name], map: "name")
+  @@fulltext([name, description], map: "related_generator")
+}
+
+model bc_product_discount {
+  product_discount_id Int      @id @default(autoincrement())
+  product_id          Int
+  customer_group_id   Int
+  quantity            Int      @default(0)
+  priority            Int      @default(1)
+  price               Decimal  @default(0.0000) @db.Decimal(15, 4)
+  date_start          DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  date_end            DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+
+  @@index([product_id], map: "product_id")
+}
+
+model bc_product_feed {
+  product_feed_id        Int      @id @default(autoincrement())
+  language_id            Int
+  feed_name              String   @db.VarChar(128)
+  feed_shortname         String   @db.VarChar(128)
+  status                 Int?     @default(0)
+  id_format              Int?
+  use_main_category      Int?     @default(0)
+  use_categories         Int?     @default(0)
+  replace_break          Int?     @default(0)
+  not_unload             String   @db.Text
+  categories             String   @db.Text
+  manufacturers          String   @db.Text
+  option_status          Int?     @default(0)
+  currency               String?  @default("UAH") @db.VarChar(3)
+  image_width            Int?     @default(600)
+  image_height           Int?     @default(600)
+  ip_list                String   @db.VarChar(128)
+  data_file              String   @db.VarChar(128)
+  sql_code               String   @db.Text
+  sql_code_before        String   @db.Text
+  use_original_images    Int?     @default(0)
+  product_markup         Decimal? @default(0.00) @db.Decimal(10, 2)
+  product_markup_option  Decimal? @default(0.00) @db.Decimal(10, 2)
+  product_markup_type    Int?     @default(0)
+  image_pass             Int?     @default(0)
+  warehouses             String   @db.Text
+  use_warehouse_quantity Int?     @default(0)
+  products               String   @db.Text
+  store_id               Int
+  exclude_empty_product  Int?     @default(0)
+  pictures_limit         Int?     @default(10)
+  cat_names_separathor   String?  @default(" > ") @db.VarChar(7)
+  product_id             String   @default("") @db.VarChar(128)
+}
+
+model bc_product_feed_categories {
+  category_id     Int    @id @default(autoincrement())
+  parent_id       Int
+  name            String @db.VarChar(255)
+  system_category Int
+  level           Int?   @default(0)
+}
+
+model bc_product_feed_categories_path {
+  category_id Int
+  path_id     Int
+  level       Int
+
+  @@id([category_id, path_id])
+}
+
+model bc_product_feed_format {
+  product_feed_format_id Int    @id @default(autoincrement())
+  feed_format_name       String @db.VarChar(128)
+  format_xml             String @db.Text
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_product_feed_to_store {
+  product_feed_id Int
+  store_id        Int
+
+  @@ignore
+}
+
+model bc_product_filter {
+  product_id Int
+  filter_id  Int
+
+  @@id([product_id, filter_id])
+}
+
+model bc_product_image {
+  product_image_id Int     @id @default(autoincrement())
+  product_id       Int
+  image            String? @db.VarChar(255)
+  sort_order       Int     @default(0)
+
+  @@index([product_id], map: "product_id")
+}
+
+model bc_product_option {
+  product_option_id Int     @id @default(autoincrement())
+  product_id        Int
+  option_id         Int
+  value             String  @db.Text
+  required          Boolean
+}
+
+model bc_product_option_value {
+  product_option_value_id Int     @id @default(autoincrement())
+  product_option_id       Int
+  product_id              Int
+  option_id               Int
+  option_value_id         Int
+  quantity                Int
+  subtract                Boolean
+  reserved                Boolean @default(false)
+  price                   Decimal @db.Decimal(15, 4)
+  price_prefix            String  @db.VarChar(1)
+  points                  Int
+  points_prefix           String  @db.VarChar(1)
+  weight                  Decimal @db.Decimal(15, 8)
+  weight_prefix           String  @db.VarChar(1)
+}
+
+model bc_product_recurring {
+  product_id        Int
+  recurring_id      Int
+  customer_group_id Int
+
+  @@id([product_id, recurring_id, customer_group_id])
+}
+
+model bc_product_related {
+  product_id Int
+  related_id Int
+
+  @@id([product_id, related_id])
+}
+
+model bc_product_related_article {
+  article_id Int
+  product_id Int
+
+  @@id([article_id, product_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_product_related_mn {
+  product_id      Int
+  manufacturer_id Int
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_product_related_wb {
+  product_id  Int
+  category_id Int
+
+  @@ignore
+}
+
+model bc_product_reward {
+  product_reward_id Int @id @default(autoincrement())
+  product_id        Int @default(0)
+  customer_group_id Int @default(0)
+  points            Int @default(0)
+}
+
+model bc_product_special {
+  product_special_id       Int      @id @default(autoincrement())
+  product_id               Int
+  customer_group_id        Int
+  priority                 Int      @default(1)
+  price                    Decimal  @default(0.0000) @db.Decimal(15, 4)
+  date_start               DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  date_end                 DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  timer                    Int      @default(1)
+  product_special_group_id Int
+
+  @@index([product_id], map: "product_id")
+}
+
+model bc_product_special_group {
+  product_special_group_id Int    @id @default(autoincrement())
+  name                     String @db.VarChar(100)
+}
+
+model bc_product_to_category {
+  product_id    Int
+  category_id   Int
+  main_category Boolean @default(false)
+
+  @@id([product_id, category_id])
+  @@index([category_id], map: "category_id")
+}
+
+model bc_product_to_download {
+  product_id  Int
+  download_id Int
+
+  @@id([product_id, download_id])
+}
+
+model bc_product_to_feed_category {
+  id              Int @id @default(autoincrement())
+  product_id      Int
+  product_feed_id Int
+  category_id     Int
+}
+
+model bc_product_to_layout {
+  product_id Int
+  store_id   Int
+  layout_id  Int
+
+  @@id([product_id, store_id])
+}
+
+model bc_product_to_store {
+  product_id Int
+  store_id   Int @default(0)
+
+  @@id([product_id, store_id])
+}
+
+model bc_recurring {
+  recurring_id    Int                          @id @default(autoincrement())
+  price           Decimal                      @db.Decimal(10, 4)
+  frequency       bc_recurring_frequency
+  duration        Int                          @db.UnsignedInt
+  cycle           Int                          @db.UnsignedInt
+  trial_status    Int                          @db.TinyInt
+  trial_price     Decimal                      @db.Decimal(10, 4)
+  trial_frequency bc_recurring_trial_frequency
+  trial_duration  Int                          @db.UnsignedInt
+  trial_cycle     Int                          @db.UnsignedInt
+  status          Int                          @db.TinyInt
+  sort_order      Int
+}
+
+model bc_recurring_description {
+  recurring_id Int
+  language_id  Int
+  name         String @db.VarChar(255)
+
+  @@id([recurring_id, language_id])
+}
+
+model bc_return {
+  return_id        Int      @id @default(autoincrement())
+  order_id         Int
+  product_id       Int
+  customer_id      Int
+  firstname        String   @db.VarChar(32)
+  lastname         String   @db.VarChar(32)
+  email            String   @db.VarChar(96)
+  telephone        String   @db.VarChar(32)
+  product          String   @db.VarChar(255)
+  model            String   @db.VarChar(64)
+  quantity         Int
+  opened           Boolean
+  return_reason_id Int
+  return_action_id Int
+  return_status_id Int
+  comment          String?  @db.Text
+  date_ordered     DateTime @default(dbgenerated("('0000-00-00')")) @db.Date
+  date_added       DateTime @db.DateTime(0)
+  date_modified    DateTime @db.DateTime(0)
+}
+
+model bc_return_action {
+  return_action_id Int    @default(autoincrement())
+  language_id      Int    @default(0)
+  name             String @db.VarChar(64)
+
+  @@id([return_action_id, language_id])
+}
+
+model bc_return_history {
+  return_history_id Int      @id @default(autoincrement())
+  return_id         Int
+  return_status_id  Int
+  notify            Boolean
+  comment           String   @db.Text
+  date_added        DateTime @db.DateTime(0)
+}
+
+model bc_return_reason {
+  return_reason_id Int    @default(autoincrement())
+  language_id      Int    @default(0)
+  name             String @db.VarChar(128)
+
+  @@id([return_reason_id, language_id])
+}
+
+model bc_return_status {
+  return_status_id Int    @default(autoincrement())
+  language_id      Int    @default(0)
+  name             String @db.VarChar(32)
+
+  @@id([return_status_id, language_id])
+}
+
+model bc_review {
+  review_id     Int      @id @default(autoincrement())
+  product_id    Int
+  customer_id   Int
+  author        String   @db.VarChar(64)
+  text          String   @db.Text
+  rating        Int
+  status        Boolean  @default(false)
+  date_added    DateTime @db.DateTime(0)
+  date_modified DateTime @db.DateTime(0)
+
+  @@index([product_id], map: "product_id")
+}
+
+model bc_review_article {
+  review_article_id Int      @id @default(autoincrement())
+  article_id        Int
+  customer_id       Int
+  author            String   @default("") @db.VarChar(64)
+  text              String   @db.Text
+  rating            Int
+  status            Boolean  @default(false)
+  date_added        DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  date_modified     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+
+  @@index([article_id], map: "article_id")
+}
+
+model bc_review_image {
+  review_image_id Int     @id @default(autoincrement())
+  review_id       Int
+  image_name      String? @db.VarChar(255)
+  mime            String  @db.VarChar(255)
+  data            Bytes   @db.Blob
+  sort_order      Int     @default(0)
+  image_size      Int
+}
+
+model bc_seo_manufacturer_description {
+  manufacturer_id  Int
+  language_id      Int    @default(0)
+  store_id         Int    @default(0)
+  name             String @default("") @db.VarChar(255)
+  description      String @db.Text
+  meta_title       String @default("") @db.VarChar(255)
+  meta_description String @default("") @db.VarChar(255)
+  meta_keyword     String @default("") @db.VarChar(255)
+  seo_h1           String @default("") @db.VarChar(255)
+  seo_h2           String @default("") @db.VarChar(255)
+  seo_h3           String @default("") @db.VarChar(255)
+
+  @@id([manufacturer_id, language_id, store_id])
+}
+
+model bc_seo_url {
+  seo_url_id  Int    @id @default(autoincrement())
+  store_id    Int
+  language_id Int
+  query       String @db.VarChar(255)
+  keyword     String @db.VarChar(255)
+
+  @@index([keyword], map: "keyword")
+  @@index([query], map: "query")
+}
+
+model bc_session {
+  session_id String   @id @db.VarChar(32)
+  data       String   @db.MediumText
+  expire     DateTime @db.DateTime(0)
+}
+
+model bc_setting {
+  setting_id Int     @id @default(autoincrement())
+  store_id   Int     @default(0)
+  code       String  @db.VarChar(128)
+  key        String  @db.VarChar(128)
+  value      String  @db.MediumText
+  serialized Boolean
+}
+
+model bc_shipping_courier {
+  shipping_courier_id   Int    @id
+  shipping_courier_code String @default("") @db.VarChar(255)
+  shipping_courier_name String @default("") @db.VarChar(255)
+}
+
+model bc_simple_cart {
+  simple_cart_id Int      @id @default(autoincrement())
+  store_id       Int?
+  customer_id    Int?
+  email          String?  @db.VarChar(96)
+  firstname      String?  @db.VarChar(32)
+  lastname       String?  @db.VarChar(32)
+  telephone      String?  @db.VarChar(32)
+  products       String?  @db.Text
+  date_added     DateTime @db.DateTime(0)
+}
+
+model bc_sizechart {
+  sizechart_id  Int     @id @default(autoincrement())
+  sort_order    Int     @default(0)
+  status        Boolean @default(true)
+  sizechart     String  @db.LongText
+  chart_numbers Int
+  display       String  @db.VarChar(255)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_sizechart_category {
+  sizechart_id Int
+  category_id  Int
+
+  @@ignore
+}
+
+model bc_sizechart_description {
+  sizechart_id Int
+  language_id  Int
+  title        String @db.VarChar(64)
+  description  String @db.Text
+
+  @@id([sizechart_id, language_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bc_sizechart_product {
+  sizechart_id Int
+  product_id   Int
+
+  @@ignore
+}
+
+model bc_statistics {
+  statistics_id Int     @id @default(autoincrement())
+  code          String  @db.VarChar(64)
+  value         Decimal @db.Decimal(15, 4)
+}
+
+model bc_stock_status {
+  stock_status_id Int    @default(autoincrement())
+  language_id     Int
+  name            String @db.VarChar(32)
+
+  @@id([stock_status_id, language_id])
+}
+
+model bc_store {
+  store_id Int    @id @default(autoincrement())
+  name     String @db.VarChar(64)
+  url      String @db.VarChar(255)
+  ssl      String @db.VarChar(255)
+}
+
+model bc_tax_class {
+  tax_class_id  Int      @id @default(autoincrement())
+  title         String   @db.VarChar(32)
+  description   String   @db.VarChar(255)
+  date_added    DateTime @db.DateTime(0)
+  date_modified DateTime @db.DateTime(0)
+}
+
+model bc_tax_rate {
+  tax_rate_id   Int      @id @default(autoincrement())
+  geo_zone_id   Int      @default(0)
+  name          String   @db.VarChar(32)
+  rate          Decimal  @default(0.0000) @db.Decimal(15, 4)
+  type          String   @db.Char(1)
+  date_added    DateTime @db.DateTime(0)
+  date_modified DateTime @db.DateTime(0)
+}
+
+model bc_tax_rate_to_customer_group {
+  tax_rate_id       Int
+  customer_group_id Int
+
+  @@id([tax_rate_id, customer_group_id])
+}
+
+model bc_tax_rule {
+  tax_rule_id  Int    @id @default(autoincrement())
+  tax_class_id Int
+  tax_rate_id  Int
+  based        String @db.VarChar(10)
+  priority     Int    @default(1)
+}
+
+model bc_theme {
+  theme_id   Int      @id @default(autoincrement())
+  store_id   Int
+  theme      String   @db.VarChar(64)
+  route      String   @db.VarChar(64)
+  code       String   @db.MediumText
+  date_added DateTime @db.DateTime(0)
+}
+
+model bc_translation {
+  translation_id Int      @id @default(autoincrement())
+  store_id       Int
+  language_id    Int
+  route          String   @db.VarChar(64)
+  key            String   @db.VarChar(64)
+  value          String   @db.Text
+  date_added     DateTime @db.DateTime(0)
+}
+
+model bc_upload {
+  upload_id  Int      @id @default(autoincrement())
+  name       String   @db.VarChar(255)
+  filename   String   @db.VarChar(255)
+  code       String   @db.VarChar(255)
+  date_added DateTime @db.DateTime(0)
+}
+
+model bc_url_404 {
+  url_404_id    Int      @id @default(autoincrement())
+  query         String   @db.VarChar(1000)
+  count         Int      @default(0)
+  date_accessed DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([query(length: 333)], map: "query")
+}
+
+model bc_url_absolute {
+  url_absolute_id Int    @id @default(autoincrement())
+  query           String @db.VarChar(1000)
+  redirect        String @db.VarChar(1000)
+  language_id     Int    @default(0)
+
+  @@index([query(length: 333)], map: "query")
+  @@index([redirect(length: 333)], map: "redirect")
+}
+
+model bc_url_redirect {
+  url_redirect_id Int      @id @default(autoincrement())
+  query           String   @db.VarChar(1000)
+  redirect        String   @db.VarChar(1000)
+  language_id     Int      @default(0)
+  date_created    DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([query(length: 333)], map: "query")
+  @@index([redirect(length: 333)], map: "redirect")
+}
+
+model bc_user {
+  user_id       Int      @id @default(autoincrement())
+  user_group_id Int
+  username      String   @db.VarChar(20)
+  password      String   @db.VarChar(40)
+  salt          String   @db.VarChar(9)
+  firstname     String   @db.VarChar(32)
+  lastname      String   @db.VarChar(32)
+  email         String   @db.VarChar(96)
+  image         String   @db.VarChar(255)
+  code          String   @db.VarChar(40)
+  ip            String   @db.VarChar(40)
+  status        Boolean
+  date_added    DateTime @db.DateTime(0)
+}
+
+model bc_user_group {
+  user_group_id Int    @id @default(autoincrement())
+  name          String @db.VarChar(64)
+  permission    String @db.Text
+}
+
+model bc_voucher {
+  voucher_id       Int      @id @default(autoincrement())
+  order_id         Int
+  code             String   @db.VarChar(10)
+  from_name        String   @db.VarChar(64)
+  from_email       String   @db.VarChar(96)
+  to_name          String   @db.VarChar(64)
+  to_email         String   @db.VarChar(96)
+  voucher_theme_id Int
+  message          String   @db.Text
+  amount           Decimal  @db.Decimal(15, 4)
+  status           Boolean
+  date_added       DateTime @db.DateTime(0)
+}
+
+model bc_voucher_history {
+  voucher_history_id Int      @id @default(autoincrement())
+  voucher_id         Int
+  order_id           Int
+  amount             Decimal  @db.Decimal(15, 4)
+  date_added         DateTime @db.DateTime(0)
+}
+
+model bc_voucher_theme {
+  voucher_theme_id Int    @id @default(autoincrement())
+  image            String @db.VarChar(255)
+}
+
+model bc_voucher_theme_description {
+  voucher_theme_id Int
+  language_id      Int
+  name             String @db.VarChar(32)
+
+  @@id([voucher_theme_id, language_id])
+}
+
+model bc_weight_class {
+  weight_class_id Int     @id @default(autoincrement())
+  value           Decimal @default(0.00000000) @db.Decimal(15, 8)
+}
+
+model bc_weight_class_description {
+  weight_class_id Int
+  language_id     Int
+  title           String @db.VarChar(32)
+  unit            String @db.VarChar(4)
+
+  @@id([weight_class_id, language_id])
+}
+
+model bc_zone {
+  zone_id    Int     @id @default(autoincrement())
+  country_id Int
+  name       String  @db.VarChar(128)
+  code       String  @db.VarChar(32)
+  status     Boolean @default(true)
+}
+
+model bc_zone_to_geo_zone {
+  zone_to_geo_zone_id Int      @id @default(autoincrement())
+  country_id          Int
+  zone_id             Int      @default(0)
+  geo_zone_id         Int
+  date_added          DateTime @db.DateTime(0)
+  date_modified       DateTime @db.DateTime(0)
+}
+
+enum bc_recurring_frequency {
+  day
+  week
+  semi_month
+  month
+  year
+}
+
+enum bc_recurring_trial_frequency {
+  day
+  week
+  semi_month
+  month
+  year
+}
