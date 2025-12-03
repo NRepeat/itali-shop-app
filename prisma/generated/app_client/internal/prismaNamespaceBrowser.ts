@@ -50,7 +50,9 @@ export const AnyNull = runtime.objectEnumValues.instances.AnyNull
 
 export const ModelName = {
   Session: 'Session',
-  MetafieldDefinition: 'MetafieldDefinition'
+  MetafieldDefinition: 'MetafieldDefinition',
+  MetaobjectDefinition: 'MetaobjectDefinition',
+  Metaobject: 'Metaobject'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -103,6 +105,30 @@ export const MetafieldDefinitionScalarFieldEnum = {
 } as const
 
 export type MetafieldDefinitionScalarFieldEnum = (typeof MetafieldDefinitionScalarFieldEnum)[keyof typeof MetafieldDefinitionScalarFieldEnum]
+
+
+export const MetaobjectDefinitionScalarFieldEnum = {
+  id: 'id',
+  metaobjecDefinitionId: 'metaobjecDefinitionId',
+  name: 'name',
+  type: 'type',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaobjectDefinitionScalarFieldEnum = (typeof MetaobjectDefinitionScalarFieldEnum)[keyof typeof MetaobjectDefinitionScalarFieldEnum]
+
+
+export const MetaobjectScalarFieldEnum = {
+  id: 'id',
+  metaobjectId: 'metaobjectId',
+  handle: 'handle',
+  type: 'type',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaobjectScalarFieldEnum = (typeof MetaobjectScalarFieldEnum)[keyof typeof MetaobjectScalarFieldEnum]
 
 
 export const SortOrder = {

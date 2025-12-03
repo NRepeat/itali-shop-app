@@ -391,7 +391,9 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Session: 'Session',
-  MetafieldDefinition: 'MetafieldDefinition'
+  MetafieldDefinition: 'MetafieldDefinition',
+  MetaobjectDefinition: 'MetaobjectDefinition',
+  Metaobject: 'Metaobject'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -407,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "metafieldDefinition"
+    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "metaobject"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -559,6 +561,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetaobjectDefinition: {
+      payload: Prisma.$MetaobjectDefinitionPayload<ExtArgs>
+      fields: Prisma.MetaobjectDefinitionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaobjectDefinitionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaobjectDefinitionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaobjectDefinitionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaobjectDefinitionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>
+        }
+        findMany: {
+          args: Prisma.MetaobjectDefinitionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>[]
+        }
+        create: {
+          args: Prisma.MetaobjectDefinitionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>
+        }
+        createMany: {
+          args: Prisma.MetaobjectDefinitionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaobjectDefinitionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaobjectDefinitionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>
+        }
+        update: {
+          args: Prisma.MetaobjectDefinitionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaobjectDefinitionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaobjectDefinitionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaobjectDefinitionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaobjectDefinitionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectDefinitionPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaobjectDefinitionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaobjectDefinition>
+        }
+        groupBy: {
+          args: Prisma.MetaobjectDefinitionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaobjectDefinitionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaobjectDefinitionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaobjectDefinitionCountAggregateOutputType> | number
+        }
+      }
+    }
+    Metaobject: {
+      payload: Prisma.$MetaobjectPayload<ExtArgs>
+      fields: Prisma.MetaobjectFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaobjectFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaobjectFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaobjectFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaobjectFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>
+        }
+        findMany: {
+          args: Prisma.MetaobjectFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>[]
+        }
+        create: {
+          args: Prisma.MetaobjectCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>
+        }
+        createMany: {
+          args: Prisma.MetaobjectCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaobjectCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaobjectDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>
+        }
+        update: {
+          args: Prisma.MetaobjectUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaobjectDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaobjectUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaobjectUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaobjectUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaobjectPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaobjectAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaobject>
+        }
+        groupBy: {
+          args: Prisma.MetaobjectGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaobjectGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaobjectCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaobjectCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -632,6 +782,30 @@ export const MetafieldDefinitionScalarFieldEnum = {
 } as const
 
 export type MetafieldDefinitionScalarFieldEnum = (typeof MetafieldDefinitionScalarFieldEnum)[keyof typeof MetafieldDefinitionScalarFieldEnum]
+
+
+export const MetaobjectDefinitionScalarFieldEnum = {
+  id: 'id',
+  metaobjecDefinitionId: 'metaobjecDefinitionId',
+  name: 'name',
+  type: 'type',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaobjectDefinitionScalarFieldEnum = (typeof MetaobjectDefinitionScalarFieldEnum)[keyof typeof MetaobjectDefinitionScalarFieldEnum]
+
+
+export const MetaobjectScalarFieldEnum = {
+  id: 'id',
+  metaobjectId: 'metaobjectId',
+  handle: 'handle',
+  type: 'type',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaobjectScalarFieldEnum = (typeof MetaobjectScalarFieldEnum)[keyof typeof MetaobjectScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -829,6 +1003,8 @@ export interface PrismaClientOptions {
 export type GlobalOmitConfig = {
   session?: Prisma.SessionOmit
   metafieldDefinition?: Prisma.MetafieldDefinitionOmit
+  metaobjectDefinition?: Prisma.MetaobjectDefinitionOmit
+  metaobject?: Prisma.MetaobjectOmit
 }
 
 /* Types for Logging */

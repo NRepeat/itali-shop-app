@@ -38,3 +38,23 @@ model MetafieldDefinition {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 }
+
+model MetaobjectDefinition {
+  id          String   @id @default(cuid())
+  metaobjecDefinitionId String   @unique
+  name      String   @unique
+  type        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+}
+
+
+
+model Metaobject {
+  id          String   @id @default(cuid())
+  metaobjectId String   @unique
+  handle      String   @unique
+  type        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+}

@@ -54,3 +54,13 @@ export type Session = Prisma.SessionModel
  * 
  */
 export type MetafieldDefinition = Prisma.MetafieldDefinitionModel
+/**
+ * Model MetaobjectDefinition
+ * 
+ */
+export type MetaobjectDefinition = Prisma.MetaobjectDefinitionModel
+/**
+ * Model Metaobject
+ * 
+ */
+export type Metaobject = Prisma.MetaobjectModel

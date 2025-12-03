@@ -10,4 +10,6 @@
  */
 export type * from './models/Session'
 export type * from './models/MetafieldDefinition'
+export type * from './models/MetaobjectDefinition'
+export type * from './models/Metaobject'
 export type * from './commonInputTypes'

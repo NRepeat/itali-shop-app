@@ -1,11 +1,9 @@
-import { useEffect } from "react";
 import type {
   ActionFunctionArgs,
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
 import { useFetcher } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { syncProductMetafields } from "app/service/sync/syncProductMetafields";
@@ -42,6 +40,27 @@ export default function Index() {
       { method: "post", encType: "application/json" },
     );
   };
+  const handleMetaobjectBulkDelete = async () => {
+    fetcher.submit(
+      { action: "metaobjectBulkDelete" },
+      {
+        method: "post",
+        action: "/api/metaobjectBulkDelete",
+        encType: "application/json",
+      },
+    );
+  };
+  const handleMetaobjectDefinitionDelete = async () => {
+    fetcher.submit(
+      { action: "metaobjectDefinitionDelete" },
+      {
+        method: "post",
+        action: "/api/metaobjectDefinitionDelete",
+        encType: "application/json",
+      },
+    );
+  };
+
   return (
     <s-page heading="Itali Shop App">
       <s-section heading="Sync product from italu-shoes">
@@ -57,6 +76,35 @@ export default function Index() {
             Sync
           </s-button>
           <s-button variant="secondary" onClick={handleDelete}>
+            Delete
+          </s-button>
+        </>
+      </s-section>
+      <s-section heading="Metaobject Bulk Delete">
+        <s-paragraph>
+          Bulk delete metaobjects is a crucial feature of the Shopify app
+          template. It allows you to easily delete metaobjects from your Shopify
+          store, ensuring that your inventory is up-to-date and your customers
+          have access to the latest products.
+        </s-paragraph>
+        <>
+          <s-button variant="primary" onClick={handleMetaobjectBulkDelete}>
+            Bulk Delete
+          </s-button>
+        </>
+      </s-section>
+      <s-section heading="Metaobject Definition Delete">
+        <s-paragraph>
+          Delete metaobject definition is a crucial feature of the Shopify app
+          template. It allows you to easily delete metaobject definition from
+          your Shopify store, ensuring that your inventory is up-to-date and
+          your customers have access to the latest products.
+        </s-paragraph>
+        <>
+          <s-button
+            variant="primary"
+            onClick={handleMetaobjectDefinitionDelete}
+          >
             Delete
           </s-button>
         </>
