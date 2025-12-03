@@ -390,7 +390,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
-  Session: 'Session'
+  Session: 'Session',
+  MetafieldDefinition: 'MetafieldDefinition'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -406,7 +407,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session"
+    modelProps: "session" | "metafieldDefinition"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -484,6 +485,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetafieldDefinition: {
+      payload: Prisma.$MetafieldDefinitionPayload<ExtArgs>
+      fields: Prisma.MetafieldDefinitionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetafieldDefinitionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetafieldDefinitionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>
+        }
+        findFirst: {
+          args: Prisma.MetafieldDefinitionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetafieldDefinitionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>
+        }
+        findMany: {
+          args: Prisma.MetafieldDefinitionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>[]
+        }
+        create: {
+          args: Prisma.MetafieldDefinitionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>
+        }
+        createMany: {
+          args: Prisma.MetafieldDefinitionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetafieldDefinitionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>[]
+        }
+        delete: {
+          args: Prisma.MetafieldDefinitionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>
+        }
+        update: {
+          args: Prisma.MetafieldDefinitionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetafieldDefinitionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetafieldDefinitionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetafieldDefinitionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetafieldDefinitionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetafieldDefinitionPayload>
+        }
+        aggregate: {
+          args: Prisma.MetafieldDefinitionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetafieldDefinition>
+        }
+        groupBy: {
+          args: Prisma.MetafieldDefinitionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetafieldDefinitionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetafieldDefinitionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetafieldDefinitionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -542,6 +617,21 @@ export const SessionScalarFieldEnum = {
 } as const
 
 export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
+
+
+export const MetafieldDefinitionScalarFieldEnum = {
+  id: 'id',
+  metafieldId: 'metafieldId',
+  key: 'key',
+  type: 'type',
+  description: 'description',
+  namespace: 'namespace',
+  ownerType: 'ownerType',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetafieldDefinitionScalarFieldEnum = (typeof MetafieldDefinitionScalarFieldEnum)[keyof typeof MetafieldDefinitionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -738,6 +828,7 @@ export interface PrismaClientOptions {
 }
 export type GlobalOmitConfig = {
   session?: Prisma.SessionOmit
+  metafieldDefinition?: Prisma.MetafieldDefinitionOmit
 }
 
 /* Types for Logging */

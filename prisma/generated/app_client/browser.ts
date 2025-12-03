@@ -22,3 +22,8 @@ export * from './enums';
  * 
  */
 export type Session = Prisma.SessionModel
+/**
+ * Model MetafieldDefinition
+ * 
+ */
+export type MetafieldDefinition = Prisma.MetafieldDefinitionModel

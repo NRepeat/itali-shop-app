@@ -1,15 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client"
-  output   = "./generated/app_client"
+  provider     = "prisma-client"
+  output       = "./generated/app_client"
   moduleFormat = "esm"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -31,4 +25,16 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+}
+
+model MetafieldDefinition {
+  id          String   @id @default(cuid())
+  metafieldId String   @unique
+  key         String   @unique
+  type        String
+  description String?
+  namespace   String?
+  ownerType   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
 }

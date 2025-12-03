@@ -49,3 +49,8 @@ path.join(process.cwd(), "prisma/generated/app_client/libquery_engine-darwin-arm
  * 
  */
 export type Session = Prisma.SessionModel
+/**
+ * Model MetafieldDefinition
+ * 
+ */
+export type MetafieldDefinition = Prisma.MetafieldDefinitionModel
