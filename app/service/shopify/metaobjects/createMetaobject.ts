@@ -45,7 +45,7 @@ export const createMetaobject = async (
       );
     }
 
-    return data.data?.metaobjectCreate?.metaobject || null;
+    return data.data?.metaobjectCreate?.metaobject;
   } catch (error) {
     console.error(error);
     return null;

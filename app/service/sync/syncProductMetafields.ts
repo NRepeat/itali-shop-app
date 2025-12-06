@@ -10,26 +10,19 @@ import {
   MetafieldStorefrontAccessInput,
 } from "app/types"; // Ensure all types are correctly imported
 import { getOcFilterMap, getocFilterOptionValues } from "../maps/metafields";
-import { createMetafieldDefinition } from "../shopify/createProductMetafield";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import { prisma } from "app/shared/lib/prisma/prisma.server";
-import { createMetaobjectDefinition } from "../shopify/createMetaobjectDefinition";
-import { createMetaobject } from "../shopify/createMetaobject";
-import { dataArray } from "app/data/categoriesIds";
 
-// Mock interface for the local definition type structure
+import { dataArray } from "app/data/categoriesIds";
+import { createMetaobjectDefinition } from "../shopify/metaobjects/createMetaobjectDefinition";
+import { createMetafieldDefinition } from "../shopify/metafields/createProductMetafield";
+import { createMetaobject } from "../shopify/metaobjects/createMetaobject";
+
 interface LocalMetaobjectDefinition {
   metaobjecDefinitionId: string;
   name: string;
   type: string;
 }
-
-/**
- * Synchronizes OpenCart filter maps to Shopify Metaobject Definitions,
- * creates the corresponding Metaobjects, and registers Product Metafield Definitions
- * for referencing the list of Metaobjects. Includes robust duplicate handling.
- * @param admin Admin API client context.
- */
 export const syncProductMetafields = async (admin: AdminApiContext) => {
   try {
     const metafields = await getOcFilterMap();
@@ -55,103 +48,101 @@ export const syncProductMetafields = async (admin: AdminApiContext) => {
         where: { type: type },
       });
 
-      if (localDefinition) {
-        console.log(
-          `[Definition Exists] Skipping Shopify API call for type: ${type}`,
-        );
-        shopifyDefinitionResult = {
-          id: localDefinition.metaobjecDefinitionId,
-          name: localDefinition.name,
-          type: localDefinition.type,
-        };
-      } else {
-        // 2. CREATE IN SHOPIFY: If not found locally, create the definition in Shopify.
-        const metaobjectDefinitionPayload: CreateMetaobjectDefinitionMutationVariables =
-          {
-            definition: {
-              name: description,
-              type: type,
-              capabilities: {
-                onlineStore: { enabled: false },
-                publishable: { enabled: true },
-                renderable: { enabled: false },
-                translatable: { enabled: true },
-              },
-              access: {
-                storefront:
-                  "PUBLIC_READ" as InputMaybe<MetaobjectStorefrontAccess>,
-              },
-              displayNameKey: "lable",
-              fieldDefinitions: [
-                {
-                  key: "slug",
-                  name: "Slug",
-                  validations: [],
-                  required: true,
-                  type: "single_line_text_field",
-                },
-                {
-                  key: "lable",
-                  name: "Lable",
-                  validations: [],
-                  required: true,
-                  type: "single_line_text_field",
-                },
-              ],
+      const metaobjectDefinitionPayload: CreateMetaobjectDefinitionMutationVariables =
+        {
+          definition: {
+            name: description,
+            type: type,
+            capabilities: {
+              onlineStore: { enabled: false },
+              publishable: { enabled: true },
+              renderable: { enabled: false },
+              translatable: { enabled: true },
             },
-          };
-
-        shopifyDefinitionResult = await createMetaobjectDefinition(
-          metaobjectDefinitionPayload,
-          admin,
-        );
-
-        if (!shopifyDefinitionResult) {
-          console.error(
-            `Failed to create metafield definition for type: ${type}. Skipping metaobjects creation.`,
-          );
-          continue;
-        }
-
-        console.log(
-          `[Definition Created] Successfully created definition: ${shopifyDefinitionResult.name}`,
-        );
-
-        localDefinition = await prisma.metaobjectDefinition.upsert({
-          where: { name: shopifyDefinitionResult.name },
-          update: {
-            metaobjecDefinitionId: shopifyDefinitionResult.id,
-            type: shopifyDefinitionResult.type,
+            access: {
+              storefront:
+                "PUBLIC_READ" as InputMaybe<MetaobjectStorefrontAccess>,
+            },
+            displayNameKey: "label",
+            fieldDefinitions: [
+              {
+                key: "slug",
+                name: "Slug",
+                required: true,
+                type: "single_line_text_field",
+              },
+              {
+                key: "label",
+                name: "Label",
+                required: true,
+                type: "single_line_text_field",
+              },
+            ],
           },
-          create: {
-            metaobjecDefinitionId: shopifyDefinitionResult.id,
-            name: shopifyDefinitionResult.name,
-            type: shopifyDefinitionResult.type,
-          },
-        });
+        };
+
+      shopifyDefinitionResult = await createMetaobjectDefinition(
+        metaobjectDefinitionPayload,
+        admin,
+      );
+
+      if (!shopifyDefinitionResult) {
+        console.error(
+          `Failed to create metafield definition for type: ${type}. Skipping metaobjects creation.`,
+        );
+        continue;
       }
+
+      console.log(
+        `[Definition Created] Successfully created definition: ${shopifyDefinitionResult.name}`,
+      );
+
+      localDefinition = await prisma.metaobjectDefinition.upsert({
+        where: { name: shopifyDefinitionResult.name },
+        update: {
+          metaobjecDefinitionId: shopifyDefinitionResult.id,
+          type: shopifyDefinitionResult.type,
+        },
+        create: {
+          metaobjecDefinitionId: shopifyDefinitionResult.id,
+          name: shopifyDefinitionResult.name,
+          type: shopifyDefinitionResult.type,
+        },
+      });
 
       const filterOptions = await getocFilterOptionValues(
         metafield[1].filter_id,
       );
-
-      const metaobjectsReq = filterOptions?.map((f) => {
-        const metaobjecCreationPayload: CreateMetaobjectMutationVariables = {
-          metaobject: {
-            type: shopifyDefinitionResult!.type,
-            handle: f,
-            capabilities: {
-              publishable: { status: "ACTIVE" as MetaobjectStatus },
+      const metaobjectsReq = Array.from(filterOptions[0]).map(
+        (f: string, i: number) => {
+          const safeHandle = f.replace(/,/g, "-").toLowerCase();
+          const metaobjecCreationPayload: CreateMetaobjectMutationVariables = {
+            metaobject: {
+              type: shopifyDefinitionResult!.type,
+              handle: safeHandle,
+              capabilities: {
+                publishable: { status: "ACTIVE" as MetaobjectStatus },
+              },
+              fields: [
+                { key: "slug", value: f },
+                {
+                  key: "label",
+                  value: filterOptions
+                    ? filterOptions[1][i]
+                        .replace("-", ",")
+                        .toLowerCase()
+                        .replace(/(^.)/, (match) => match.toUpperCase())
+                    : "",
+                },
+              ],
             },
-            fields: [{ key: "type", value: f }],
-          },
-        };
-        return createMetaobject(metaobjecCreationPayload, admin);
-      });
+          };
+          return createMetaobject(metaobjecCreationPayload, admin);
+        },
+      );
 
-      const metaobjects = await Promise.all(metaobjectsReq!);
+      const metaobjects = await Promise.all(metaobjectsReq);
 
-      // Client-side deduplication of results
       const uniqueMetaobjects = metaobjects
         .filter(
           (m, index, self) =>

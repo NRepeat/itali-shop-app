@@ -52,6 +52,7 @@ export const ModelName = {
   Session: 'Session',
   MetafieldDefinition: 'MetafieldDefinition',
   MetaobjectDefinition: 'MetaobjectDefinition',
+  Collection: 'Collection',
   Metaobject: 'Metaobject'
 } as const
 
@@ -117,6 +118,17 @@ export const MetaobjectDefinitionScalarFieldEnum = {
 } as const
 
 export type MetaobjectDefinitionScalarFieldEnum = (typeof MetaobjectDefinitionScalarFieldEnum)[keyof typeof MetaobjectDefinitionScalarFieldEnum]
+
+
+export const CollectionScalarFieldEnum = {
+  id: 'id',
+  metaobjectId: 'metaobjectId',
+  handle: 'handle',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CollectionScalarFieldEnum = (typeof CollectionScalarFieldEnum)[keyof typeof CollectionScalarFieldEnum]
 
 
 export const MetaobjectScalarFieldEnum = {

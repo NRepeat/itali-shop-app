@@ -33,6 +33,11 @@ export type MetafieldDefinition = Prisma.MetafieldDefinitionModel
  */
 export type MetaobjectDefinition = Prisma.MetaobjectDefinitionModel
 /**
+ * Model Collection
+ * 
+ */
+export type Collection = Prisma.CollectionModel
+/**
  * Model Metaobject
  * 
  */

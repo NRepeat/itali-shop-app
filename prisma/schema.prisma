@@ -48,8 +48,13 @@ model MetaobjectDefinition {
   updatedAt   DateTime @default(now())
 }
 
-
-
+model Collection {
+  id          String   @id @default(cuid())
+  metaobjectId String   @unique
+  handle      String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+}
 model Metaobject {
   id          String   @id @default(cuid())
   metaobjectId String   @unique
