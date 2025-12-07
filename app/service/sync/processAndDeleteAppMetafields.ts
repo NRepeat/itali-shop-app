@@ -1,7 +1,7 @@
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
-import { getMetafieldDefinitions } from "../shopify/getMetafieldDefinitions";
+import { getMetafieldDefinitions } from "../shopify/metafields/getMetafieldDefinitions";
 import { MetafieldOwnerType } from "app/types";
-import { deleteMetafieldDefinition } from "../shopify/deleteMetafieldDefinition";
+import { deleteMetafieldDefinition } from "../shopify/metafields/deleteMetafieldDefinition";
 import { prisma } from "app/shared/lib/prisma/prisma.server";
 
 export async function processAndDeleteAppMetafields(
@@ -17,7 +17,6 @@ export async function processAndDeleteAppMetafields(
     `Searching for definitions in namespace: ${appNamespace} (Type: ${OWNER_TYPE})`,
   );
 
-  // Шаг 1: Получаем все определения по пространству имен
   const productDefinitions = await getMetafieldDefinitions(
     admin,
     OWNER_TYPE,

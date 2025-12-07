@@ -1,4 +1,4 @@
-import { metaobjectDefinitionDelete } from "app/service/shopify/metaobjectDefinitionDelete";
+import { metaobjectDefinitionDelete } from "@/service/shopify/metaobjects/metaobjectDefinitionDelete";
 import { prisma } from "app/shared/lib/prisma/prisma.server";
 import { authenticate } from "app/shopify.server";
 import { ActionFunctionArgs } from "react-router";

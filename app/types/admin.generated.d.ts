@@ -80,8 +80,31 @@ export type DeleteMetaobjectDefinitionMutation = { metaobjectDefinitionDelete?: 
     & { userErrors: Array<Pick<AdminTypes.MetaobjectUserError, 'field' | 'message' | 'code'>> }
   )> };
 
+export type CollectionCreateMutationVariables = AdminTypes.Exact<{
+  input: AdminTypes.CollectionInput;
+}>;
+
+
+export type CollectionCreateMutation = { collectionCreate?: AdminTypes.Maybe<{ collection?: AdminTypes.Maybe<Pick<AdminTypes.Collection, 'id' | 'handle'>>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
+export type TranslatableResourceQueryVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type TranslatableResourceQuery = { translatableResource?: AdminTypes.Maybe<{ translatableContent: Array<Pick<AdminTypes.TranslatableContent, 'key' | 'digest' | 'value'>> }> };
+
+export type TranslationsRegisterMutationVariables = AdminTypes.Exact<{
+  resourceId: AdminTypes.Scalars['ID']['input'];
+  translations: Array<AdminTypes.TranslationInput> | AdminTypes.TranslationInput;
+}>;
+
+
+export type TranslationsRegisterMutation = { translationsRegister?: AdminTypes.Maybe<{ translations?: AdminTypes.Maybe<Array<Pick<AdminTypes.Translation, 'locale' | 'key'>>>, userErrors: Array<Pick<AdminTypes.TranslationUserError, 'field' | 'message'>> }> };
+
 interface GeneratedQueryTypes {
   "\n  #graphql\n  query GetMetafieldDefinitions($ownerType: MetafieldOwnerType!, $namespace: String) {\n    metafieldDefinitions(\n      first: 50,\n      ownerType: $ownerType,\n      namespace: $namespace\n    ) {\n      edges {\n        node {\n          id\n          name\n          key\n          namespace\n        }\n      }\n    }\n  }\n": {return: GetMetafieldDefinitionsQuery, variables: GetMetafieldDefinitionsQueryVariables},
+  "\n   #graphql\n   query translatableResource($id: ID!) {\n       translatableResource(resourceId: $id) {\n         translatableContent {\n           key\n           digest # Використовуйте 'digest' замість 'translatableContentDigest'\n           value\n         }\n       }\n     }\n": {return: TranslatableResourceQuery, variables: TranslatableResourceQueryVariables},
 }
 
 interface GeneratedMutationTypes {
@@ -93,6 +116,8 @@ interface GeneratedMutationTypes {
   "\n  #graphql\n  mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {\n    metaobjectDefinitionCreate(definition: $definition) {\n      metaobjectDefinition {\n        id\n        name\n        type\n        fieldDefinitions {\n          name\n          key\n        }\n      }\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: CreateMetaobjectDefinitionMutation, variables: CreateMetaobjectDefinitionMutationVariables},
   "\n  #graphql\n  mutation DeleteMetaobjects($where: MetaobjectBulkDeleteWhereCondition!) {\n    metaobjectBulkDelete(where: $where) {\n      job {\n        id\n        done\n      }\n      userErrors {\n        message\n      }\n    }\n  }\n": {return: DeleteMetaobjectsMutation, variables: DeleteMetaobjectsMutationVariables},
   "\n  #graphql\n  mutation DeleteMetaobjectDefinition($id: ID!) {\n    metaobjectDefinitionDelete(id: $id) {\n      deletedId\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: DeleteMetaobjectDefinitionMutation, variables: DeleteMetaobjectDefinitionMutationVariables},
+  "\n  #graphql\n  mutation collectionCreate($input: CollectionInput!) {\n    collectionCreate(input: $input) {\n      collection {\n        id\n        handle\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: CollectionCreateMutation, variables: CollectionCreateMutationVariables},
+  "\n   #graphql\n  mutation translationsRegister($resourceId: ID!, $translations: [TranslationInput!]!) {\n    translationsRegister(resourceId: $resourceId, translations: $translations) {\n      translations {\n        locale\n        key\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: TranslationsRegisterMutation, variables: TranslationsRegisterMutationVariables},
 }
 declare module '@shopify/admin-api-client' {
   type InputMaybe<T> = AdminTypes.InputMaybe<T>;

@@ -6,8 +6,8 @@ import type {
 import { useFetcher } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { syncProductMetafields } from "app/service/sync/syncProductMetafields";
 import { processAndDeleteAppMetafields } from "app/service/sync/processAndDeleteAppMetafields";
+import { syncCollections } from "@/service/sync/collection/syncCollections";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -21,15 +21,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (body.action === "delete") {
     await processAndDeleteAppMetafields(admin);
   } else if (body.action === "update") {
-    await syncProductMetafields(admin);
+    await syncCollections(admin);
   }
   return { success: true };
 };
 
 export default function Index() {
+  const fetcher = useFetcher();
+  const handleSyncCollections = () => {
+    fetcher.submit(
+      { action: "update" },
+      { method: "post", encType: "application/json" },
+    );
+  };
   return (
     <s-page heading="Itali Shop App">
-      <s-section heading="Sync queue"></s-section>
+      <s-section heading="Sync queue">
+        <s-button onClick={() => handleSyncCollections()}>
+          Sync Collections
+        </s-button>
+      </s-section>
     </s-page>
   );
 }
