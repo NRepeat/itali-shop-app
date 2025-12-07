@@ -1,39 +1,37 @@
 import {
-  ProductCreateMutationMutationVariables,
-  ProductCreateMutationMutation,
+  CreateProductAsynchronousMutation,
+  CreateProductAsynchronousMutationVariables,
 } from "@/types";
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { client } from "@shared/lib/shopify/client/client";
 
 const CREATE_PRODUCTS_QUERY = `
   #graphql
-  mutation ProductCreateMutation(
-    $product: ProductCreateInput!,
-    $media: [CreateMediaInput!]
-  ) {
-    productCreate(product: $product, media: $media) {
+  mutation createProductAsynchronous($productSet: ProductSetInput!, $synchronous: Boolean!) {
+    productSet(synchronous: $synchronous, input: $productSet) {
       product {
         id
-        title
-        handle
-        variants(first:1){
-          edges{
-            node{
-            id
-            }
-          }
+      }
+      productSetOperation {
+        id
+        status
+        userErrors {
+          code
+          field
+          message
         }
       }
       userErrors {
+        code
         field
         message
       }
     }
   }
 `;
-export const createShopifyProduct = async (
+export const createProductAsynchronous = async (
   domain: string,
-  variables: ProductCreateMutationMutationVariables,
+  variables: CreateProductAsynchronousMutationVariables,
 ) => {
   try {
     const session = await prisma.session.findFirst({
@@ -45,30 +43,17 @@ export const createShopifyProduct = async (
     const accessToken = session.accessToken;
 
     const res = await client.request<
-      ProductCreateMutationMutation,
-      ProductCreateMutationMutationVariables
+      CreateProductAsynchronousMutation,
+      CreateProductAsynchronousMutationVariables
     >({
       query: CREATE_PRODUCTS_QUERY,
       variables: variables,
       accessToken: accessToken,
       shopDomain: domain,
     });
-    if (
-      res.productCreate?.userErrors &&
-      res.productCreate.userErrors.length > 0
-    ) {
-      throw new Error(
-        `Failed to create Shopify product: ${res.productCreate.userErrors[0].message}`,
-      );
-    }
-    if (!res.productCreate?.product) {
-      throw new Error(`Failed to create Shopify product`);
-    }
-    console.log(
-      "res.productCreate.product",
-      res.productCreate.product.variants.edges[0],
-    );
-    return res.productCreate.product;
+    console.log(res);
+
+    return res.productSet.product;
   } catch (error) {
     throw new Error(`Failed to update Shopify product: ${error}`);
   }
