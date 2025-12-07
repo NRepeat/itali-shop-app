@@ -39,6 +39,18 @@ export type GetMetafieldDefinitionsQueryVariables = AdminTypes.Exact<{
 
 export type GetMetafieldDefinitionsQuery = { metafieldDefinitions: { edges: Array<{ node: Pick<AdminTypes.MetafieldDefinition, 'id' | 'name' | 'key' | 'namespace'> }> } };
 
+export type MetafieldDefinitionsQueryVariables = AdminTypes.Exact<{
+  ownerType: AdminTypes.MetafieldOwnerType;
+  first?: AdminTypes.InputMaybe<AdminTypes.Scalars['Int']['input']>;
+  query?: AdminTypes.InputMaybe<AdminTypes.Scalars['String']['input']>;
+}>;
+
+
+export type MetafieldDefinitionsQuery = { metafieldDefinitions: { nodes: Array<(
+      Pick<AdminTypes.MetafieldDefinition, 'id' | 'name' | 'namespace' | 'key'>
+      & { type: Pick<AdminTypes.MetafieldDefinitionType, 'name'> }
+    )> } };
+
 export type MetafieldDefinitionPinMutationVariables = AdminTypes.Exact<{
   definitionId: AdminTypes.Scalars['ID']['input'];
 }>;
@@ -63,6 +75,17 @@ export type CreateMetaobjectDefinitionMutation = { metaobjectDefinitionCreate?: 
       & { fieldDefinitions: Array<Pick<AdminTypes.MetaobjectFieldDefinition, 'name' | 'key'>> }
     )>, userErrors: Array<Pick<AdminTypes.MetaobjectUserError, 'field' | 'message' | 'code'>> }> };
 
+export type GetMetaobjectsQueryVariables = AdminTypes.Exact<{
+  type: AdminTypes.Scalars['String']['input'];
+  first: AdminTypes.Scalars['Int']['input'];
+}>;
+
+
+export type GetMetaobjectsQuery = { metaobjects: { nodes: Array<(
+      Pick<AdminTypes.Metaobject, 'id' | 'handle' | 'displayName'>
+      & { field?: AdminTypes.Maybe<Pick<AdminTypes.MetaobjectField, 'value'>> }
+    )> } };
+
 export type DeleteMetaobjectsMutationVariables = AdminTypes.Exact<{
   where: AdminTypes.MetaobjectBulkDeleteWhereCondition;
 }>;
@@ -79,6 +102,98 @@ export type DeleteMetaobjectDefinitionMutation = { metaobjectDefinitionDelete?: 
     Pick<AdminTypes.MetaobjectDefinitionDeletePayload, 'deletedId'>
     & { userErrors: Array<Pick<AdminTypes.MetaobjectUserError, 'field' | 'message' | 'code'>> }
   )> };
+
+export type ProductCreateMutationMutationVariables = AdminTypes.Exact<{
+  product: AdminTypes.ProductCreateInput;
+  media?: AdminTypes.InputMaybe<Array<AdminTypes.CreateMediaInput> | AdminTypes.CreateMediaInput>;
+}>;
+
+
+export type ProductCreateMutationMutation = { productCreate?: AdminTypes.Maybe<{ product?: AdminTypes.Maybe<(
+      Pick<AdminTypes.Product, 'id' | 'title' | 'handle'>
+      & { variants: { edges: Array<{ node: Pick<AdminTypes.ProductVariant, 'id'> }> } }
+    )>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
+export type ProductDeleteMutationMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type ProductDeleteMutationMutation = { productDelete?: AdminTypes.Maybe<(
+    Pick<AdminTypes.ProductDeletePayload, 'deletedProductId'>
+    & { userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }
+  )> };
+
+export type ProductsQueryVariables = AdminTypes.Exact<{
+  first: AdminTypes.Scalars['Int']['input'];
+  after?: AdminTypes.InputMaybe<AdminTypes.Scalars['String']['input']>;
+}>;
+
+
+export type ProductsQuery = { products: { pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'endCursor'>, edges: Array<{ node: (
+        Pick<AdminTypes.Product, 'id' | 'title' | 'handle'>
+        & { variants: { edges: Array<{ node: Pick<AdminTypes.ProductVariant, 'id' | 'sku' | 'title'> }> } }
+      ) }> } };
+
+export type ProductCreateMediaMutationVariables = AdminTypes.Exact<{
+  media: Array<AdminTypes.CreateMediaInput> | AdminTypes.CreateMediaInput;
+  productId: AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type ProductCreateMediaMutation = { productCreateMedia?: AdminTypes.Maybe<{ mediaUserErrors: Array<Pick<AdminTypes.MediaUserError, 'field' | 'message'>>, product?: AdminTypes.Maybe<Pick<AdminTypes.Product, 'id' | 'title'>> }> };
+
+export type ProductVariantsCreateMutationVariables = AdminTypes.Exact<{
+  productId: AdminTypes.Scalars['ID']['input'];
+  variants: Array<AdminTypes.ProductVariantsBulkInput> | AdminTypes.ProductVariantsBulkInput;
+}>;
+
+
+export type ProductVariantsCreateMutation = { productVariantsBulkCreate?: AdminTypes.Maybe<{ productVariants?: AdminTypes.Maybe<Array<(
+      Pick<AdminTypes.ProductVariant, 'id' | 'title'>
+      & { selectedOptions: Array<Pick<AdminTypes.SelectedOption, 'name' | 'value'>> }
+    )>>, userErrors: Array<Pick<AdminTypes.ProductVariantsBulkCreateUserError, 'field' | 'message'>> }> };
+
+export type ProductVariantsBulkUpdateMutationVariables = AdminTypes.Exact<{
+  productId: AdminTypes.Scalars['ID']['input'];
+  variants: Array<AdminTypes.ProductVariantsBulkInput> | AdminTypes.ProductVariantsBulkInput;
+  locationId: AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type ProductVariantsBulkUpdateMutation = { productVariantsBulkUpdate?: AdminTypes.Maybe<{ product?: AdminTypes.Maybe<Pick<AdminTypes.Product, 'id'>>, productVariants?: AdminTypes.Maybe<Array<(
+      Pick<AdminTypes.ProductVariant, 'id'>
+      & { inventoryItem: (
+        Pick<AdminTypes.InventoryItem, 'id'>
+        & { inventoryLevel?: AdminTypes.Maybe<(
+          Pick<AdminTypes.InventoryLevel, 'id'>
+          & { quantities: Array<Pick<AdminTypes.InventoryQuantity, 'quantity'>> }
+        )> }
+      ) }
+    )>>, userErrors: Array<Pick<AdminTypes.ProductVariantsBulkUpdateUserError, 'field' | 'message'>> }> };
+
+export type UpdateProductWithNewMediaMutationVariables = AdminTypes.Exact<{
+  product: AdminTypes.ProductUpdateInput;
+  media?: AdminTypes.InputMaybe<Array<AdminTypes.CreateMediaInput> | AdminTypes.CreateMediaInput>;
+}>;
+
+
+export type UpdateProductWithNewMediaMutation = { productUpdate?: AdminTypes.Maybe<{ product?: AdminTypes.Maybe<(
+      Pick<AdminTypes.Product, 'id'>
+      & { media: { nodes: Array<(
+          Pick<AdminTypes.ExternalVideo, 'alt' | 'mediaContentType'>
+          & { preview?: AdminTypes.Maybe<Pick<AdminTypes.MediaPreviewImage, 'status'>> }
+        ) | (
+          Pick<AdminTypes.MediaImage, 'alt' | 'mediaContentType'>
+          & { preview?: AdminTypes.Maybe<Pick<AdminTypes.MediaPreviewImage, 'status'>> }
+        ) | (
+          Pick<AdminTypes.Model3d, 'alt' | 'mediaContentType'>
+          & { preview?: AdminTypes.Maybe<Pick<AdminTypes.MediaPreviewImage, 'status'>> }
+        ) | (
+          Pick<AdminTypes.Video, 'alt' | 'mediaContentType'>
+          & { preview?: AdminTypes.Maybe<Pick<AdminTypes.MediaPreviewImage, 'status'>> }
+        )> } }
+    )>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
 
 export type CollectionCreateMutationVariables = AdminTypes.Exact<{
   input: AdminTypes.CollectionInput;
@@ -104,6 +219,9 @@ export type TranslationsRegisterMutation = { translationsRegister?: AdminTypes.M
 
 interface GeneratedQueryTypes {
   "\n  #graphql\n  query GetMetafieldDefinitions($ownerType: MetafieldOwnerType!, $namespace: String) {\n    metafieldDefinitions(\n      first: 50,\n      ownerType: $ownerType,\n      namespace: $namespace\n    ) {\n      edges {\n        node {\n          id\n          name\n          key\n          namespace\n        }\n      }\n    }\n  }\n": {return: GetMetafieldDefinitionsQuery, variables: GetMetafieldDefinitionsQueryVariables},
+  "\n  #graphql\n  query MetafieldDefinitions($ownerType: MetafieldOwnerType!, $first: Int, $query:String) {\n    metafieldDefinitions(ownerType: $ownerType, first: $first, query:$query) {\n      nodes {\n        id\n        name\n        namespace\n        key\n        type {\n          name\n        }\n      }\n    }\n  }\n  ": {return: MetafieldDefinitionsQuery, variables: MetafieldDefinitionsQueryVariables},
+  "\n  #graphql\n  query GetMetaobjects ($type:String!,$first:Int!) {\n    metaobjects(type: $type, first: $first) {\n      nodes {\n        id\n        handle\n        displayName\n        field(key:\"slug\"){\n          value\n        }\n      }\n    }\n  }\n  ": {return: GetMetaobjectsQuery, variables: GetMetaobjectsQueryVariables},
+  "\n  #graphql\n  query Products($first: Int!, $after: String) {\n    products(first: $first, after: $after) {\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n      edges {\n        node {\n          id\n          title\n          handle\n          variants(first:1) {\n            edges {\n              node {\n                id\n                sku\n                title\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: ProductsQuery, variables: ProductsQueryVariables},
   "\n   #graphql\n   query translatableResource($id: ID!) {\n       translatableResource(resourceId: $id) {\n         translatableContent {\n           key\n           digest # Використовуйте 'digest' замість 'translatableContentDigest'\n           value\n         }\n       }\n     }\n": {return: TranslatableResourceQuery, variables: TranslatableResourceQueryVariables},
 }
 
@@ -116,6 +234,12 @@ interface GeneratedMutationTypes {
   "\n  #graphql\n  mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {\n    metaobjectDefinitionCreate(definition: $definition) {\n      metaobjectDefinition {\n        id\n        name\n        type\n        fieldDefinitions {\n          name\n          key\n        }\n      }\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: CreateMetaobjectDefinitionMutation, variables: CreateMetaobjectDefinitionMutationVariables},
   "\n  #graphql\n  mutation DeleteMetaobjects($where: MetaobjectBulkDeleteWhereCondition!) {\n    metaobjectBulkDelete(where: $where) {\n      job {\n        id\n        done\n      }\n      userErrors {\n        message\n      }\n    }\n  }\n": {return: DeleteMetaobjectsMutation, variables: DeleteMetaobjectsMutationVariables},
   "\n  #graphql\n  mutation DeleteMetaobjectDefinition($id: ID!) {\n    metaobjectDefinitionDelete(id: $id) {\n      deletedId\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: DeleteMetaobjectDefinitionMutation, variables: DeleteMetaobjectDefinitionMutationVariables},
+  "\n  #graphql\n  mutation ProductCreateMutation(\n    $product: ProductCreateInput!,\n    $media: [CreateMediaInput!]\n  ) {\n    productCreate(product: $product, media: $media) {\n      product {\n        id\n        title\n        handle\n        variants(first:1){\n          edges{\n            node{\n            id\n            }\n          }\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: ProductCreateMutationMutation, variables: ProductCreateMutationMutationVariables},
+  "#graphql\n  mutation productDeleteMutation ($id:ID!) {\n     productDelete(input: {id: $id}) {\n       deletedProductId\n       userErrors {\n         field\n         message\n       }\n     }\n   }\n  ": {return: ProductDeleteMutationMutation, variables: ProductDeleteMutationMutationVariables},
+  "\n  #graphql\n  mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {\n    productCreateMedia(media: $media, productId: $productId) {\n      mediaUserErrors {\n        field\n        message\n      }\n      product {\n        id\n        title\n      }\n    }\n  }\n  ": {return: ProductCreateMediaMutation, variables: ProductCreateMediaMutationVariables},
+  "\n  #graphql\n  mutation ProductVariantsCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {\n    productVariantsBulkCreate(productId: $productId, variants: $variants) {\n      productVariants {\n        id\n        title\n        selectedOptions {\n          name\n          value\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: ProductVariantsCreateMutation, variables: ProductVariantsCreateMutationVariables},
+  "\n  #graphql\n  mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!, $locationId: ID!) {\n    productVariantsBulkUpdate(productId: $productId, variants: $variants) {\n      product {\n        id\n      }\n      productVariants {\n        id\n        inventoryItem{\n          id\n          inventoryLevel(locationId: $locationId){\n            id\n            quantities(names: [\"available\"]){\n              quantity\n            }\n          }\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: ProductVariantsBulkUpdateMutation, variables: ProductVariantsBulkUpdateMutationVariables},
+  "\n  #graphql\n  mutation UpdateProductWithNewMedia($product: ProductUpdateInput!, $media: [CreateMediaInput!]) {\n    productUpdate(product: $product, media: $media) {\n      product {\n        id\n        media(first: 10) {\n          nodes {\n            alt\n            mediaContentType\n            preview {\n              status\n            }\n          }\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n  ": {return: UpdateProductWithNewMediaMutation, variables: UpdateProductWithNewMediaMutationVariables},
   "\n  #graphql\n  mutation collectionCreate($input: CollectionInput!) {\n    collectionCreate(input: $input) {\n      collection {\n        id\n        handle\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: CollectionCreateMutation, variables: CollectionCreateMutationVariables},
   "\n   #graphql\n  mutation translationsRegister($resourceId: ID!, $translations: [TranslationInput!]!) {\n    translationsRegister(resourceId: $resourceId, translations: $translations) {\n      translations {\n        locale\n        key\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: TranslationsRegisterMutation, variables: TranslationsRegisterMutationVariables},
 }

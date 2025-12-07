@@ -8,6 +8,7 @@ import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { processAndDeleteAppMetafields } from "app/service/sync/processAndDeleteAppMetafields";
 import { syncCollections } from "@/service/sync/collection/syncCollections";
+import { syncProducts } from "@/service/sync/products/syncProducts";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -16,12 +17,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const body = await request.json();
   if (body.action === "delete") {
-    await processAndDeleteAppMetafields(admin);
+    await syncProducts(session.shop, admin);
   } else if (body.action === "update") {
-    await syncCollections(admin);
+    await syncProducts(session.shop, admin);
   }
   return { success: true };
 };
