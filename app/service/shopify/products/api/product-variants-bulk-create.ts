@@ -7,7 +7,7 @@ import { client } from "@shared/lib/shopify/client/client";
 
 const PRODUCT_VARIANTS_BULK_CREATE = `
   #graphql
-  mutation ProductVariantsCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+  mutation ProductVariantsCreateA($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
     productVariantsBulkCreate(productId: $productId, variants: $variants) {
       productVariants {
         id

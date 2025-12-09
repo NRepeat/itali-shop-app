@@ -51,7 +51,6 @@ export const createProductAsynchronous = async (
       accessToken: accessToken,
       shopDomain: domain,
     });
-    console.log(res);
 
     return res.productSet.product;
   } catch (error) {
