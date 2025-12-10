@@ -26,26 +26,13 @@ export const getMetafields = async (
     const res = await admin.graphql(query, {
       variables: variables,
     });
-    if (!res.ok) {
-      throw new Error(
-        `Failed to create metafield definition: ${res.status} ${res.statusText}`,
-      );
-    }
-    const data = await res.json();
+    console.log(res);
 
-    // if (
-    //   data.data?.metafieldDefinitions?.userErrors &&
-    //   data.data.metafieldDefinitions?.userErrors?.length > 0
-    // ) {
-    //   throw new Error(
-    //     data.data.metafieldDefinitions.userErrors
-    //       .map((error) => error.message)
-    //       .join(", "),
-    //   );
-    // }
+    const data = res;
 
     return data.data || null;
   } catch (e) {
+    console.log(e);
     throw new Error("Meta not found");
   }
 };

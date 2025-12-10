@@ -20,9 +20,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const body = await request.json();
   if (body.action === "delete") {
-    await syncProducts(session.shop, admin);
+    await syncProducts(session.shop, {
+      session: { shop: session.shop, accessToken: session.accessToken! },
+    });
   } else if (body.action === "update") {
-    await syncProducts(session.shop, admin);
+    await syncProducts(session.shop, {
+      session: { shop: session.shop, accessToken: session.accessToken! },
+    });
   }
   return { success: true };
 };

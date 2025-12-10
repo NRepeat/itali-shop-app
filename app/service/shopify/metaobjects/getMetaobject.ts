@@ -22,6 +22,6 @@ export const getMetaobject = async (
   variables: GetMetaobjectsQueryVariables,
 ) => {
   const res = await admin.graphql(query, { variables });
-  const data = await res.json();
+  const data = res;
   return data.data;
 };
