@@ -1,4 +1,5 @@
 import { GetMetaobjectsQueryVariables } from "@/types";
+import { prisma } from "@shared/lib/prisma/prisma.server";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 const query = `
@@ -21,7 +22,11 @@ export const getMetaobject = async (
   admin: AdminApiContext,
   variables: GetMetaobjectsQueryVariables,
 ) => {
-  const res = await admin.graphql(query, { variables });
+  const res = await prisma.metaobject.findMany({
+    where: {
+      type: variables.type,
+    },
+  });
   const data = res;
-  return data.data;
+  return data;
 };

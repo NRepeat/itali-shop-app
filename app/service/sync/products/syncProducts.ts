@@ -1,10 +1,8 @@
-import { externalDB } from "@shared/lib/prisma/prisma.server";
-import syncQueue from "@/shared/lib/queue";
 
-export const syncProducts = async (
-  domain: string,
-  admin: { session: { shop: string; accessToken: string } },
-) => {
+import { externalDB } from "@shared/lib/prisma/prisma.server";
+import syncQueue from "@shared/lib/queue";
+
+export const syncProducts = async (domain: string, accessToken: string) => {
   try {
     const allProducts = await externalDB.bc_product.findMany({
       where: {
@@ -50,17 +48,15 @@ export const syncProducts = async (
         rasprodaja: true,
       },
     });
-
-    for (const product of allProducts.splice(4, 10)) {
-      console.log(product);
-      await syncQueue.add("sync-product", {
+    for (const product of allProducts.splice(10,15)) {
+      await syncQueue.add("sync-queue", {
         product,
         domain,
-        shop: admin.session.shop,
-        accessToken: admin.session.accessToken,
+        shop: domain,
+        accessToken,
       });
     }
   } catch (e) {
-    throw new Error(`Error adding products to sync queue: ${e.message}`);
+    throw new Error(`Error syncing products: ${e.message}`);
   }
 };

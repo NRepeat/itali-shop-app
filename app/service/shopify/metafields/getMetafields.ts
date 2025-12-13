@@ -1,4 +1,5 @@
 import { MetafieldDefinitionsQueryVariables } from "@/types";
+import { prisma } from "@shared/lib/prisma/prisma.server";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 const query = `
@@ -23,14 +24,18 @@ export const getMetafields = async (
   variables: MetafieldDefinitionsQueryVariables,
 ) => {
   try {
-    const res = await admin.graphql(query, {
-      variables: variables,
+    const data = await prisma.metaobjectDefinition.findMany({
+      where: variables.key
+        ? { type: variables.key }
+        : {
+            name: variables.query,
+          },
     });
-    console.log(res);
-
-    const data = res;
-
-    return data.data || null;
+    // const res = await admin.graphql(query, {
+    //   variables: variables,
+    // });
+    // const data = res;
+    return data || null;
   } catch (e) {
     console.log(e);
     throw new Error("Meta not found");

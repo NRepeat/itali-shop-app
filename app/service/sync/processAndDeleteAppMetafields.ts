@@ -34,20 +34,26 @@ export async function processAndDeleteAppMetafields(
 
   for (const def of productDefinitions) {
     if (def.namespace === appNamespace) {
-      console.log(`Attempting to delete: "${def.name}" (ID: ${def.id})`);
+      try {
+        console.log(`Attempting to delete: "${def.name}" (ID: ${def.id})`);
 
-      const deletedId = await deleteMetafieldDefinition(def.id, admin);
-      await prisma.metafieldDefinition.delete({
-        where: {
-          key: def.key,
-        },
-      });
-      if (deletedId) {
-        deletionCount++;
-        console.log(`[SUCCESS] Deleted: ${deletedId}`);
-      } else {
+        const deletedId = await deleteMetafieldDefinition(def.id, admin);
+        await prisma.metafieldDefinition.delete({
+          where: {
+            key: def.key,
+          },
+        });
+        if (deletedId) {
+          deletionCount++;
+          console.log(`[SUCCESS] Deleted: ${deletedId}`);
+        } else {
+          failureCount++;
+          console.error(`[FAILURE] Failed to delete ID: ${def.id}`);
+        }
+      } catch (error) {
         failureCount++;
         console.error(`[FAILURE] Failed to delete ID: ${def.id}`);
+        continue;
       }
     }
   }

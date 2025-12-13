@@ -20,7 +20,6 @@ export const getOcFilterMap = async () => {
         filter_id: filter.option_id,
       });
     }
-    console.log(filtersWithDescriptions);
     return filtersWithDescriptions;
   } catch (error) {
     console.error(error);

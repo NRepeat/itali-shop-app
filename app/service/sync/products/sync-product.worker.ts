@@ -15,7 +15,6 @@ import { client } from "../client/shopify";
 export const processSyncTask = async (job: Job) => {
   const { product, domain, shop, accessToken } = job.data;
 
-  // Adapter to use the new client with the existing builder functions
   const admin = {
     graphql: async (query: string, options?: { variables: any }) => {
       const response = await client.request({
@@ -96,7 +95,7 @@ export const processSyncTask = async (job: Job) => {
       synchronous: false,
       productSet: input,
     };
-
+    console.log(JSON.stringify(productInput, null, 2));
     await createProductAsynchronous(domain, productInput);
 
     console.log(`Product ${product.product_id} synced successfully.`);

@@ -10,7 +10,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       metaobjecDefinitionId: true,
     },
   });
-  console.log(ids);
   for (const id of ids) {
     await metaobjectDefinitionDelete({ id: id.metaobjecDefinitionId }, admin);
   }

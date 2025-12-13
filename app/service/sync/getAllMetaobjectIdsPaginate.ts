@@ -36,6 +36,7 @@ export async function getAllMetaobjectIdsPaginated(
 
     allRecords = allRecords.concat(batch);
 
+    console.log(`Deleting ${batch.length} metaobject definitions`);
     if (batch.length < bulkSize) {
       break;
     }

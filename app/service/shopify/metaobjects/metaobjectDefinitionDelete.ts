@@ -20,6 +20,7 @@ export const metaobjectDefinitionDelete = async (
   admin: AdminApiContext,
 ) => {
   try {
+    console.log(`Attempting to delete metaobject definition: ${definition.id}`);
     const res = await admin.graphql(query, {
       variables: definition,
     });
