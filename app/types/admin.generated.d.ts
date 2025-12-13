@@ -10,6 +10,13 @@ export type CreateCollectionMutationVariables = AdminTypes.Exact<{
 
 export type CreateCollectionMutation = { collectionCreate?: AdminTypes.Maybe<{ collection?: AdminTypes.Maybe<Pick<AdminTypes.Collection, 'id' | 'title' | 'handle'>>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
 
+export type CreateBasicAutomaticDiscountMutationVariables = AdminTypes.Exact<{
+  basicAutomaticDiscount: AdminTypes.DiscountAutomaticBasicInput;
+}>;
+
+
+export type CreateBasicAutomaticDiscountMutation = { discountAutomaticBasicCreate?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.DiscountUserError, 'field' | 'message' | 'code'>> }> };
+
 export type CreateMetafieldDefinitionMutationVariables = AdminTypes.Exact<{
   definition: AdminTypes.MetafieldDefinitionInput;
 }>;
@@ -236,6 +243,7 @@ interface GeneratedQueryTypes {
 
 interface GeneratedMutationTypes {
   "\n  #graphql\n  mutation CreateCollection($input: CollectionInput!) {\n    collectionCreate(input: $input) {\n      collection {\n        id\n        title\n        handle\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: CreateCollectionMutation, variables: CreateCollectionMutationVariables},
+  "\n  #graphql\n  mutation CreateBasicAutomaticDiscount($basicAutomaticDiscount: DiscountAutomaticBasicInput!) {\n    discountAutomaticBasicCreate(automaticBasicDiscount: $basicAutomaticDiscount) {\n\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: CreateBasicAutomaticDiscountMutation, variables: CreateBasicAutomaticDiscountMutationVariables},
   "\n  #graphql\n  mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {\n    metafieldDefinitionCreate(definition: $definition) {\n      createdDefinition {\n        id\n        name\n        key\n        namespace\n        ownerType\n        type{\n          name\n          category\n        }\n      }\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: CreateMetafieldDefinitionMutation, variables: CreateMetafieldDefinitionMutationVariables},
   "\n  #graphql\n  mutation DeleteMetafieldDefinition($id: ID!,$deleteAssociated: Boolean!) {\n    metafieldDefinitionDelete(id: $id,deleteAllAssociatedMetafields: $deleteAssociated) {\n      deletedDefinitionId\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: DeleteMetafieldDefinitionMutation, variables: DeleteMetafieldDefinitionMutationVariables},
   "\n  #graphql\n  mutation metafieldDefinitionPin($definitionId: ID!) {\n    metafieldDefinitionPin(definitionId: $definitionId) {\n      pinnedDefinition {\n        name\n        key\n        namespace\n        pinnedPosition\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: MetafieldDefinitionPinMutation, variables: MetafieldDefinitionPinMutationVariables},
