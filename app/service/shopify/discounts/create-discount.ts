@@ -1,10 +1,9 @@
-import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
-
-// TODO: Generate this type from the Shopify GraphQL schema
-// import { DiscountAutomaticBasicInput } from "@/types";
-type DiscountAutomaticBasicInput = any;
+import { CreateBasicAutomaticDiscountMutation, CreateBasicAutomaticDiscountMutationVariables } from "@/types";
+import { client } from "@shared/lib/shopify/client/client";
+// AdminApiContext is no longer needed
 
 const CREATE_AUTOMATIC_DISCOUNT_MUTATION = `
+  #graphql
   mutation CreateBasicAutomaticDiscount($basicAutomaticDiscount: DiscountAutomaticBasicInput!) {
     discountAutomaticBasicCreate(automaticBasicDiscount: $basicAutomaticDiscount) {
       automaticDiscount {
@@ -23,29 +22,27 @@ const CREATE_AUTOMATIC_DISCOUNT_MUTATION = `
 `;
 
 export const createAutomaticDiscount = async (
-  discount: DiscountAutomaticBasicInput,
-  admin: AdminApiContext,
+  discountVariables: CreateBasicAutomaticDiscountMutationVariables,
+  accessToken: string,
+  shopDomain: string,
 ) => {
   try {
-    const res = await admin.graphql(CREATE_AUTOMATIC_DISCOUNT_MUTATION, {
-      variables: { basicAutomaticDiscount: discount },
+    const res = await client.request<CreateBasicAutomaticDiscountMutation, CreateBasicAutomaticDiscountMutationVariables>({
+      query: CREATE_AUTOMATIC_DISCOUNT_MUTATION,
+      variables: discountVariables,
+      accessToken: accessToken,
+      shopDomain: shopDomain,
     });
 
-    if (!res.ok) {
-      throw new Error(`Failed to create discount: ${res.status} ${res.statusText}`);
-    }
-
-    const data = await res.json();
-
-    if (data.data?.discountAutomaticBasicCreate?.userErrors?.length > 0) {
+    if (res?.discountAutomaticBasicCreate?.userErrors?.length > 0) {
       throw new Error(
-        data.data.discountAutomaticBasicCreate.userErrors
+        res.discountAutomaticBasicCreate.userErrors
           .map((error: { message: string }) => error.message)
           .join(", "),
       );
     }
 
-    return data.data?.discountAutomaticBasicCreate?.automaticDiscount;
+    return res?.discountAutomaticBasicCreate?.automaticDiscount;
   } catch (error) {
     console.error("Error creating automatic discount:", error);
     return null;
