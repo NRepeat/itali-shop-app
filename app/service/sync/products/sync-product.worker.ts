@@ -11,8 +11,47 @@ import { buildProductInput } from "./build-product-input";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
 import { CreateProductAsynchronousMutationVariables } from "@/types";
 import { client } from "../client/shopify";
-import { categoryMap } from "@/service/maps/categoryMaps"; // Import categoryMap
-import { externalDB } from "@shared/lib/prisma/prisma.server"; // Ensure externalDB is imported
+import { categoryMap } from "@/service/maps/categoryMaps";
+import { externalDB } from "@shared/lib/prisma/prisma.server";
+import * as fs from 'fs';
+import * as yaml from 'js-yaml';
+import path from "path";
+
+// Helper function to create a map from full category name to category ID
+const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
+    const idToCategory = new Map(categories.map(c => [c.id, c]));
+    const idToFullName = new Map<string, string>();
+
+    const getFullName = (catId: string): string => {
+        if (idToFullName.has(catId)) {
+            return idToFullName.get(catId)!;
+        }
+
+        const category = idToCategory.get(catId);
+        if (!category) return '';
+
+        const parent = categories.find(p => p.children?.includes(catId));
+        
+        const fullName = parent 
+            ? `${getFullName(parent.id)} > ${category.name}`
+            : category.name;
+
+        idToFullName.set(catId, fullName);
+        return fullName;
+    }
+
+    const nameToIdMap = new Map<string, string>();
+    for (const cat of categories) {
+        nameToIdMap.set(getFullName(cat.id), cat.id);
+    }
+    return nameToIdMap;
+};
+
+// Load and parse the Shopify category taxonomy file
+const shopifyCategoryYaml = fs.readFileSync(path.resolve('app/service/maps/shopify_category'), 'utf8');
+const shopifyCategories = yaml.load(shopifyCategoryYaml) as any[];
+const shopifyCategoryNameToIdMap = createShopifyCategoryMap(shopifyCategories);
+
 
 export const processSyncTask = async (job: Job) => {
   const { product, domain, shop, accessToken } = job.data;
@@ -59,7 +98,7 @@ export const processSyncTask = async (job: Job) => {
         orderBy: { main_category: "desc" },
     });
 
-    let shopifyCategoryGid = "gid://shopify/TaxonomyCategory/aa"; // Default value if no mapping found
+    let shopifyCategoryGid = "gid://shopify/TaxonomyCategory/aa"; // Default value
 
     if (productToCategory) {
         const categoryDescription = await externalDB.bc_category_description.findFirst({
@@ -71,11 +110,10 @@ export const processSyncTask = async (job: Job) => {
 
         if (categoryDescription && categoryMap[categoryDescription.name]) {
             const googleTaxonomyName = categoryMap[categoryDescription.name];
-            if (googleTaxonomyName) {
-                // Format to a URL-friendly string for the GID.
-                // Shopify GIDs for taxonomy often follow a pattern like gid://shopify/TaxonomyCategory/Name_Of_Category
-                const formattedName = googleTaxonomyName.replace(/ /g, '_').replace(/&/g, 'and').replace(/>/g, '_').replace(/,/g, '');
-                shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${formattedName}`;
+            const shopifyCategoryId = shopifyCategoryNameToIdMap.get(googleTaxonomyName);
+
+            if (shopifyCategoryId) {
+                shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${shopifyCategoryId}`;
             }
         }
     }
@@ -119,7 +157,7 @@ export const processSyncTask = async (job: Job) => {
       tags,
       productDiscription,
       productMetafieldsmetObjects,
-      shopifyCategoryGid, // Pass the determined category here
+      shopifyCategoryGid,
     );
 
     const productInput: CreateProductAsynchronousMutationVariables = {
