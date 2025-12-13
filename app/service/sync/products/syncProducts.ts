@@ -48,7 +48,7 @@ export const syncProducts = async (domain: string, accessToken: string) => {
         rasprodaja: true,
       },
     });
-    for (const product of allProducts.splice(0,10)) {
+    for (const product of allProducts.splice(0,1)) {
       await syncQueue.add("sync-queue", {
         product,
         domain,

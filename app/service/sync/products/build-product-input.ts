@@ -15,7 +15,6 @@ export const buildProductInput = (
   files: FileSetInput[],
   vendor: { name: string } | null,
   tags: string[],
-  productDiscription: any[],
   productMetafieldsmetObjects: MetafieldInput[],
   category: string,
 ): ProductSetInput => {
@@ -33,15 +32,15 @@ export const buildProductInput = (
     metafields: [
       {
         key: "meta-keyword",
-        value: productDiscription[0].meta_keyword,
+        value: ukrainianDescription.meta_keyword,
         namespace: "custom",
         type: "single_line_text_field",
       },
       ...productMetafieldsmetObjects,
     ],
     seo: {
-      description: productDiscription[0].meta_description,
-      title: productDiscription[0].meta_title,
+      description: ukrainianDescription.meta_description,
+      title: ukrainianDescription.meta_title,
     },
   };
   return input;

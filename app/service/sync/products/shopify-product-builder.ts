@@ -282,7 +282,7 @@ export const buildProductVariants = async (
 export const buildTags = async (
   product: any,
   bcTagsDescription: any[],
-  productDiscription: any[],
+  ukrainianDescription: any,
 ) => {
   const tags: string[] = bcTagsDescription.map((tag) => tag.name.toString());
   for (const bTD of bcTagsDescription) {
@@ -310,9 +310,9 @@ export const buildTags = async (
   if (product.rasprodaja && product.rasprodaja === 1) {
     tags.push("sale");
   }
-  productDiscription.map((desc) => {
-    tags.push(...desc.tag.split(", "));
-  });
+  if (ukrainianDescription && ukrainianDescription.tag) {
+    tags.push(...ukrainianDescription.tag.split(", "));
+  }
 
   return tags;
 };
@@ -320,7 +320,7 @@ export const buildTags = async (
 export const buildFiles = (
   product: any,
   productImages: any[],
-  productDiscription: any[],
+  ukrainianDescription: any,
 ): FileSetInput[] => {
   return [product, ...productImages]
     .filter((f) => f && f.image)
@@ -330,7 +330,7 @@ export const buildFiles = (
       const encodedImagePath = encodeURI(f.image);
       return {
         originalSource: "https://italishoes.com.ua/image/" + encodedImagePath,
-        alt: productDiscription[0]?.image_alt || "",
+        alt: ukrainianDescription?.image_alt || "",
         contentType: "IMAGE" as FileContentType.Image,
       };
     });

@@ -3,8 +3,12 @@ import { externalDB } from "@shared/lib/prisma/prisma.server";
 export const fetchProductData = async (product: any) => {
   const productId = product.product_id;
   const productDiscription = await externalDB.bc_product_description.findMany({
-    where: { product_id: productId, language_id: 3 },
+    where: { product_id: productId, language_id: { in: [1, 3] } },
   });
+
+  const russianDescription = productDiscription.find(
+    (d) => d.language_id === 1,
+  );
 
   const productImages = await externalDB.bc_product_image.findMany({
     where: { product_id: productId },
@@ -108,5 +112,6 @@ export const fetchProductData = async (product: any) => {
     ocFitersToProduct,
     filterValue,
     bc_ocfilter_option,
+    russianDescription,
   };
 };

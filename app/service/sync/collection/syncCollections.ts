@@ -48,7 +48,7 @@ const GET_TRANSLATABLE_RESOURCE_QUERY = `
 
 // 3. Реєстрація Перекладів
 const TRANSLATIONS_REGISTER_MUTATION = `
-   #graphql
+
   mutation translationsRegister($resourceId: ID!, $translations: [TranslationInput!]!) {
     translationsRegister(resourceId: $resourceId, translations: $translations) {
       translations {
