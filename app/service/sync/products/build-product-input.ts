@@ -18,9 +18,13 @@ export const buildProductInput = (
   productMetafieldsmetObjects: MetafieldInput[],
   category: string,
 ): ProductSetInput => {
+  const cleanedDescription = ukrainianDescription.description
+    .replace(/&lt;p&gt;/g, '<p>')
+    .replace(/&lt;\/p&gt;/g, '</p>')
+    .replace(/&lt;br&gt;/g, '<br>');
   const input: ProductSetInput = {
     title: ukrainianDescription.name,
-    descriptionHtml: ukrainianDescription.description,
+    descriptionHtml: cleanedDescription,
     handle: ukrainianDescription.seo_keyword,
     status: "ACTIVE" as InputMaybe<ProductStatus>,
     category: category,

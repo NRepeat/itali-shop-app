@@ -7,6 +7,9 @@ export const syncProducts = async (domain: string, accessToken: string) => {
     const allProducts = await externalDB.bc_product.findMany({
       where: {
         status: true,
+        quantity: {
+          gt: 0
+        }
       },
       select: {
         product_id: true,
@@ -48,6 +51,7 @@ export const syncProducts = async (domain: string, accessToken: string) => {
         rasprodaja: true,
       },
     });
+    console.log("allProducts",allProducts.length);
     for (const product of allProducts.splice(0,2)) {
       await syncQueue.add("sync-queue", {
         product,

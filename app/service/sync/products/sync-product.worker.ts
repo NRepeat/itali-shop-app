@@ -275,7 +275,11 @@ export const processSyncTask = async (job: Job) => {
 
         const fieldsToTranslate = [
           { shopifyKey: "title", sourceValue: russianDescription.name },
-          { shopifyKey: "body_html", sourceValue: russianDescription.description },
+          { shopifyKey: "body_html", sourceValue: russianDescription.description
+            .replace(/&lt;p&gt;/g, '<p>')
+            .replace(/&lt;\/p&gt;/g, '</p>')
+            .replace(/&lt;br&gt;/g, '<br>')
+          },
           { shopifyKey: "meta_title", sourceValue: russianDescription.meta_title },
           { shopifyKey: "meta_description", sourceValue: russianDescription.meta_description },
           { shopifyKey: "handle", sourceValue: russianDescription.seo_keyword },
