@@ -173,13 +173,26 @@ export const processSyncTask = async (job: Job) => {
             title: `Discount for ${ukrainianDescription.name}`,
             startsAt: new Date().toISOString(),
             endsAt: null, // No end date
+            channelIds: [],
+            combinesWith: {
+              productDiscounts: false,
+              orderDiscounts: false,
+              shippingDiscounts: false
+            },
+            context: {
+              all: "ALL"
+            },
             customerGets: {
               value: {
-                percentage: discountValue / 100, // Convert to decimal for percentage
+                percentage: discountValue / 100,
               },
+              items: {
+                all: true,
+              }
             },
             minimumRequirement: {
-              nothing: true, // No minimum requirement
+              quantity: { greaterThanOrEqualToQuantity: null },
+              subtotal: { greaterThanOrEqualToSubtotal: null }
             },
           },
         };
