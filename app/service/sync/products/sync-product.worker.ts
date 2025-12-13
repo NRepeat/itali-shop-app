@@ -9,7 +9,7 @@ import {
 } from "./shopify-product-builder";
 import { buildProductInput } from "./build-product-input";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
-import { CreateProductAsynchronousMutationVariables } from "@/types";
+import { CreateBasicAutomaticDiscountMutationVariables, CreateProductAsynchronousMutationVariables } from "@/types";
 import { client } from "../client/shopify";
 import { categoryMap } from "@/service/maps/categoryMaps";
 import { externalDB } from "@shared/lib/prisma/prisma.server";
@@ -17,6 +17,8 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import path from "path";
 import { createAttributes } from "@/service/create-attributes";
+import { bc_product  as Product} from "~/prisma/generated/external_client/client";
+import { createAutomaticDiscount } from "@/service/shopify/discounts/create-discount";
 
 // Helper function to create a map from full category name to category ID
 const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
@@ -55,7 +57,7 @@ const shopifyCategoryNameToIdMap = createShopifyCategoryMap(shopifyCategories);
 
 
 export const processSyncTask = async (job: Job) => {
-  const { product, domain, shop, accessToken } = job.data;
+  const { product, domain, shop, accessToken } = job.data as {product: Product, domain: string, shop: string, accessToken: string};
 
   const admin = {
     graphql: async (query: string, options?: { variables: any }) => {
@@ -159,6 +161,40 @@ export const processSyncTask = async (job: Job) => {
             value: JSON.stringify(attributeMetaobjectGids),
         });
     }
+
+    // --- Discount Creation Logic ---
+    const discountPercentage = product.extra_special?.split("|")[0];
+    let createdDiscount = null;
+    if (discountPercentage && !isNaN(Number(discountPercentage))) {
+      const discountValue = Number(discountPercentage);
+      if (discountValue > 0) {
+        const discountInput: CreateBasicAutomaticDiscountMutationVariables = {
+          basicAutomaticDiscount: {
+            title: `Discount for ${ukrainianDescription.name}`,
+            startsAt: new Date().toISOString(),
+            endsAt: null, // No end date
+            customerGets: {
+              value: {
+                percentage: discountValue / 100, // Convert to decimal for percentage
+              },
+            },
+            minimumRequirement: {
+              nothing: true, // No minimum requirement
+            },
+          },
+        };
+
+        createdDiscount = await createAutomaticDiscount(
+          discountInput,
+          accessToken,
+          shopDomain,
+        );
+        if (createdDiscount) {
+          console.log(`Created discount: ${createdDiscount.title} (ID: ${createdDiscount.discountId})`);
+        }
+      }
+    }
+    // --- End Discount Creation Logic ---
 
     const input = buildProductInput(
       ukrainianDescription,
