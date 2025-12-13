@@ -13,6 +13,25 @@ import {
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import { externalDB } from "@shared/lib/prisma/prisma.server";
 
+// Helper function to generate Cartesian product of arrays
+const cartesian = <T>(...args: T[][]): T[][] => {
+  const r: T[][] = [];
+  const max = args.length - 1;
+  const helper = (arr: T[], i: number) => {
+    for (let j = 0, l = args[i].length; j < l; j++) {
+      const a = arr.slice(0); // clone arr
+      a.push(args[i][j]);
+      if (i === max) {
+        r.push(a);
+      } else {
+        helper(a, i + 1);
+      }
+    }
+  };
+  helper([], 0);
+  return r;
+};
+
 export const buildProductOptions = async (
   admin: AdminApiContext,
   productOptions: any[],
@@ -150,55 +169,82 @@ export const buildProductVariants = async (
     "М'ятний": "m-jatnij",
     Пітон: "piton",
   };
-  for (const value of productOptionValue) {
-    const optionValueDesc = optionValues.find(
-      (ovd) => ovd.option_value_id === value.option_value_id,
-    );
-    const optionDesc = optionDescriptions.find(
-      (od) => od.option_id === value.option_id,
-    );
-    if (!optionDesc) {
-      console.warn(`No option description for option_id ${value.option_id}`);
-      continue;
-    }
-    const existOptionMetafields = await getMetafields(admin, {
-      ownerType: "PRODUCT" as MetafieldOwnerType.Product,
-      first: 1,
-      query: optionDesc.name,
-    });
-    if (!existOptionMetafields[0]) {
-      console.warn(`No metafield definition for option ${optionDesc.name}`);
-      continue;
-    }
 
-    const metObjects = await getMetaobject(admin, {
-      first: 250,
-      type: existOptionMetafields[0].type,
-    });
-    let metaObject; // declare metaObject here
+  // 1. Group productOptionValue by option_id
+  const optionsMap = new Map<number, any[]>();
+  productOptionValue.forEach((pov) => {
+    if (!optionsMap.has(pov.option_id)) {
+      optionsMap.set(pov.option_id, []);
+    }
+    optionsMap.get(pov.option_id)!.push(pov);
+  });
 
-    if (optionDesc.name === "Колір") {
-      const colorHandle = colorMapping[optionValueDesc?.name];
-      if (colorHandle) {
-        metaObject = metObjects?.find((m) => m.handle === colorHandle);
-      }
-    } else {
-      metaObject = metObjects?.find(
-        (m) =>
-          m.handle.toLowerCase().replace(",", "-") ===
-          optionValueDesc?.name.toLowerCase().replace(",", "-"),
+  const optionValueGroups = Array.from(optionsMap.values());
+
+  if (optionValueGroups.length === 0) {
+    return [];
+  }
+
+  // 2. Generate combinations
+  const combinations = cartesian(...optionValueGroups);
+
+  for (const combo of combinations) {
+    const optionValuesForVariant = [];
+    let variantQuantity = Infinity;
+    const skuParts: string[] = [product.model];
+
+    for (const pov of combo) {
+      const optionValueDesc = optionValues.find(
+        (ovd) => ovd.option_value_id === pov.option_value_id,
       );
-    }
-    if (!metaObject) {
-      console.warn(`No metaobject for option value ${optionValueDesc?.name}`);
-      continue;
-    }
-    const optionValuesForVariant = [
-      {
+      const optionDesc = optionDescriptions.find(
+        (od) => od.option_id === pov.option_id,
+      );
+
+      if (!optionDesc || !optionValueDesc) continue;
+
+      const existOptionMetafields = await getMetafields(admin, {
+        ownerType: "PRODUCT" as MetafieldOwnerType.Product,
+        first: 1,
+        query: optionDesc.name,
+      });
+
+      if (!existOptionMetafields[0]) continue;
+
+      const metObjects = await getMetaobject(admin, {
+        first: 250,
+        type: existOptionMetafields[0].type,
+      });
+
+      let metaObject;
+      if (optionDesc.name === "Колір") {
+        const colorHandle = colorMapping[optionValueDesc.name];
+        if (colorHandle) {
+          metaObject = metObjects?.find((m) => m.handle === colorHandle);
+        }
+      } else {
+        metaObject = metObjects?.find(
+          (m) =>
+            m.handle.toLowerCase().replace(",", "-") ===
+            optionValueDesc.name.toLowerCase().replace(",", "-"),
+        );
+      }
+
+      if (!metaObject) continue;
+
+      optionValuesForVariant.push({
         optionName: optionDesc.name,
         linkedMetafieldValue: metaObject.metaobjectId,
-      },
-    ];
+      });
+      
+      skuParts.push(optionValueDesc.name);
+      variantQuantity = Math.min(variantQuantity, pov.quantity);
+    }
+    
+    // Ensure the variant is complete before adding
+    if (optionValuesForVariant.length !== optionsMap.size) {
+        continue;
+    }
 
     const input: ProductVariantSetInput = {
       price: product.price.toString(),
@@ -206,15 +252,14 @@ export const buildProductVariants = async (
       inventoryQuantities: [
         {
           name: "available",
-          quantity: value.quantity,
+          quantity: variantQuantity === Infinity ? 0 : variantQuantity,
           locationId: "gid://shopify/Location/78249492642",
         },
       ],
-      sku: product.model,
+      sku: skuParts.join('-'),
       inventoryItem: {
         tracked: true,
         requiresShipping: true,
-
         cost: product.price.toString(),
       },
       optionValues: optionValuesForVariant,
@@ -223,12 +268,15 @@ export const buildProductVariants = async (
           namespace: "custom",
           key: "at_the_fitting",
           type: "boolean",
-          value: value.reserved ? "true" : "false",
+          // This is tricky, as `reserved` is on a per-option-value basis.
+          // We will mark as reserved if any part of the combo is reserved.
+          value: combo.some(pov => pov.reserved) ? "true" : "false",
         },
       ],
     };
     variants.push(input);
   }
+
   return variants;
 };
 
