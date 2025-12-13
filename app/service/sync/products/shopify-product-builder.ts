@@ -295,6 +295,7 @@ export const buildTags = async (
     const parrentDescription =
       await externalDB.bc_category_description.findFirst({
         where: {
+          language_id: 3,
           category_id: parrent?.category_id,
         },
       });
