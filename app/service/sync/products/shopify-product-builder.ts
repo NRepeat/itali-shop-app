@@ -323,11 +323,18 @@ export const buildFiles = (
   productImages: any[],
   productDiscription: any[],
 ): FileSetInput[] => {
-  return [product, ...productImages].map((f) => ({
-    originalSource: "https://italishoes.com.ua/image/" + f.image || "",
-    alt: productDiscription[0].image_alt,
-    contentType: "IMAGE" as FileContentType.Image,
-  }));
+  return [product, ...productImages]
+    .filter((f) => f && f.image)
+    .map((f) => {
+      // The image path might contain spaces or other characters that need encoding.
+      // We use encodeURI to handle this, which will correctly encode spaces as %20 etc.
+      const encodedImagePath = encodeURI(f.image);
+      return {
+        originalSource: "https://italishoes.com.ua/image/" + encodedImagePath,
+        alt: productDiscription[0]?.image_alt || "",
+        contentType: "IMAGE" as FileContentType.Image,
+      };
+    });
 };
 
 export const buildMetafields = async (
