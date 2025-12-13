@@ -1,12 +1,11 @@
 import { externalDB } from "@shared/lib/prisma/prisma.server";
-import { getOcFilterMap } from "./maps/metafields";
 import { createMetaobject } from "./shopify/metaobjects/createMetaobject";
 import { CreateMetaobjectMutationVariables, MetaobjectStatus } from "@/types";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
-export const createAttributes = async (productId:number, admin: AdminApiContext) => {
+export const createAttributes = async (productId:number, admin: AdminApiContext): Promise<string[]> => {
 
-  const ids = [ ]
+  const createdMetaobjectGids: string[] = [];
 
  const product_attributes = await externalDB.bc_product_attribute.findMany({where:{product_id:productId,language_id:3}})
  if(product_attributes && product_attributes.length > 0){
@@ -24,8 +23,11 @@ export const createAttributes = async (productId:number, admin: AdminApiContext)
         fields:[{key:"title",value:attributeDesc?.name},{key:'atribute_payload',value:attr.text}]
       }
     }
-    await createMetaobject(input,admin)
-
+    const createdMetaobject = await createMetaobject(input,admin)
+    if (createdMetaobject && createdMetaobject.id) {
+        createdMetaobjectGids.push(createdMetaobject.id);
+    }
    }
  }
+ return createdMetaobjectGids;
 };
