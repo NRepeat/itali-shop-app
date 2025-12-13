@@ -17,13 +17,14 @@ export const buildProductInput = (
   tags: string[],
   productDiscription: any[],
   productMetafieldsmetObjects: MetafieldInput[],
+  category: string,
 ): ProductSetInput => {
   const input: ProductSetInput = {
     title: ukrainianDescription.name,
     descriptionHtml: ukrainianDescription.description,
     handle: ukrainianDescription.seo_keyword,
     status: "ACTIVE" as InputMaybe<ProductStatus>,
-    category: "gid://shopify/TaxonomyCategory/aa",
+    category: category,
     productOptions: sProductOptions,
     variants: variants,
     files: files,

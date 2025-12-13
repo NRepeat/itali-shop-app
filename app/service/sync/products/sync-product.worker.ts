@@ -11,6 +11,8 @@ import { buildProductInput } from "./build-product-input";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
 import { CreateProductAsynchronousMutationVariables } from "@/types";
 import { client } from "../client/shopify";
+import { categoryMap } from "@/service/maps/categoryMaps"; // Import categoryMap
+import { externalDB } from "@shared/lib/prisma/prisma.server"; // Ensure externalDB is imported
 
 export const processSyncTask = async (job: Job) => {
   const { product, domain, shop, accessToken } = job.data;
@@ -51,8 +53,36 @@ export const processSyncTask = async (job: Job) => {
       bc_ocfilter_option,
     } = productData;
 
+    // --- Dynamic Category Logic ---
+    const productToCategory = await externalDB.bc_product_to_category.findFirst({
+        where: { product_id: product.product_id },
+        orderBy: { main_category: "desc" },
+    });
+
+    let shopifyCategoryGid = "gid://shopify/TaxonomyCategory/aa"; // Default value if no mapping found
+
+    if (productToCategory) {
+        const categoryDescription = await externalDB.bc_category_description.findFirst({
+            where: {
+                category_id: productToCategory.category_id,
+                language_id: 3 // Assuming language_id 3 is Ukrainian
+            }
+        });
+
+        if (categoryDescription && categoryMap[categoryDescription.name]) {
+            const googleTaxonomyName = categoryMap[categoryDescription.name];
+            if (googleTaxonomyName) {
+                // Format to a URL-friendly string for the GID.
+                // Shopify GIDs for taxonomy often follow a pattern like gid://shopify/TaxonomyCategory/Name_Of_Category
+                const formattedName = googleTaxonomyName.replace(/ /g, '_').replace(/&/g, 'and').replace(/>/g, '_').replace(/,/g, '');
+                shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${formattedName}`;
+            }
+        }
+    }
+    // --- End Dynamic Category Logic ---
+
     const sProductOptions = await buildProductOptions(
-      admin as any, // casting to any to satisfy the type checker
+      admin as any,
       productOptions,
       optionDescriptions,
       optionValues,
@@ -89,6 +119,7 @@ export const processSyncTask = async (job: Job) => {
       tags,
       productDiscription,
       productMetafieldsmetObjects,
+      shopifyCategoryGid, // Pass the determined category here
     );
 
     const productInput: CreateProductAsynchronousMutationVariables = {
