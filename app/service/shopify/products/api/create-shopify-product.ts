@@ -52,7 +52,7 @@ export const createProductAsynchronous = async (
       shopDomain: domain,
     });
 
-    return res.productSet.product;
+    return res.productSet?.product;
   } catch (error) {
     throw new Error(`Failed to update Shopify product: ${error}`);
   }

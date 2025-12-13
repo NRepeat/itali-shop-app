@@ -9,55 +9,65 @@ import {
 } from "./shopify-product-builder";
 import { buildProductInput } from "./build-product-input";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
-import { CreateBasicAutomaticDiscountMutationVariables, CreateProductAsynchronousMutationVariables } from "@/types";
+import {
+  CreateBasicAutomaticDiscountMutationVariables,
+  CreateProductAsynchronousMutationVariables,
+  DiscountBuyerSelection,
+} from "@/types";
 import { client } from "../client/shopify";
 import { categoryMap } from "@/service/maps/categoryMaps";
 import { externalDB } from "@shared/lib/prisma/prisma.server";
-import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import * as fs from "fs/promises";
+import * as yaml from "js-yaml";
 import path from "path";
 import { createAttributes } from "@/service/create-attributes";
-import { bc_product  as Product} from "~/prisma/generated/external_client/client";
+import { bc_product as Product } from "~/prisma/generated/external_client/client";
 import { createAutomaticDiscount } from "@/service/shopify/discounts/create-discount";
-
 // Helper function to create a map from full category name to category ID
 const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
-    const idToCategory = new Map(categories.map(c => [c.id, c]));
-    const idToFullName = new Map<string, string>();
+  const idToCategory = new Map(categories.map((c) => [c.id, c]));
+  const idToFullName = new Map<string, string>();
 
-    const getFullName = (catId: string): string => {
-        if (idToFullName.has(catId)) {
-            return idToFullName.get(catId)!;
-        }
-
-        const category = idToCategory.get(catId);
-        if (!category) return '';
-
-        const parent = categories.find(p => p.children?.includes(catId));
-
-        const fullName = parent
-            ? `${getFullName(parent.id)} > ${category.name}`
-            : category.name;
-
-        idToFullName.set(catId, fullName);
-        return fullName;
+  const getFullName = (catId: string): string => {
+    if (idToFullName.has(catId)) {
+      return idToFullName.get(catId)!;
     }
 
-    const nameToIdMap = new Map<string, string>();
-    for (const cat of categories) {
-        nameToIdMap.set(getFullName(cat.id), cat.id);
-    }
-    return nameToIdMap;
+    const category = idToCategory.get(catId);
+    if (!category) return "";
+
+    const parent = categories.find((p) => p.children?.includes(catId));
+
+    const fullName = parent
+      ? `${getFullName(parent.id)} > ${category.name}`
+      : category.name;
+
+    idToFullName.set(catId, fullName);
+    return fullName;
+  };
+
+  const nameToIdMap = new Map<string, string>();
+  for (const cat of categories) {
+    nameToIdMap.set(getFullName(cat.id), cat.id);
+  }
+  return nameToIdMap;
 };
 
 // Load and parse the Shopify category taxonomy file
-const shopifyCategoryYaml = fs.readFileSync(path.resolve('app/service/maps/shopify_category'), 'utf8');
+const shopifyCategoryYaml = await fs.readFile(
+  path.resolve("app/service/maps/shopify_category"),
+  "utf8",
+);
 const shopifyCategories = yaml.load(shopifyCategoryYaml) as any[];
 const shopifyCategoryNameToIdMap = createShopifyCategoryMap(shopifyCategories);
 
-
 export const processSyncTask = async (job: Job) => {
-  const { product, domain, shop, accessToken } = job.data as {product: Product, domain: string, shop: string, accessToken: string};
+  const { product, domain, shop, accessToken } = job.data as {
+    product: Product;
+    domain: string;
+    shop: string;
+    accessToken: string;
+  };
 
   const admin = {
     graphql: async (query: string, options?: { variables: any }) => {
@@ -96,29 +106,33 @@ export const processSyncTask = async (job: Job) => {
     } = productData;
 
     // --- Dynamic Category Logic ---
-    const productToCategory = await externalDB.bc_product_to_category.findFirst({
+    const productToCategory = await externalDB.bc_product_to_category.findFirst(
+      {
         where: { product_id: product.product_id },
         orderBy: { main_category: "desc" },
-    });
+      },
+    );
 
     let shopifyCategoryGid = "gid://shopify/TaxonomyCategory/aa"; // Default value
 
     if (productToCategory) {
-        const categoryDescription = await externalDB.bc_category_description.findFirst({
-            where: {
-                category_id: productToCategory.category_id,
-                language_id: 3 // Assuming language_id 3 is Ukrainian
-            }
+      const categoryDescription =
+        await externalDB.bc_category_description.findFirst({
+          where: {
+            category_id: productToCategory.category_id,
+            language_id: 3, // Assuming language_id 3 is Ukrainian
+          },
         });
 
-        if (categoryDescription && categoryMap[categoryDescription.name]) {
-            const googleTaxonomyName = categoryMap[categoryDescription.name];
-            const shopifyCategoryId = shopifyCategoryNameToIdMap.get(googleTaxonomyName);
+      if (categoryDescription && categoryMap[categoryDescription.name]) {
+        const googleTaxonomyName = categoryMap[categoryDescription.name];
+        const shopifyCategoryId =
+          shopifyCategoryNameToIdMap.get(googleTaxonomyName);
 
-            if (shopifyCategoryId) {
-                shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${shopifyCategoryId}`;
-            }
+        if (shopifyCategoryId) {
+          shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${shopifyCategoryId}`;
         }
+      }
     }
     // --- End Dynamic Category Logic ---
 
@@ -151,62 +165,20 @@ export const processSyncTask = async (job: Job) => {
       bc_ocfilter_option,
     );
 
-    const attributeMetaobjectGids = await createAttributes(product.product_id, admin as any);
+    const attributeMetaobjectGids = await createAttributes(
+      product.product_id,
+      admin as any,
+    );
 
     if (attributeMetaobjectGids.length > 0) {
-        productMetafieldsmetObjects.push({
-            key: "attributes",
-            namespace: "custom",
-            type: "list.metaobject_reference",
-            value: JSON.stringify(attributeMetaobjectGids),
-        });
+      productMetafieldsmetObjects.push({
+        key: "attributes",
+        namespace: "custom",
+        type: "list.metaobject_reference",
+        value: JSON.stringify(attributeMetaobjectGids),
+      });
     }
 
-    // --- Discount Creation Logic ---
-    const discountPercentage = product.extra_special?.split("|")[0];
-    let createdDiscount = null;
-    if (discountPercentage && !isNaN(Number(discountPercentage))) {
-      const discountValue = Number(discountPercentage);
-      if (discountValue > 0) {
-        const discountInput: CreateBasicAutomaticDiscountMutationVariables = {
-          basicAutomaticDiscount: {
-            title: `Discount for ${ukrainianDescription.name}`,
-            startsAt: new Date().toISOString(),
-            endsAt: null, // No end date
-            channelIds: [],
-            combinesWith: {
-              productDiscounts: false,
-              orderDiscounts: false,
-              shippingDiscounts: false
-            },
-            context: {
-              all: "ALL"
-            },
-            customerGets: {
-              value: {
-                percentage: discountValue / 100,
-              },
-              items: {
-                all: true,
-              }
-            },
-            minimumRequirement: {
-              quantity: { greaterThanOrEqualToQuantity: null },
-              subtotal: { greaterThanOrEqualToSubtotal: null }
-            },
-          },
-        };
-
-        createdDiscount = await createAutomaticDiscount(
-          discountInput,
-          accessToken,
-          shopDomain,
-        );
-        if (createdDiscount) {
-          console.log(`Created discount: ${createdDiscount.title} (ID: ${createdDiscount.discountId})`);
-        }
-      }
-    }
     // --- End Discount Creation Logic ---
 
     const input = buildProductInput(
@@ -222,14 +194,66 @@ export const processSyncTask = async (job: Job) => {
     );
 
     const productInput: CreateProductAsynchronousMutationVariables = {
-      synchronous: false,
+      synchronous: true,
       productSet: input,
     };
     console.log(JSON.stringify(productInput, null, 2));
-    await createProductAsynchronous(domain, productInput);
+    const shopifYproduct = await createProductAsynchronous(
+      domain,
+      productInput,
+    );
+    const productsWithErrors = []
+    if (!shopifYproduct) {
+      productsWithErrors.push({ product, error: 'Failed to create product' });
+      await fs.writeFile('error_log.txt', JSON.stringify(productsWithErrors, null, 2), 'utf8');
+      throw new Error('Failed to create product');
+    }
+    // --- Discount Creation Logic ---
+    const discountPercentage = product.extra_special?.split("|")[0];
+    let createdDiscount = null;
+    if (discountPercentage && !isNaN(Number(discountPercentage))) {
+      const discountValue = Number(discountPercentage);
+      if (discountValue > 0) {
+        const discountInput: CreateBasicAutomaticDiscountMutationVariables = {
+          basicAutomaticDiscount: {
+            title: `${ukrainianDescription.name}`,
+            startsAt: new Date().toISOString(),
+            endsAt: null,
+            combinesWith: {
+              productDiscounts: false,
+              orderDiscounts: false,
+              shippingDiscounts: false,
+            },
+            context: {
+              all: "ALL" as DiscountBuyerSelection.All,
+            },
+            customerGets: {
+              value: {
+                percentage: discountValue / 100,
+              },
+              items: {
+                products: [{ productsToAdd:shopifYproduct?.id ,}],
+              },
+            },
+            minimumRequirement: {
+              quantity: { greaterThanOrEqualToQuantity: null },
+              subtotal: { greaterThanOrEqualToSubtotal: null },
+            },
+          },
+        };
 
+        createdDiscount = await createAutomaticDiscount(
+          discountInput,
+          accessToken,
+          domain,
+        );
+        if (createdDiscount) {
+          console.log(`Created discount:  (ID: ${createdDiscount})`);
+        }
+      }
+    }
     console.log(`Product ${product.product_id} synced successfully.`);
-  } catch (e)  {
+  } catch (e) {
     console.log(e);
     throw e;
   }

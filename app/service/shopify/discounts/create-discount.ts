@@ -5,20 +5,17 @@ import { client } from "@shared/lib/shopify/client/client";
 const CREATE_AUTOMATIC_DISCOUNT_MUTATION = `
   #graphql
   mutation CreateBasicAutomaticDiscount($basicAutomaticDiscount: DiscountAutomaticBasicInput!) {
-    discountAutomaticBasicCreate(automaticBasicDiscount: $basicAutomaticDiscount) {
-      automaticDiscount {
-        discountId
-        title
-        startsAt
-        endsAt
-      }
-      userErrors {
-        field
-        message
-        code
-      }
-    }
-  }
+     discountAutomaticBasicCreate(automaticBasicDiscount: $basicAutomaticDiscount) {
+       automaticDiscountNode {
+       id
+       }
+       userErrors {
+         field
+         message
+         code
+       }
+     }
+   }
 `;
 
 export const createAutomaticDiscount = async (
@@ -34,15 +31,15 @@ export const createAutomaticDiscount = async (
       shopDomain: shopDomain,
     });
 
-    if (res?.discountAutomaticBasicCreate?.userErrors?.length > 0) {
+    if (res?.discountAutomaticBasicCreate?.userErrors&&res?.discountAutomaticBasicCreate?.userErrors?.length > 0) {
       throw new Error(
-        res.discountAutomaticBasicCreate.userErrors
+        res.discountAutomaticBasicCreate?.userErrors
           .map((error: { message: string }) => error.message)
           .join(", "),
       );
     }
 
-    return res?.discountAutomaticBasicCreate?.automaticDiscount;
+    return res?.discountAutomaticBasicCreate?.automaticDiscountNode?.id;
   } catch (error) {
     console.error("Error creating automatic discount:", error);
     return null;
