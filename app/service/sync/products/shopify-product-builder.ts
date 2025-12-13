@@ -132,7 +132,6 @@ export const buildProductOptions = async (
       }
     }
   }
-  console.log(sProductOptions, "sProductOptions");
   return sProductOptions;
 };
 
@@ -236,11 +235,11 @@ export const buildProductVariants = async (
         optionName: optionDesc.name,
         linkedMetafieldValue: metaObject.metaobjectId,
       });
-      
+
       skuParts.push(optionValueDesc.name);
       variantQuantity = Math.min(variantQuantity, pov.quantity);
     }
-    
+
     // Ensure the variant is complete before adding
     if (optionValuesForVariant.length !== optionsMap.size) {
         continue;

@@ -27,7 +27,6 @@ export const createMetaobject = async (
     const res = await admin.graphql(query, {
       variables: { metaobject: definition.metaobject },
     });
-    console.log(res);
 
     if (
      res?.data?.metaobjectCreate?.userErrors &&
