@@ -27,25 +27,20 @@ export const createMetaobject = async (
     const res = await admin.graphql(query, {
       variables: { metaobject: definition.metaobject },
     });
-    if (!res.ok) {
-      throw new Error(
-        `Failed to create metafield definition: ${res.status} ${res.statusText}`,
-      );
-    }
-    const data = await res.json();
+    console.log(res);
 
     if (
-      data.data?.metaobjectCreate?.userErrors &&
-      data.data.metaobjectCreate?.userErrors?.length > 0
+     res?.data?.metaobjectCreate?.userErrors &&
+      res.data.metaobjectCreate?.userErrors?.length > 0
     ) {
       throw new Error(
-        data.data.metaobjectCreate.userErrors
+        res.data.metaobjectCreate.userErrors
           .map((error: { message: string }) => error.message)
           .join(", "),
       );
     }
 
-    return data.data?.metaobjectCreate?.metaobject;
+    return res.data?.metaobjectCreate?.metaobject;
   } catch (error) {
     console.error(error);
     return null;

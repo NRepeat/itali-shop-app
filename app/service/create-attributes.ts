@@ -20,6 +20,7 @@ export const createAttributes = async (productId:number, admin: AdminApiContext)
         capabilities:{
           publishable:{status:"ACTIVE" as MetaobjectStatus.Active}
         },
+        // handle:attributeDesc?.name +"-"+ productId.toString(),
         fields:[{key:"title",value:attributeDesc?.name},{key:'atribute_payload',value:attr.text}]
       }
     }

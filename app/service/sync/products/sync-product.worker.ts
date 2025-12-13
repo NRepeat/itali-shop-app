@@ -16,7 +16,7 @@ import { externalDB } from "@shared/lib/prisma/prisma.server";
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import path from "path";
-import { createAttributes } from "../create-attributes";
+import { createAttributes } from "@/service/create-attributes";
 
 // Helper function to create a map from full category name to category ID
 const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
@@ -32,8 +32,8 @@ const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
         if (!category) return '';
 
         const parent = categories.find(p => p.children?.includes(catId));
-        
-        const fullName = parent 
+
+        const fullName = parent
             ? `${getFullName(parent.id)} > ${category.name}`
             : category.name;
 
@@ -153,7 +153,7 @@ export const processSyncTask = async (job: Job) => {
 
     if (attributeMetaobjectGids.length > 0) {
         productMetafieldsmetObjects.push({
-            key: "attributes", // Assuming the metafield key is 'attributes'
+            key: "attributes",
             namespace: "custom",
             type: "list.metaobject_reference",
             value: JSON.stringify(attributeMetaobjectGids),
@@ -180,7 +180,7 @@ export const processSyncTask = async (job: Job) => {
     await createProductAsynchronous(domain, productInput);
 
     console.log(`Product ${product.product_id} synced successfully.`);
-  } catch (e) => {
+  } catch (e)  {
     console.log(e);
     throw e;
   }
