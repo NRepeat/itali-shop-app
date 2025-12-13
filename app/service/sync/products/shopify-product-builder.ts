@@ -62,26 +62,29 @@ export const buildProductOptions = async (
       type: existOptionMetafields[0].type,
     });
     if (optionName?.name === "Колір") {
-      const values = [];
-      for (const ov of optionValues) {
-        if (colorMapping[ov.name]) {
-          values.push(
-            metObjects.find((m) => m.handle === colorMapping[ov.name])
-              ?.metaobjectId,
-          );
-          const input: OptionSetInput = {
-            name: optionName?.name,
-            linkedMetafield: {
-              key: existOptionMetafields[0].type || "",
-              namespace: "custom",
-              values: values,
-            },
-          };
-          if (existOptionMetafields) {
-            sProductOptions.push(input);
-          }
-        }
-      }
+                const values = [];
+                for (const ov of optionValues) {
+                  if (colorMapping[ov.name]) {
+                    const metaobject = metObjects.find((m) => m.handle === colorMapping[ov.name]);
+                    if (metaobject) {
+                      values.push(metaobject.metaobjectId);
+                    }
+                  }
+                }
+                if (values.length > 0) {
+                  const input: OptionSetInput = {
+                    name: optionName?.name,
+                    linkedMetafield: {
+                      key: existOptionMetafields[0].type || "",
+                      namespace: "custom",
+                      values: values,
+                    },
+                  };
+                  if (existOptionMetafields) {
+                    sProductOptions.push(input);
+                  }
+                }
+      
     } else if (optionName?.name !== "Колір"){
       const values = metObjects
         .filter((m) => optionValues.find((o) => o.name === m.handle))
