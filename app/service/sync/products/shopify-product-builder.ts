@@ -62,43 +62,54 @@ export const buildProductOptions = async (
       type: existOptionMetafields[0].type,
     });
     if (optionName?.name === "Колір") {
-                const values = [];
-                for (const ov of optionValues) {
-                  if (colorMapping[ov.name]) {
-                    const metaobject = metObjects.find((m) => m.handle === colorMapping[ov.name]);
-                    if (metaobject) {
-                      values.push(metaobject.metaobjectId);
-                    }
-                  }
-                }
-                if (values.length > 0) {
-                  const input: OptionSetInput = {
-                    name: optionName?.name,
-                    linkedMetafield: {
-                      key: existOptionMetafields[0].type || "",
-                      namespace: "custom",
-                      values: values,
-                    },
-                  };
-                  if (existOptionMetafields) {
-                    sProductOptions.push(input);
-                  }
-                }
-      
-    } else if (optionName?.name !== "Колір"){
-      const values = metObjects
-        .filter((m) => optionValues.find((o) => o.name === m.handle))
-        .map((m) => m.metaobjectId);
-      const input: OptionSetInput = {
-        name: optionName?.name,
-        linkedMetafield: {
-          key: existOptionMetafields[0].type || "",
-          namespace: "custom",
-          values: values,
-        },
-      };
-      if (existOptionMetafields) {
-        sProductOptions.push(input);
+      const values = [];
+      for (const ov of optionValues) {
+        if (colorMapping[ov.name]) {
+          const metaobject = metObjects.find(
+            (m) => m.handle === colorMapping[ov.name],
+          );
+          if (metaobject) {
+            values.push(metaobject.metaobjectId);
+          }
+        }
+      }
+      if (values.length > 0) {
+        const input: OptionSetInput = {
+          name: optionName?.name,
+          linkedMetafield: {
+            key: existOptionMetafields[0].type || "",
+            namespace: "custom",
+            values: values,
+          },
+        };
+        if (existOptionMetafields) {
+          sProductOptions.push(input);
+        }
+      }
+    } else if (optionName?.name !== "Колір") {
+      const values = [];
+      for (const ov of optionValues) {
+        const metaobject = metObjects.find(
+          (m) =>
+            m.handle.toLowerCase().replace(",", "-") ===
+            ov.name.toLowerCase().replace(",", "-"),
+        );
+        if (metaobject) {
+          values.push(metaobject.metaobjectId);
+        }
+      }
+      if (values.length > 0) {
+        const input: OptionSetInput = {
+          name: optionName?.name,
+          linkedMetafield: {
+            key: existOptionMetafields[0].type || "",
+            namespace: "custom",
+            values: values,
+          },
+        };
+        if (existOptionMetafields) {
+          sProductOptions.push(input);
+        }
       }
     }
   }
@@ -114,6 +125,31 @@ export const buildProductVariants = async (
   optionDescriptions: any[],
 ) => {
   const variants: ProductVariantSetInput[] = [];
+  const colorMapping = {
+    Блакитний: "blakitnij",
+    Рожевий: "rozhevij",
+    Фіолетовий: "fioletovij",
+    Коричневий: "korichnevij",
+    Гірчичний: "girchichnij",
+    Бордовий: "bordovij",
+    Червоний: "chervonij",
+    Срібло: "sriblo",
+    Зелений: "zelenij",
+    Жовтий: "zhovtij",
+    Хакі: "haki",
+    Помаранчевий: "pomaranchevij",
+    Рудий: "rudij",
+    Синій: "sinij",
+    Бежевий: "bilij",
+    Чорний: "chornij",
+    Білий: "bilij",
+    Золото: "zoloto",
+    Бронзовий: "bronzovij",
+    Сірий: "sirij",
+    Мультиколор: "multikolor",
+    "М'ятний": "m-jatnij",
+    Пітон: "piton",
+  };
   for (const value of productOptionValue) {
     const optionValueDesc = optionValues.find(
       (ovd) => ovd.option_value_id === value.option_value_id,
@@ -136,15 +172,23 @@ export const buildProductVariants = async (
     }
 
     const metObjects = await getMetaobject(admin, {
-      first: 100,
+      first: 250,
       type: existOptionMetafields[0].type,
     });
-    const metaObject = metObjects?.find(
-      (m) =>
-        m.handle.toLowerCase().replace(",", "-") ===
-        optionValueDesc?.name.toLowerCase().replace(",", "-"),
-    );
+    let metaObject; // declare metaObject here
 
+    if (optionDesc.name === "Колір") {
+      const colorHandle = colorMapping[optionValueDesc?.name];
+      if (colorHandle) {
+        metaObject = metObjects?.find((m) => m.handle === colorHandle);
+      }
+    } else {
+      metaObject = metObjects?.find(
+        (m) =>
+          m.handle.toLowerCase().replace(",", "-") ===
+          optionValueDesc?.name.toLowerCase().replace(",", "-"),
+      );
+    }
     if (!metaObject) {
       console.warn(`No metaobject for option value ${optionValueDesc?.name}`);
       continue;
