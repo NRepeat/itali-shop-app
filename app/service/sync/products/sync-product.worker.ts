@@ -17,7 +17,7 @@ import {
 import { client } from "../client/shopify";
 import { categoryMap } from "@/service/maps/categoryMaps";
 import { externalDB } from "@shared/lib/prisma/prisma.server";
-import * as fs from "fs";
+import * as fs from "fs/promises";
 import * as yaml from "js-yaml";
 import path from "path";
 import { createAttributes } from "@/service/create-attributes";
@@ -54,7 +54,10 @@ const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
 };
 
 // Load and parse the Shopify category taxonomy file
-const shopifyCategoryYaml = fs.readFileSync(path.resolve('app/service/maps/shopify_category'), 'utf8');
+const shopifyCategoryYaml = await fs.readFile(
+  path.resolve("app/service/maps/shopify_category"),
+  "utf8",
+);
 const shopifyCategories = yaml.load(shopifyCategoryYaml) as any[];
 const shopifyCategoryNameToIdMap = createShopifyCategoryMap(shopifyCategories);
 
@@ -194,12 +197,12 @@ export const processSyncTask = async (job: Job) => {
       synchronous: true,
       productSet: input,
     };
-    console.log(JSON.stringify(productInput, null, 2));
     const shopifYproduct = await createProductAsynchronous(
       domain,
       productInput,
     );
     const productsWithErrors = []
+    console.log(JSON.stringify(shopifYproduct, null, 2));
     if (!shopifYproduct) {
       productsWithErrors.push({ product, error: 'Failed to create product' });
       await fs.writeFile('error_log.txt', JSON.stringify(productsWithErrors, null, 2), 'utf8');
@@ -228,8 +231,8 @@ export const processSyncTask = async (job: Job) => {
               value: {
                 percentage: discountValue / 100,
               },
-              products: {
-                productsToAdd: [shopifYproduct.id],
+              items: {
+                products: {productsToAdd:[shopifYproduct?.id ]}
               },
             },
             minimumRequirement: {
@@ -245,7 +248,7 @@ export const processSyncTask = async (job: Job) => {
           domain,
         );
         if (createdDiscount) {
-          console.log(`Created discount: ${createdDiscount.title} (ID: ${createdDiscount.discountId})`);
+          console.log(`Created discount:  (ID: ${createdDiscount})`);
         }
       }
     }
