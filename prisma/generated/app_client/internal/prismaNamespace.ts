@@ -394,7 +394,8 @@ export const ModelName = {
   MetafieldDefinition: 'MetafieldDefinition',
   MetaobjectDefinition: 'MetaobjectDefinition',
   Collection: 'Collection',
-  Metaobject: 'Metaobject'
+  Metaobject: 'Metaobject',
+  ProductMap: 'ProductMap'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -410,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject"
+    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -784,6 +785,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ProductMap: {
+      payload: Prisma.$ProductMapPayload<ExtArgs>
+      fields: Prisma.ProductMapFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProductMapFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProductMapFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>
+        }
+        findFirst: {
+          args: Prisma.ProductMapFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProductMapFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>
+        }
+        findMany: {
+          args: Prisma.ProductMapFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>[]
+        }
+        create: {
+          args: Prisma.ProductMapCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>
+        }
+        createMany: {
+          args: Prisma.ProductMapCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProductMapCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>[]
+        }
+        delete: {
+          args: Prisma.ProductMapDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>
+        }
+        update: {
+          args: Prisma.ProductMapUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProductMapDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProductMapUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProductMapUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProductMapUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductMapPayload>
+        }
+        aggregate: {
+          args: Prisma.ProductMapAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProductMap>
+        }
+        groupBy: {
+          args: Prisma.ProductMapGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProductMapGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProductMapCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProductMapCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -892,6 +967,17 @@ export const MetaobjectScalarFieldEnum = {
 } as const
 
 export type MetaobjectScalarFieldEnum = (typeof MetaobjectScalarFieldEnum)[keyof typeof MetaobjectScalarFieldEnum]
+
+
+export const ProductMapScalarFieldEnum = {
+  id: 'id',
+  localProductId: 'localProductId',
+  shopifyProductId: 'shopifyProductId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductMapScalarFieldEnum = (typeof ProductMapScalarFieldEnum)[keyof typeof ProductMapScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1092,6 +1178,7 @@ export type GlobalOmitConfig = {
   metaobjectDefinition?: Prisma.MetaobjectDefinitionOmit
   collection?: Prisma.CollectionOmit
   metaobject?: Prisma.MetaobjectOmit
+  productMap?: Prisma.ProductMapOmit
 }
 
 /* Types for Logging */

@@ -17,7 +17,7 @@ import {
 } from "@/types";
 import { client } from "../client/shopify";
 import { categoryMap } from "@/service/maps/categoryMaps";
-import { externalDB } from "@shared/lib/prisma/prisma.server";
+import { prisma, externalDB } from "@shared/lib/prisma/prisma.server";
 import * as fs from "fs/promises";
 import * as yaml from "js-yaml";
 import path from "path";
@@ -252,6 +252,16 @@ export const processSyncTask = async (job: Job) => {
       domain,
       productInput,
     );
+
+    if (shopifYproduct) {
+      await prisma.productMap.create({
+        data: {
+          localProductId: product.product_id,
+          shopifyProductId: shopifYproduct.id,
+        },
+      });
+    }
+
     if (russianDescription && shopifYproduct) {
       const digestResponse = await admin.graphql(
         GET_TRANSLATABLE_PRODUCT_RESOURCE_QUERY,
@@ -281,7 +291,7 @@ export const processSyncTask = async (job: Job) => {
             .replace(/&lt;br&gt;/g, '<br>')
           },
           { shopifyKey: "meta_title", sourceValue: russianDescription.meta_title },
-          { shopifyKey: "meta_description", sourceValue: russianDescription.meta_description },
+          { shopifyKey: "meta_description", sourceValue: russianDescription.meta_description.replace(/&quot;/g, '"') },
           { shopifyKey: "handle", sourceValue: russianDescription.seo_keyword },
         ];
 
@@ -391,7 +401,7 @@ export const processSyncTask = async (job: Job) => {
       if (discountValue > 0) {
         const discountInput: CreateBasicAutomaticDiscountMutationVariables = {
           basicAutomaticDiscount: {
-            title: `${ukrainianDescription.name}`,
+            title: `${ukrainianDescription.name} - ${product.product_id}`,
             startsAt: new Date().toISOString(),
             endsAt: null,
             combinesWith: {

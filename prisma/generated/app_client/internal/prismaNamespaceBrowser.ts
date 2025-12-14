@@ -53,7 +53,8 @@ export const ModelName = {
   MetafieldDefinition: 'MetafieldDefinition',
   MetaobjectDefinition: 'MetaobjectDefinition',
   Collection: 'Collection',
-  Metaobject: 'Metaobject'
+  Metaobject: 'Metaobject',
+  ProductMap: 'ProductMap'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -141,6 +142,17 @@ export const MetaobjectScalarFieldEnum = {
 } as const
 
 export type MetaobjectScalarFieldEnum = (typeof MetaobjectScalarFieldEnum)[keyof typeof MetaobjectScalarFieldEnum]
+
+
+export const ProductMapScalarFieldEnum = {
+  id: 'id',
+  localProductId: 'localProductId',
+  shopifyProductId: 'shopifyProductId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductMapScalarFieldEnum = (typeof ProductMapScalarFieldEnum)[keyof typeof ProductMapScalarFieldEnum]
 
 
 export const SortOrder = {

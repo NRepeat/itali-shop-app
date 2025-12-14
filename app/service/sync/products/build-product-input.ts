@@ -43,7 +43,7 @@ export const buildProductInput = (
       ...productMetafieldsmetObjects,
     ],
     seo: {
-      description: ukrainianDescription.meta_description,
+      description: ukrainianDescription.meta_description.replace(/&quot;/g, '"'),
       title: ukrainianDescription.meta_title,
     },
   };

@@ -42,3 +42,8 @@ export type Collection = Prisma.CollectionModel
  * 
  */
 export type Metaobject = Prisma.MetaobjectModel
+/**
+ * Model ProductMap
+ * 
+ */
+export type ProductMap = Prisma.ProductMapModel

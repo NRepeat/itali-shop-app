@@ -1,9 +1,10 @@
 
-import { externalDB } from "@shared/lib/prisma/prisma.server";
+import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import syncQueue from "@shared/lib/queue";
 
 export const syncProducts = async (domain: string, accessToken: string) => {
   try {
+    const syncedProducts = await prisma.productMap.findMany()
     const allProducts = await externalDB.bc_product.findMany({
       where: {
         status: true,
@@ -52,7 +53,10 @@ export const syncProducts = async (domain: string, accessToken: string) => {
       },
     });
     console.log("allProducts",allProducts.length);
-    for (const product of allProducts.splice(0,2)) {
+    const productToUpdate = allProducts.filter(product => !syncedProducts.some(syncedProduct => syncedProduct.localProductId === product.product_id));
+    console.log("productToUpdate",productToUpdate.length);
+    for (const product of productToUpdate) {
+      console.log("product",product.model);
       await syncQueue.add("sync-queue", {
         product,
         domain,

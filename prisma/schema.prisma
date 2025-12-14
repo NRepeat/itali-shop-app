@@ -63,3 +63,11 @@ model Metaobject {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 }
+
+model ProductMap {
+  id               String   @id @default(cuid())
+  localProductId   Int      @unique
+  shopifyProductId String   @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

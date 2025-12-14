@@ -7,8 +7,10 @@ export const createAttributes = async (productId:number, admin: AdminApiContext)
 
   const createdMetaobjectGids: string[] = [];
 
- const product_attributes = await externalDB.bc_product_attribute.findMany({where:{product_id:productId,language_id:3}})
+ const product_attributes = await externalDB.bc_product_attribute.findMany({where:{product_id:productId,language_id:{ in: [1, 3] }}})
  if(product_attributes && product_attributes.length > 0){
+   const uk = product_attributes.filter(attr => attr.language_id === 3);
+   const ru = product_attributes.filter(attr => attr.language_id === 1);
    for(const attr of product_attributes){
     const attribute =  await externalDB.bc_attribute.findFirst({where:{attribute_id:attr.attribute_id}})
     if(!attribute) continue;
@@ -21,7 +23,7 @@ export const createAttributes = async (productId:number, admin: AdminApiContext)
           publishable:{status:"ACTIVE" as MetaobjectStatus.Active}
         },
         // handle:attributeDesc?.name +"-"+ productId.toString(),
-        fields:[{key:"title",value:attributeDesc?.name},{key:'atribute_payload',value:attr.text}]
+        fields:[{key:"title",value:attributeDesc?.name},{key:'atribute_payload',value:attr.text},{key:'ru_translation',},{key:"ru_title"}]
       }
     }
     const createdMetaobject = await createMetaobject(input,admin)
