@@ -171,109 +171,138 @@ export const buildProductVariants = async (
 
   // 1. Group productOptionValue by option_id
   const optionsMap = new Map<number, any[]>();
-  productOptionValue.forEach((pov) => {
-    if (!optionsMap.has(pov.option_id)) {
-      optionsMap.set(pov.option_id, []);
-    }
-    optionsMap.get(pov.option_id)!.push(pov);
-  });
-
-  const optionValueGroups = Array.from(optionsMap.values());
-
-  if (optionValueGroups.length === 0) {
-    return [];
-  }
-
-  // 2. Generate combinations
-  const combinations = cartesian(...optionValueGroups);
-
-  for (const combo of combinations) {
-    const optionValuesForVariant = [];
-    let variantQuantity = Infinity;
-    const skuParts: string[] = [product.model];
-
-    for (const pov of combo) {
-      const optionValueDesc = optionValues.find(
-        (ovd) => ovd.option_value_id === pov.option_value_id,
-      );
-      const optionDesc = optionDescriptions.find(
-        (od) => od.option_id === pov.option_id,
-      );
-
-      if (!optionDesc || !optionValueDesc) continue;
-
-      const existOptionMetafields = await getMetafields(admin, {
-        ownerType: "PRODUCT" as MetafieldOwnerType.Product,
-        first: 1,
-        query: optionDesc.name,
-      });
-
-      if (!existOptionMetafields[0]) continue;
-
-      const metObjects = await getMetaobject(admin, {
-        first: 250,
-        type: existOptionMetafields[0].type,
-      });
-
-      let metaObject;
-      if (optionDesc.name === "Колір") {
-        const colorHandle = colorMapping[optionValueDesc.name];
-        if (colorHandle) {
-          metaObject = metObjects?.find((m) => m.handle === colorHandle);
-        }
-      } else {
-        metaObject = metObjects?.find(
-          (m) =>
-            m.handle.toLowerCase().replace(",", "-") ===
-            optionValueDesc.name.toLowerCase().replace(",", "-"),
-        );
-      }
-
-      if (!metaObject) continue;
-
-      optionValuesForVariant.push({
-        optionName: optionDesc.name,
-        linkedMetafieldValue: metaObject.metaobjectId,
-      });
-
-      skuParts.push(optionValueDesc.name);
-      variantQuantity = Math.min(variantQuantity, pov.quantity);
-    }
-
-    // Ensure the variant is complete before adding
-    if (optionValuesForVariant.length !== optionsMap.size) {
-        continue;
-    }
-
+  if (productOptionValue.length === 0) {
     const input: ProductVariantSetInput = {
       price: product.price.toString(),
       inventoryPolicy: "DENY" as ProductVariantInventoryPolicy,
       inventoryQuantities: [
         {
           name: "available",
-          quantity: variantQuantity === Infinity ? 0 : variantQuantity,
+          quantity: 1,
           locationId: "gid://shopify/Location/78249492642",
         },
       ],
-      sku: skuParts.join('-'),
+      sku: product.model,
       inventoryItem: {
         tracked: true,
         requiresShipping: true,
         cost: product.price.toString(),
       },
-      optionValues: optionValuesForVariant,
+      optionValues: [{name: "Default Title", optionName: "Title"}],
       metafields: [
         {
           namespace: "custom",
           key: "at_the_fitting",
           type: "boolean",
-          // This is tricky, as `reserved` is on a per-option-value basis.
-          // We will mark as reserved if any part of the combo is reserved.
-          value: combo.some(pov => pov.reserved) ? "true" : "false",
+          value: product.reserved ? "true" : "false",
         },
       ],
     };
     variants.push(input);
+  }else if(productOptionValue.length > 1){
+    productOptionValue.forEach((pov) => {
+      if (!optionsMap.has(pov.option_id)) {
+        optionsMap.set(pov.option_id, []);
+      }
+      optionsMap.get(pov.option_id)!.push(pov);
+    });
+
+    const optionValueGroups = Array.from(optionsMap.values());
+
+    if (optionValueGroups.length === 0) {
+      return [];
+    }
+
+    // 2. Generate combinations
+    const combinations = cartesian(...optionValueGroups);
+
+    for (const combo of combinations) {
+      const optionValuesForVariant = [];
+      let variantQuantity = Infinity;
+      const skuParts: string[] = [product.model];
+
+      for (const pov of combo) {
+        const optionValueDesc = optionValues.find(
+          (ovd) => ovd.option_value_id === pov.option_value_id,
+        );
+        const optionDesc = optionDescriptions.find(
+          (od) => od.option_id === pov.option_id,
+        );
+
+        if (!optionDesc || !optionValueDesc) continue;
+
+        const existOptionMetafields = await getMetafields(admin, {
+          ownerType: "PRODUCT" as MetafieldOwnerType.Product,
+          first: 1,
+          query: optionDesc.name,
+        });
+
+        if (!existOptionMetafields[0]) continue;
+
+        const metObjects = await getMetaobject(admin, {
+          first: 250,
+          type: existOptionMetafields[0].type,
+        });
+
+        let metaObject;
+        if (optionDesc.name === "Колір") {
+          const colorHandle = colorMapping[optionValueDesc.name];
+          if (colorHandle) {
+            metaObject = metObjects?.find((m) => m.handle === colorHandle);
+          }
+        } else {
+          metaObject = metObjects?.find(
+            (m) =>
+              m.handle.toLowerCase().replace(",", "-") ===
+              optionValueDesc.name.toLowerCase().replace(",", "-"),
+          );
+        }
+
+        if (!metaObject) continue;
+
+        optionValuesForVariant.push({
+          optionName: optionDesc.name,
+          linkedMetafieldValue: metaObject.metaobjectId,
+        });
+
+        skuParts.push(optionValueDesc.name);
+        variantQuantity = Math.min(variantQuantity, pov.quantity);
+      }
+
+      // Ensure the variant is complete before adding
+      if (optionValuesForVariant.length !== optionsMap.size) {
+          continue;
+      }
+
+      const input: ProductVariantSetInput = {
+        price: product.price.toString(),
+        inventoryPolicy: "DENY" as ProductVariantInventoryPolicy,
+        inventoryQuantities: [
+          {
+            name: "available",
+            quantity: variantQuantity === Infinity ? 0 : variantQuantity,
+            locationId: "gid://shopify/Location/78249492642",
+          },
+        ],
+        sku: product.model,
+        inventoryItem: {
+          tracked: true,
+          requiresShipping: true,
+          cost: product.price.toString(),
+        },
+        optionValues: optionValuesForVariant,
+        metafields: [
+          {
+            namespace: "custom",
+            key: "at_the_fitting",
+            type: "boolean",
+            value: combo.some(pov => pov.reserved) ? "true" : "false",
+          },
+        ],
+      };
+      variants.push(input);
+    }
+
   }
 
   return variants;

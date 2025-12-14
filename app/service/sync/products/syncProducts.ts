@@ -52,10 +52,14 @@ export const syncProducts = async (domain: string, accessToken: string) => {
         rasprodaja: true,
       },
     });
+    await prisma.productMap.deleteMany({
+
+    });
+    console.log("deletrino done")
     console.log("allProducts",allProducts.length);
     const productToUpdate = allProducts.filter(product => !syncedProducts.some(syncedProduct => syncedProduct.localProductId === product.product_id));
     console.log("productToUpdate",productToUpdate.length);
-    for (const product of productToUpdate) {
+    for (const product of allProducts.splice(0,1)) {
       console.log("product",product.model);
       await syncQueue.add("sync-queue", {
         product,

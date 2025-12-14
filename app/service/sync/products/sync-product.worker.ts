@@ -232,7 +232,7 @@ export const processSyncTask = async (job: Job) => {
     }
 
     // --- End Discount Creation Logic ---
-
+ const discountPercentage = product.extra_special?.split("|")[0];
     const input = buildProductInput(
       ukrainianDescription,
       sProductOptions,
@@ -242,6 +242,7 @@ export const processSyncTask = async (job: Job) => {
       tags,
       productMetafieldsmetObjects,
       shopifyCategoryGid,
+      discountPercentage
     );
 
     const productInput: CreateProductAsynchronousMutationVariables = {
@@ -394,49 +395,49 @@ export const processSyncTask = async (job: Job) => {
       throw new Error('Failed to create product');
     }
     // --- Discount Creation Logic ---
-    const discountPercentage = product.extra_special?.split("|")[0];
-    let createdDiscount = null;
-    if (discountPercentage && !isNaN(Number(discountPercentage))) {
-      const discountValue = Number(discountPercentage);
-      if (discountValue > 0) {
-        const discountInput: CreateBasicAutomaticDiscountMutationVariables = {
-          basicAutomaticDiscount: {
-            title: `${ukrainianDescription.name} - ${product.product_id}`,
-            startsAt: new Date().toISOString(),
-            endsAt: null,
-            combinesWith: {
-              productDiscounts: false,
-              orderDiscounts: false,
-              shippingDiscounts: false,
-            },
-            context: {
-              all: "ALL" as DiscountBuyerSelection.All,
-            },
-            customerGets: {
-              value: {
-                percentage: discountValue / 100,
-              },
-              items: {
-                products: {productsToAdd:[shopifYproduct?.id ]}
-              },
-            },
-            minimumRequirement: {
-              quantity: { greaterThanOrEqualToQuantity: null },
-              subtotal: { greaterThanOrEqualToSubtotal: null },
-            },
-          },
-        };
+    // const discountPercentage = product.extra_special?.split("|")[0];
+    // let createdDiscount = null;
+    // if (discountPercentage && !isNaN(Number(discountPercentage))) {
+    //   const discountValue = Number(discountPercentage);
+    //   if (discountValue > 0) {
+    //     const discountInput: CreateBasicAutomaticDiscountMutationVariables = {
+    //       basicAutomaticDiscount: {
+    //         title: `${ukrainianDescription.name} - ${product.product_id}`,
+    //         startsAt: new Date().toISOString(),
+    //         endsAt: null,
+    //         combinesWith: {
+    //           productDiscounts: false,
+    //           orderDiscounts: false,
+    //           shippingDiscounts: false,
+    //         },
+    //         context: {
+    //           all: "ALL" as DiscountBuyerSelection.All,
+    //         },
+    //         customerGets: {
+    //           value: {
+    //             percentage: discountValue / 100,
+    //           },
+    //           items: {
+    //             products: {productsToAdd:[shopifYproduct?.id ]}
+    //           },
+    //         },
+    //         minimumRequirement: {
+    //           quantity: { greaterThanOrEqualToQuantity: null },
+    //           subtotal: { greaterThanOrEqualToSubtotal: null },
+    //         },
+    //       },
+    //     };
 
-        createdDiscount = await createAutomaticDiscount(
-          discountInput,
-          accessToken,
-          domain,
-        );
-        if (createdDiscount) {
-          console.log(`Created discount:  (ID: ${createdDiscount})`);
-        }
-      }
-    }
+    //     createdDiscount = await createAutomaticDiscount(
+    //       discountInput,
+    //       accessToken,
+    //       domain,
+    //     );
+    //     if (createdDiscount) {
+    //       console.log(`Created discount:  (ID: ${createdDiscount})`);
+    //     }
+    //   }
+    // }
     console.log(`Product ${product.product_id} synced successfully.`);
   } catch (e) {
     console.log(e);

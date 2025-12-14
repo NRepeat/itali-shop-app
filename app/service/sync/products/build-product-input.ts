@@ -17,11 +17,13 @@ export const buildProductInput = (
   tags: string[],
   productMetafieldsmetObjects: MetafieldInput[],
   category: string,
+  discountPercentage: string | undefined
 ): ProductSetInput => {
   const cleanedDescription = ukrainianDescription.description
     .replace(/&lt;p&gt;/g, '<p>')
     .replace(/&lt;\/p&gt;/g, '</p>')
     .replace(/&lt;br&gt;/g, '<br>');
+  const discount = discountPercentage ? Number(discountPercentage) : 0;
   const input: ProductSetInput = {
     title: ukrainianDescription.name,
     descriptionHtml: cleanedDescription,
@@ -39,6 +41,12 @@ export const buildProductInput = (
         value: ukrainianDescription.meta_keyword,
         namespace: "custom",
         type: "single_line_text_field",
+      },
+      {
+        key: "znizka",
+        value: discount,
+        namespace: "custom",
+        type: "single_line_integer",
       },
       ...productMetafieldsmetObjects,
     ],
