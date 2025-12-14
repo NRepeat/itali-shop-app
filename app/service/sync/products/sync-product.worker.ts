@@ -202,7 +202,7 @@ export const processSyncTask = async (job: Job) => {
       optionValues,
       optionDescriptions,
     );
-
+    console.log("variants",JSON.stringify(variants));
     const tags = await buildTags(
       product,
       bcTagsDescription,

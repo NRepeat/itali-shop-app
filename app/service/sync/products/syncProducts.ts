@@ -11,6 +11,7 @@ export const syncProducts = async (domain: string, accessToken: string) => {
         quantity: {
           gt: 0
         }
+
       },
       select: {
         product_id: true,
@@ -59,14 +60,17 @@ export const syncProducts = async (domain: string, accessToken: string) => {
     console.log("allProducts",allProducts.length);
     const productToUpdate = allProducts.filter(product => !syncedProducts.some(syncedProduct => syncedProduct.localProductId === product.product_id));
     console.log("productToUpdate",productToUpdate.length);
-    for (const product of allProducts.splice(0,1)) {
-      console.log("product",product.model);
-      await syncQueue.add("sync-queue", {
-        product,
-        domain,
-        shop: domain,
-        accessToken,
-      });
+    for (const product of productToUpdate) {
+      if(product.model){
+        console.log("product",product.model);
+        await syncQueue.add("sync-queue", {
+          product,
+          domain,
+          shop: domain,
+          accessToken,
+        });
+      }
+
     }
   } catch (e) {
     throw new Error(`Error syncing products: ${e.message}`);

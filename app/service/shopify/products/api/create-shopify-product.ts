@@ -51,9 +51,10 @@ export const createProductAsynchronous = async (
       accessToken: accessToken,
       shopDomain: domain,
     });
-
+    console.log("res",JSON.stringify(res));
     return res.productSet?.product;
   } catch (error) {
+    console.error(error);
     throw new Error(`Failed to update Shopify product: ${error}`);
   }
 };

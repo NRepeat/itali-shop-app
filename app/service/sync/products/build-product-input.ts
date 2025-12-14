@@ -44,9 +44,9 @@ export const buildProductInput = (
       },
       {
         key: "znizka",
-        value: discount,
+        value: discount.toString(),
         namespace: "custom",
-        type: "single_line_integer",
+        type: "number_integer",
       },
       ...productMetafieldsmetObjects,
     ],
