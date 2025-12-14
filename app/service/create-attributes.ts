@@ -7,30 +7,43 @@ export const createAttributes = async (productId:number, admin: AdminApiContext)
 
   const createdMetaobjectGids: string[] = [];
 
- const product_attributes = await externalDB.bc_product_attribute.findMany({where:{product_id:productId,language_id:{ in: [1, 3] }}})
- if(product_attributes && product_attributes.length > 0){
-   const uk = product_attributes.filter(attr => attr.language_id === 3);
-   const ru = product_attributes.filter(attr => attr.language_id === 1);
-   for(const attr of product_attributes){
-    const attribute =  await externalDB.bc_attribute.findFirst({where:{attribute_id:attr.attribute_id}})
-    if(!attribute) continue;
-    const attributeDesc = await externalDB.bc_attribute_description.findFirst({where:{attribute_id:attribute.attribute_id,language_id:3}})
-    if(!attributeDesc) continue;
-    const input:CreateMetaobjectMutationVariables = {
-      metaobject:{
-        type:"attribute",
-        capabilities:{
-          publishable:{status:"ACTIVE" as MetaobjectStatus.Active}
-        },
-        // handle:attributeDesc?.name +"-"+ productId.toString(),
-        fields:[{key:"title",value:attributeDesc?.name},{key:'atribute_payload',value:attr.text},{key:'ru_translation',},{key:"ru_title"}]
+  const product_attributes = await externalDB.bc_product_attribute.findMany({ where: { product_id: productId, language_id: { in: [1, 3] } } });
+  if (product_attributes && product_attributes.length > 0) {
+    const uniqueAttributeIds = [...new Set(product_attributes.map(attr => attr.attribute_id))];
+
+    for (const attributeId of uniqueAttributeIds) {
+      const ukAttr = product_attributes.find(attr => attr.attribute_id === attributeId && attr.language_id === 3);
+      const ruAttr = product_attributes.find(attr => attr.attribute_id === attributeId && attr.language_id === 1);
+
+      if (!ukAttr) continue; // Must have UK attribute data
+
+      const attribute = await externalDB.bc_attribute.findFirst({ where: { attribute_id: attributeId } });
+      if (!attribute) continue;
+
+      const ukAttributeDesc = await externalDB.bc_attribute_description.findFirst({ where: { attribute_id: attributeId, language_id: 3 } });
+      if (!ukAttributeDesc) continue; // Must have UK attribute description
+
+      const ruAttributeDesc = await externalDB.bc_attribute_description.findFirst({ where: { attribute_id: attributeId, language_id: 1 } });
+
+      const input: CreateMetaobjectMutationVariables = {
+        metaobject: {
+          type: "attribute",
+          capabilities: {
+            publishable: { status: "ACTIVE" as MetaobjectStatus.Active }
+          },
+          fields: [
+            { key: "title", value: ukAttributeDesc?.name },
+            { key: "atribute_payload", value: ukAttr.text },
+            { key: "ru_title", value: ruAttributeDesc?.name || "" },
+            { key: "ru_translation", value: ruAttr?.text || "" }
+          ]
+        }
+      };
+      const createdMetaobject = await createMetaobject(input, admin);
+      if (createdMetaobject && createdMetaobject.id) {
+        createdMetaobjectGids.push(createdMetaobject.id);
       }
     }
-    const createdMetaobject = await createMetaobject(input,admin)
-    if (createdMetaobject && createdMetaobject.id) {
-        createdMetaobjectGids.push(createdMetaobject.id);
-    }
-   }
- }
- return createdMetaobjectGids;
+  }
+  return createdMetaobjectGids;
 };
