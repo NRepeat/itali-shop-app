@@ -244,7 +244,7 @@ export const processSyncTask = async (job: Job) => {
       shopifyCategoryGid,
       discountPercentage
     );
-
+    console.log(JSON.stringify(input));
     const productInput: CreateProductAsynchronousMutationVariables = {
       synchronous: true,
       productSet: input,

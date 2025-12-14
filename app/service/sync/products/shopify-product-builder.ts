@@ -64,74 +64,88 @@ export const buildProductOptions = async (
     "М'ятний": "m-jatnij",
     Пітон: "piton",
   };
-  for (const option of productOptions) {
-    const optionId = option.option_id;
-    const optionName = optionDescriptions.find((o) => o.option_id === optionId);
-    const existOptionMetafields = await getMetafields(admin, {
-      ownerType: "PRODUCT" as MetafieldOwnerType.Product,
-      first: 1,
-      query: optionName?.name,
-    });
-    if (!existOptionMetafields) {
-      continue;
-    }
+  if(!productOptions || productOptions.length === 0){
+    const input: OptionSetInput = {
+      name: "Title",
+      values:[{name: "Default Title"}]
+      // linkedMetafield: {
+      //   key: existOptionMetafields[0].type || "",
+      //   namespace: "custom",
+      //   values: values,
+      // },
+    };
+      sProductOptions.push(input);
+  }else if(productOptions.length>0 ){
+    for (const option of productOptions) {
+      const optionId = option.option_id;
+      const optionName = optionDescriptions.find((o) => o.option_id === optionId);
+      const existOptionMetafields = await getMetafields(admin, {
+        ownerType: "PRODUCT" as MetafieldOwnerType.Product,
+        first: 1,
+        query: optionName?.name,
+      });
+      if (!existOptionMetafields) {
+        continue;
+      }
 
-    const metObjects = await getMetaobject(admin, {
-      first: 250,
-      type: existOptionMetafields[0].type,
-    });
-    if (optionName?.name === "Колір") {
-      const values = [];
-      for (const ov of optionValues) {
-        if (colorMapping[ov.name]) {
+      const metObjects = await getMetaobject(admin, {
+        first: 250,
+        type: existOptionMetafields[0].type,
+      });
+      if (optionName?.name === "Колір") {
+        const values = [];
+        for (const ov of optionValues) {
+          if (colorMapping[ov.name]) {
+            const metaobject = metObjects.find(
+              (m) => m.handle === colorMapping[ov.name],
+            );
+            if (metaobject) {
+              values.push(metaobject.metaobjectId);
+            }
+          }
+        }
+        if (values.length > 0) {
+          const input: OptionSetInput = {
+            name: optionName?.name,
+            linkedMetafield: {
+              key: existOptionMetafields[0].type || "",
+              namespace: "custom",
+              values: values,
+            },
+          };
+          if (existOptionMetafields) {
+            sProductOptions.push(input);
+          }
+        }
+      } else if (optionName?.name !== "Колір") {
+        const values = [];
+        for (const ov of optionValues) {
           const metaobject = metObjects.find(
-            (m) => m.handle === colorMapping[ov.name],
+            (m) =>
+              m.handle.toLowerCase().replace(",", "-") ===
+              ov.name.toLowerCase().replace(",", "-"),
           );
           if (metaobject) {
             values.push(metaobject.metaobjectId);
           }
         }
-      }
-      if (values.length > 0) {
-        const input: OptionSetInput = {
-          name: optionName?.name,
-          linkedMetafield: {
-            key: existOptionMetafields[0].type || "",
-            namespace: "custom",
-            values: values,
-          },
-        };
-        if (existOptionMetafields) {
-          sProductOptions.push(input);
-        }
-      }
-    } else if (optionName?.name !== "Колір") {
-      const values = [];
-      for (const ov of optionValues) {
-        const metaobject = metObjects.find(
-          (m) =>
-            m.handle.toLowerCase().replace(",", "-") ===
-            ov.name.toLowerCase().replace(",", "-"),
-        );
-        if (metaobject) {
-          values.push(metaobject.metaobjectId);
-        }
-      }
-      if (values.length > 0) {
-        const input: OptionSetInput = {
-          name: optionName?.name,
-          linkedMetafield: {
-            key: existOptionMetafields[0].type || "",
-            namespace: "custom",
-            values: values,
-          },
-        };
-        if (existOptionMetafields) {
-          sProductOptions.push(input);
+        if (values.length > 0) {
+          const input: OptionSetInput = {
+            name: optionName?.name,
+            linkedMetafield: {
+              key: existOptionMetafields[0].type || "",
+              namespace: "custom",
+              values: values,
+            },
+          };
+          if (existOptionMetafields) {
+            sProductOptions.push(input);
+          }
         }
       }
     }
   }
+
   return sProductOptions;
 };
 
@@ -171,6 +185,7 @@ export const buildProductVariants = async (
 
   // 1. Group productOptionValue by option_id
   const optionsMap = new Map<number, any[]>();
+
   if (productOptionValue.length === 0) {
     const input: ProductVariantSetInput = {
       price: product.price.toString(),
@@ -199,7 +214,9 @@ export const buildProductVariants = async (
       ],
     };
     variants.push(input);
-  }else if(productOptionValue.length > 1){
+  }else if(productOptionValue.length >= 1){
+    console.log(productOptionValue.length,"productOptionValue--------");
+
     productOptionValue.forEach((pov) => {
       if (!optionsMap.has(pov.option_id)) {
         optionsMap.set(pov.option_id, []);
@@ -208,7 +225,7 @@ export const buildProductVariants = async (
     });
 
     const optionValueGroups = Array.from(optionsMap.values());
-
+    console.log(JSON.stringify(optionValueGroups),'-----');
     if (optionValueGroups.length === 0) {
       return [];
     }
