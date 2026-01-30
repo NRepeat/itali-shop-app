@@ -1,6 +1,7 @@
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import syncQueue from "@shared/lib/queue";
 import { client } from "@shared/lib/shopify/client/client";
+import { linkProducts } from "./link-products";
 
 export const syncProducts = async (domain: string, accessToken: string) => {
   try {
@@ -67,19 +68,20 @@ export const syncProducts = async (domain: string, accessToken: string) => {
     //   });
     //   return product
     // };
-    console.log("deletrino done");
-    console.log("allProducts", allProducts.length);
+
     const productToUpdate = allProducts.filter(
       (product) =>
-        !syncedProducts.some(
+        syncedProducts.some(
           (syncedProduct) =>
             syncedProduct.localProductId === product.product_id,
         ),
     );
-    console.log("productToUpdate", productToUpdate.length);
+    console.log("productToUpdate",productToUpdate.length)
+    // return
     for (const product of productToUpdate) {
       if (product.model) {
         console.log("product", product.model);
+        await linkProducts(product,accessToken,domain)
         // const productDes = await externalDB.bc_product_description.findFirst({where:{product_id:product.product_id,language_id:3}})
         // if(productDes){
         //   console.log("productDes",productDes)
@@ -95,12 +97,12 @@ export const syncProducts = async (domain: string, accessToken: string) => {
         //     })
         //   }
         // }
-        await syncQueue.add("sync-queue", {
-          product,
-          domain,
-          shop: domain,
-          accessToken,
-        });
+        // await syncQueue.add("sync-queue", {
+        //   product,
+        //   domain,
+        //   shop: domain,
+        //   accessToken,
+        // });
       }
     }
   } catch (e) {
