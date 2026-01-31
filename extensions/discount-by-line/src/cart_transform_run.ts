@@ -2,6 +2,7 @@ import type {
   CartTransformRunInput,
   CartTransformRunResult,
   CartOperation,
+  Operation,
 } from "../generated/api";
 
 const NO_CHANGES: CartTransformRunResult = {
@@ -9,7 +10,7 @@ const NO_CHANGES: CartTransformRunResult = {
 };
 
 export function cartTransformRun(input: CartTransformRunInput): CartTransformRunResult {
-  const operations: CartOperation[] = [];
+  const operations: Operation[] = [];
 
   console.error("=== Cart Transform START ===");
   console.error("Total lines:", input.cart.lines.length);
