@@ -12,25 +12,37 @@ export type ExistingCollection = bc_category & {
 
 export const getCollections = async () => {
   try {
-    const collectionWithDesc: ExistingCollection[] = [];
-    const existCollections = await externalDB.bc_category.findMany({});
-    for (const collection of existCollections) {
-      const description = await externalDB.bc_category_description.findMany({
-        where: {
-          category_id: collection.category_id,
-        },
-      });
-      const desc = {
-        rus: description.find((d) => d.language_id === 1),
-        ukr: description.find((d) => d.language_id === 3),
-      };
-      collectionWithDesc.push({
-        ...collection,
-        description: desc,
-      });
+    const [existCollections, allDescriptions] = await Promise.all([
+      externalDB.bc_category.findMany({}),
+      externalDB.bc_category_description.findMany({}),
+    ]);
+
+    const descriptionsByCategory = new Map<
+      number,
+      bc_category_description[]
+    >();
+    for (const desc of allDescriptions) {
+      const list = descriptionsByCategory.get(desc.category_id) || [];
+      list.push(desc);
+      descriptionsByCategory.set(desc.category_id, list);
     }
+
+    const collectionWithDesc: ExistingCollection[] = existCollections.map(
+      (collection) => {
+        const descriptions =
+          descriptionsByCategory.get(collection.category_id) || [];
+        return {
+          ...collection,
+          description: {
+            rus: descriptions.find((d) => d.language_id === 1),
+            ukr: descriptions.find((d) => d.language_id === 3),
+          },
+        };
+      },
+    );
+
     return collectionWithDesc as [];
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(err.message);
   }
 };

@@ -209,7 +209,7 @@ export const buildProductVariants = async (
           namespace: "custom",
           key: "at_the_fitting",
           type: "boolean",
-          value: product.reserved ? "true" : "false",
+          value: "false",
         },
       ],
     };
@@ -335,19 +335,23 @@ export const buildTags = async (
     const category = await externalDB.bc_category.findFirst({
       where: { category_id: bTD.category_id },
     });
-    const parrent = await externalDB.bc_category.findFirst({
-      where: { parent_id: category?.parent_id },
-    });
-    const parrentDescription =
-      await externalDB.bc_category_description.findFirst({
-        where: {
-          language_id: 3,
-          category_id: parrent?.category_id,
-        },
+    if (category?.parent_id && category.parent_id > 0) {
+      const parrent = await externalDB.bc_category.findFirst({
+        where: { category_id: category.parent_id },
       });
-    const tag = parrentDescription?.name;
-    if (tag) {
-      tags.push(tag);
+      if (parrent) {
+        const parrentDescription =
+          await externalDB.bc_category_description.findFirst({
+            where: {
+              language_id: 3,
+              category_id: parrent.category_id,
+            },
+          });
+        const tag = parrentDescription?.name;
+        if (tag) {
+          tags.push(tag);
+        }
+      }
     }
   }
 
@@ -361,7 +365,7 @@ export const buildTags = async (
     tags.push(...ukrainianDescription.tag.split(", "));
   }
 
-  return tags;
+  return [...new Set(tags)];
 };
 
 export const buildFiles = (

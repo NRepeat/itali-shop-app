@@ -1,0 +1,23 @@
+query CartTransformRunInput {
+  cart {
+    lines {
+      id
+      quantity
+      cost {
+        amountPerQuantity {
+          amount
+        }
+      }
+      merchandise {
+        ... on ProductVariant {
+          id
+          product {
+            metafield(namespace: "custom", key: "znizka") {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+}

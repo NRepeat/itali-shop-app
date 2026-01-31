@@ -395,7 +395,9 @@ export const ModelName = {
   MetaobjectDefinition: 'MetaobjectDefinition',
   Collection: 'Collection',
   Metaobject: 'Metaobject',
-  ProductMap: 'ProductMap'
+  ProductMap: 'ProductMap',
+  CustomerMap: 'CustomerMap',
+  OrderMap: 'OrderMap'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -411,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap"
+    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -859,6 +861,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CustomerMap: {
+      payload: Prisma.$CustomerMapPayload<ExtArgs>
+      fields: Prisma.CustomerMapFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerMapFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerMapFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerMapFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerMapFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>
+        }
+        findMany: {
+          args: Prisma.CustomerMapFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>[]
+        }
+        create: {
+          args: Prisma.CustomerMapCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>
+        }
+        createMany: {
+          args: Prisma.CustomerMapCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerMapCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerMapDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>
+        }
+        update: {
+          args: Prisma.CustomerMapUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerMapDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerMapUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerMapUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerMapUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerMapPayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerMapAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerMap>
+        }
+        groupBy: {
+          args: Prisma.CustomerMapGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerMapGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerMapCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerMapCountAggregateOutputType> | number
+        }
+      }
+    }
+    OrderMap: {
+      payload: Prisma.$OrderMapPayload<ExtArgs>
+      fields: Prisma.OrderMapFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OrderMapFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OrderMapFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>
+        }
+        findFirst: {
+          args: Prisma.OrderMapFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OrderMapFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>
+        }
+        findMany: {
+          args: Prisma.OrderMapFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>[]
+        }
+        create: {
+          args: Prisma.OrderMapCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>
+        }
+        createMany: {
+          args: Prisma.OrderMapCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OrderMapCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>[]
+        }
+        delete: {
+          args: Prisma.OrderMapDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>
+        }
+        update: {
+          args: Prisma.OrderMapUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>
+        }
+        deleteMany: {
+          args: Prisma.OrderMapDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OrderMapUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OrderMapUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>[]
+        }
+        upsert: {
+          args: Prisma.OrderMapUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrderMapPayload>
+        }
+        aggregate: {
+          args: Prisma.OrderMapAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOrderMap>
+        }
+        groupBy: {
+          args: Prisma.OrderMapGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OrderMapGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OrderMapCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OrderMapCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -978,6 +1128,28 @@ export const ProductMapScalarFieldEnum = {
 } as const
 
 export type ProductMapScalarFieldEnum = (typeof ProductMapScalarFieldEnum)[keyof typeof ProductMapScalarFieldEnum]
+
+
+export const CustomerMapScalarFieldEnum = {
+  id: 'id',
+  localCustomerId: 'localCustomerId',
+  shopifyCustomerId: 'shopifyCustomerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerMapScalarFieldEnum = (typeof CustomerMapScalarFieldEnum)[keyof typeof CustomerMapScalarFieldEnum]
+
+
+export const OrderMapScalarFieldEnum = {
+  id: 'id',
+  localOrderId: 'localOrderId',
+  shopifyOrderId: 'shopifyOrderId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrderMapScalarFieldEnum = (typeof OrderMapScalarFieldEnum)[keyof typeof OrderMapScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1179,6 +1351,8 @@ export type GlobalOmitConfig = {
   collection?: Prisma.CollectionOmit
   metaobject?: Prisma.MetaobjectOmit
   productMap?: Prisma.ProductMapOmit
+  customerMap?: Prisma.CustomerMapOmit
+  orderMap?: Prisma.OrderMapOmit
 }
 
 /* Types for Logging */

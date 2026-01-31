@@ -166,6 +166,7 @@ export const processSyncTask = async (job: Job) => {
     );
 
     let shopifyCategoryGid = "gid://shopify/TaxonomyCategory/aa"; // Default value
+    let productType = "";
 
     if (productToCategory) {
       const categoryDescription =
@@ -176,13 +177,17 @@ export const processSyncTask = async (job: Job) => {
           },
         });
 
-      if (categoryDescription && categoryMap[categoryDescription.name]) {
-        const googleTaxonomyName = categoryMap[categoryDescription.name];
-        const shopifyCategoryId =
-          shopifyCategoryNameToIdMap.get(googleTaxonomyName);
+      if (categoryDescription) {
+        productType = categoryDescription.name;
 
-        if (shopifyCategoryId) {
-          shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${shopifyCategoryId}`;
+        if (categoryMap[categoryDescription.name]) {
+          const googleTaxonomyName = categoryMap[categoryDescription.name];
+          const shopifyCategoryId =
+            shopifyCategoryNameToIdMap.get(googleTaxonomyName);
+
+          if (shopifyCategoryId) {
+            shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${shopifyCategoryId}`;
+          }
         }
       }
     }
@@ -242,7 +247,9 @@ export const processSyncTask = async (job: Job) => {
       tags,
       productMetafieldsmetObjects,
       shopifyCategoryGid,
-      discountPercentage
+      discountPercentage,
+      product.sort_order,
+      productType,
     );
     console.log(JSON.stringify(input));
     const productInput: CreateProductAsynchronousMutationVariables = {
@@ -255,144 +262,142 @@ export const processSyncTask = async (job: Job) => {
     );
 
     if (shopifYproduct) {
-      await prisma.productMap.create({
-        data: {
+      await prisma.productMap.upsert({
+        where: { localProductId: product.product_id },
+        update: { shopifyProductId: shopifYproduct.id },
+        create: {
           localProductId: product.product_id,
           shopifyProductId: shopifYproduct.id,
         },
       });
     }
 
-    if (russianDescription && shopifYproduct) {
-      const digestResponse = await admin.graphql(
-        GET_TRANSLATABLE_PRODUCT_RESOURCE_QUERY,
-        {
-          variables: {
-            id: shopifYproduct.id,
-          },
-        },
-      );
+    if (!shopifYproduct) {
+      throw new Error('Failed to create product');
+    }
 
-      if (!digestResponse.data) {
-        console.error(
-          `Failed to fetch translatable resource for product ${shopifYproduct.id}:`,
-          digestResponse,
+    // --- Russian translations ---
+    if (russianDescription) {
+      console.log(`[Translation] Starting RU translations for product ${shopifYproduct.id}`);
+      try {
+        const digestResponse = await admin.graphql(
+          GET_TRANSLATABLE_PRODUCT_RESOURCE_QUERY,
+          { variables: { id: shopifYproduct.id } },
         );
-      } else {
-        const digests =
-          digestResponse.data?.translatableResource?.translatableContent || [];
 
-        const translationsToRegister: TranslationInput[] = [];
+        if (!digestResponse.data) {
+          console.error(`[Translation] Failed to fetch digests for ${shopifYproduct.id}`);
+        } else {
+          const digests =
+            digestResponse.data?.translatableResource?.translatableContent || [];
+          console.log(`[Translation] Found ${digests.length} translatable fields`);
 
-        const fieldsToTranslate = [
-          { shopifyKey: "title", sourceValue: russianDescription.name },
-          { shopifyKey: "body_html", sourceValue: russianDescription.description
-            .replace(/&lt;p&gt;/g, '<p>')
-            .replace(/&lt;\/p&gt;/g, '</p>')
-            .replace(/&lt;br&gt;/g, '<br>')
-          },
-          { shopifyKey: "meta_title", sourceValue: russianDescription.meta_title },
-          { shopifyKey: "meta_description", sourceValue: russianDescription.meta_description.replace(/&quot;/g, '"') },
-          { shopifyKey: "handle", sourceValue: russianDescription.seo_keyword },
-        ];
+          const translationsToRegister: TranslationInput[] = [];
 
-        for (const field of fieldsToTranslate) {
-          const digestEntry = digests.find((d) => d.key === field.shopifyKey);
-          if (digestEntry && field.sourceValue) {
-            translationsToRegister.push({
-              locale: "ru",
-              key: field.shopifyKey,
-              value: field.sourceValue,
-              translatableContentDigest: digestEntry.digest!,
-            });
-          }
-        }
+          const decodeHtml = (s: string) =>
+            s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'");
 
-        if (translationsToRegister.length > 0) {
-          const registerResponse = await admin.graphql(
-            TRANSLATIONS_REGISTER_MUTATION,
-            {
-              variables: {
-                resourceId: shopifYproduct.id,
-                translations: translationsToRegister,
-              },
-            },
-          );
+          const fieldsToTranslate = [
+            { shopifyKey: "title", sourceValue: russianDescription.name },
+            { shopifyKey: "body_html", sourceValue: decodeHtml(russianDescription.description) },
+            { shopifyKey: "meta_title", sourceValue: russianDescription.meta_title },
+            { shopifyKey: "meta_description", sourceValue: decodeHtml(russianDescription.meta_description) },
+            { shopifyKey: "handle", sourceValue: russianDescription.seo_keyword },
+          ];
 
-          if (registerResponse.data?.translationsRegister?.userErrors?.length) {
-            console.error(
-              `Failed to register Russian translations for product ${shopifYproduct.id}:`,
-              registerResponse.data.translationsRegister.userErrors,
-            );
-          } else {
-            console.log(
-              `Russian translations registered for product ${shopifYproduct.id}.`,
-            );
-          }
-        }
-
-        // --- Translate meta-keyword metafield ---
-        if (russianDescription.meta_keyword) {
-          const metafieldIdResponse = await admin.graphql(GET_PRODUCT_METAFIELD_ID_QUERY, {
-            variables: {
-              productId: shopifYproduct.id,
-              namespace: "custom",
-              key: "meta-keyword",
-            },
-          });
-
-          const metafieldId = metafieldIdResponse.data?.product?.metafield?.id;
-
-          if (metafieldId) {
-            const translatableMetafieldResponse = await admin.graphql(GET_TRANSLATABLE_METAFIELD_QUERY, {
-              variables: {
-                id: metafieldId,
-              },
-            });
-
-            const translatableContent = translatableMetafieldResponse.data?.translatableResource?.translatableContent;
-
-            if (translatableContent && translatableContent.length > 0) {
-              const digest = translatableContent[0].digest;
-              const metafieldTranslations: TranslationInput[] = [{
+          for (const field of fieldsToTranslate) {
+            const digestEntry = digests.find((d) => d.key === field.shopifyKey);
+            if (digestEntry && field.sourceValue) {
+              translationsToRegister.push({
                 locale: "ru",
-                key: "value",
-                value: russianDescription.meta_keyword,
-                translatableContentDigest: digest,
-              }];
+                key: field.shopifyKey,
+                value: field.sourceValue,
+                translatableContentDigest: digestEntry.digest!,
+              });
+            }
+          }
 
-              const registerMetafieldResponse = await admin.graphql(
-                TRANSLATIONS_REGISTER_MUTATION,
-                {
-                  variables: {
-                    resourceId: metafieldId,
-                    translations: metafieldTranslations,
-                  },
+          console.log(`[Translation] Registering ${translationsToRegister.length} RU translations`);
+
+          if (translationsToRegister.length > 0) {
+            const registerResponse = await admin.graphql(
+              TRANSLATIONS_REGISTER_MUTATION,
+              {
+                variables: {
+                  resourceId: shopifYproduct.id,
+                  translations: translationsToRegister,
                 },
-              );
+              },
+            );
 
-              if (registerMetafieldResponse.data?.translationsRegister?.userErrors?.length) {
-                console.error(
-                  `Failed to register Russian translation for meta-keyword on product ${shopifYproduct.id}:`,
-                  registerMetafieldResponse.data.translationsRegister.userErrors,
+            if (registerResponse.data?.translationsRegister?.userErrors?.length) {
+              console.error(
+                `[Translation] Error for product ${shopifYproduct.id}:`,
+                JSON.stringify(registerResponse.data.translationsRegister.userErrors),
+              );
+            } else {
+              console.log(`[Translation] RU translations registered for ${shopifYproduct.id}`);
+            }
+          }
+
+          // --- Translate meta-keyword metafield ---
+          if (russianDescription.meta_keyword) {
+            const metafieldIdResponse = await admin.graphql(GET_PRODUCT_METAFIELD_ID_QUERY, {
+              variables: {
+                productId: shopifYproduct.id,
+                namespace: "custom",
+                key: "meta-keyword",
+              },
+            });
+
+            const metafieldId = metafieldIdResponse.data?.product?.metafield?.id;
+
+            if (metafieldId) {
+              const translatableMetafieldResponse = await admin.graphql(GET_TRANSLATABLE_METAFIELD_QUERY, {
+                variables: { id: metafieldId },
+              });
+
+              const translatableContent = translatableMetafieldResponse.data?.translatableResource?.translatableContent;
+
+              if (translatableContent && translatableContent.length > 0) {
+                const digest = translatableContent[0].digest;
+                const dedupedRuKeywords = [...new Set(
+                  russianDescription.meta_keyword.split(",").map((k: string) => k.trim()).filter(Boolean),
+                )].join(", ");
+                const metafieldTranslations: TranslationInput[] = [{
+                  locale: "ru",
+                  key: "value",
+                  value: dedupedRuKeywords,
+                  translatableContentDigest: digest,
+                }];
+
+                const registerMetafieldResponse = await admin.graphql(
+                  TRANSLATIONS_REGISTER_MUTATION,
+                  {
+                    variables: {
+                      resourceId: metafieldId,
+                      translations: metafieldTranslations,
+                    },
+                  },
                 );
-              } else {
-                console.log(
-                  `Russian translation for meta-keyword registered for product ${shopifYproduct.id}.`,
-                );
+
+                if (registerMetafieldResponse.data?.translationsRegister?.userErrors?.length) {
+                  console.error(
+                    `[Translation] meta-keyword error for ${shopifYproduct.id}:`,
+                    JSON.stringify(registerMetafieldResponse.data.translationsRegister.userErrors),
+                  );
+                } else {
+                  console.log(`[Translation] meta-keyword RU registered for ${shopifYproduct.id}`);
+                }
               }
             }
           }
         }
+      } catch (translationError: any) {
+        console.error(`[Translation] Failed for product ${shopifYproduct.id}: ${translationError.message}`);
       }
-    }
-
-    const productsWithErrors = []
-    console.log(JSON.stringify(shopifYproduct, null, 2));
-    if (!shopifYproduct) {
-      productsWithErrors.push({ product, error: 'Failed to create product' });
-      await fs.writeFile('error_log.txt', JSON.stringify(productsWithErrors, null, 2), 'utf8');
-      throw new Error('Failed to create product');
+    } else {
+      console.log(`[Translation] No Russian description found for product ${product.product_id}, skipping translations`);
     }
     // --- Discount Creation Logic ---
     // const discountPercentage = product.extra_special?.split("|")[0];

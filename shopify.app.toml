@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "580ca53875f2ee158c94326a025f47a3"
-name = "itali-shop-app"
-application_url = "https://p3v6erpkh7rbsmr6l22ee7ibki.srv.us"
+client_id = "4975a472f8afc31d6809e4281ec1390f"
+name = "mio-mio-system"
+application_url = "https://development.nninc.uk"
 embedded = true
 
 [build]
@@ -21,10 +21,12 @@ api_version = "2026-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products, read_products, write_metaobjects, read_metaobjects, write_translations, read_translations, write_content, read_content, write_discounts, read_discounts, write_customers, read_customers, write_orders, read_orders, write_draft_orders, read_draft_orders, write_cart_transforms"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://p3v6erpkh7rbsmr6l22ee7ibki.srv.us/api/auth" ]
+redirect_urls = [ ]
 
 [app_proxy]
 url = "/my-app-proxy"

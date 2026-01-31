@@ -74,3 +74,13 @@ export type Metaobject = Prisma.MetaobjectModel
  * 
  */
 export type ProductMap = Prisma.ProductMapModel
+/**
+ * Model CustomerMap
+ * 
+ */
+export type CustomerMap = Prisma.CustomerMapModel
+/**
+ * Model OrderMap
+ * 
+ */
+export type OrderMap = Prisma.OrderMapModel

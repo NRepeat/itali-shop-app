@@ -1,17 +1,21 @@
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
-import syncQueue from "@shared/lib/queue";
-import { client } from "@shared/lib/shopify/client/client";
-import { linkProducts } from "./link-products";
+import { processSyncTask } from "./sync-product.worker";
 
-export const syncProducts = async (domain: string, accessToken: string) => {
+export const syncProducts = async (
+  domain: string,
+  accessToken: string,
+  limit?: number,
+) => {
+  const logs: string[] = [];
+  const log = (msg: string) => {
+    console.log(msg);
+    logs.push(msg);
+  };
   try {
-    const syncedProducts = await prisma.productMap.findMany();
     const allProducts = await externalDB.bc_product.findMany({
       where: {
         status: true,
-        quantity: {
-          gt: 0,
-        },
+        quantity: { gt: 0 },
       },
       select: {
         product_id: true,
@@ -53,59 +57,38 @@ export const syncProducts = async (domain: string, accessToken: string) => {
         rasprodaja: true,
       },
     });
-    // const query = `
-    //   query getProductByIds($query: String!) {
-    //        productByHandle(handle:$query) {
+    log(`Found ${allProducts.length} products in external DB`);
 
-    //            id
-
-    //        }
-    //      }
-    // `
-    // const getShopifyProductId = async (productId: string) => {
-    //   const product = await client.request({
-    //     query,accessToken:accessToken,shopDomain:domain,variables:{query:`${productId}`}
-    //   });
-    //   return product
-    // };
-
-    const productToUpdate = allProducts.filter(
-      (product) =>
-        syncedProducts.some(
-          (syncedProduct) =>
-            syncedProduct.localProductId === product.product_id,
-        ),
+    const productsToCreate = limit ? allProducts.slice(0, limit) : allProducts;
+    log(
+      `Creating ${productsToCreate.length} products${limit ? ` (limited to ${limit})` : ""}`,
     );
-    console.log("productToUpdate",productToUpdate.length)
-    // return
-    for (const product of productToUpdate) {
-      if (product.model) {
-        console.log("product", product.model);
-        await linkProducts(product,accessToken,domain)
-        // const productDes = await externalDB.bc_product_description.findFirst({where:{product_id:product.product_id,language_id:3}})
-        // if(productDes){
-        //   console.log("productDes",productDes)
-        //   const shopifyProductId = await getShopifyProductId(productDes.seo_keyword)
-        //   console.log("shopifyProductId",shopifyProductId)
-        //   const shopidyId = shopifyProductId?.productByHandle?.id
-        //   if(shopidyId){
-        //     console.log("shopidyId",shopidyId)
-        //     await prisma.productMap.upsert({
-        //       where:{localProductId:product.product_id},
-        //       update:{shopifyProductId:shopidyId},
-        //       create:{localProductId:product.product_id,shopifyProductId:shopidyId}
-        //     })
-        //   }
-        // }
-        // await syncQueue.add("sync-queue", {
-        //   product,
-        //   domain,
-        //   shop: domain,
-        //   accessToken,
-        // });
+
+    for (const [i, product] of productsToCreate.entries()) {
+      try {
+        log(
+          `[${i + 1}/${productsToCreate.length}] Creating product: ${product.model || product.product_id}`,
+        );
+        const fakeJob = {
+          data: { product, domain, shop: domain, accessToken },
+        };
+        await processSyncTask(fakeJob as any);
+        log(
+          `[${i + 1}/${productsToCreate.length}] Product ${product.model || product.product_id} created successfully`,
+        );
+      } catch (e: any) {
+        log(
+          `[${i + 1}/${productsToCreate.length}] Error creating product ${product.model || product.product_id}: ${e.message}`,
+        );
       }
     }
-  } catch (e) {
-    throw new Error(`Error syncing products: ${e.message}`);
+
+    log(`Sync completed successfully`);
+    return logs;
+  } catch (e: any) {
+    logs.push(`Error: ${e.message}`);
+    throw Object.assign(new Error(`Error syncing products: ${e.message}`), {
+      logs,
+    });
   }
 };
