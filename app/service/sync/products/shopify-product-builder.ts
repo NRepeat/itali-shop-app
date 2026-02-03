@@ -84,7 +84,7 @@ export const buildProductOptions = async (
         first: 1,
         query: optionName?.name,
       });
-      if (!existOptionMetafields) {
+      if (!existOptionMetafields || !existOptionMetafields[0]) {
         continue;
       }
 
@@ -423,7 +423,7 @@ export const buildMetafields = async (
       key: mappedFilters[key].keyword,
     });
 
-    if (!existOptionMetafields) {
+    if (!existOptionMetafields || !existOptionMetafields[0]) {
       continue;
     }
     const metObjects = await getMetaobject(admin, {

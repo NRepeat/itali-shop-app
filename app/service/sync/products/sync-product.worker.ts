@@ -8,7 +8,9 @@ import {
   buildMetafields,
 } from "./shopify-product-builder";
 import { buildProductInput } from "./build-product-input";
+import { linkProducts } from "./link-products";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
+import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import {
   CreateBasicAutomaticDiscountMutationVariables,
   CreateProductAsynchronousMutationVariables,
@@ -193,6 +195,20 @@ export const processSyncTask = async (job: Job) => {
     }
     // --- End Dynamic Category Logic ---
 
+    // Check if product already exists in Shopify by SKU
+    console.log(`[Check] Checking if product ${product.model} exists in Shopify...`);
+    const existingProductId = await findShopifyProductBySku(
+      product.model,
+      accessToken,
+      shop,
+    );
+
+    if (existingProductId) {
+      console.log(`[Found] Product ${product.model} exists with ID: ${existingProductId}`);
+    } else {
+      console.log(`[NotFound] Product ${product.model} not found in Shopify, will create new`);
+    }
+
     const sProductOptions = await buildProductOptions(
       admin as any,
       productOptions,
@@ -250,12 +266,20 @@ export const processSyncTask = async (job: Job) => {
       discountPercentage,
       product.sort_order,
       productType,
+      existingProductId, // Use product ID from Shopify if found
     );
     console.log(JSON.stringify(input));
     const productInput: CreateProductAsynchronousMutationVariables = {
       synchronous: true,
       productSet: input,
     };
+
+    if (existingProductId) {
+      console.log(`[Update] Updating existing product ${existingProductId}`);
+    } else {
+      console.log(`[Create] Creating new product for ${product.product_id}`);
+    }
+
     const shopifYproduct = await createProductAsynchronous(
       domain,
       productInput,
@@ -270,6 +294,10 @@ export const processSyncTask = async (job: Job) => {
           shopifyProductId: shopifYproduct.id,
         },
       });
+
+      // Link related products via metafields
+      console.log(`[LinkProducts] Linking related products for ${shopifYproduct.id}`);
+      await linkProducts(product, accessToken, shop);
     }
 
     if (!shopifYproduct) {

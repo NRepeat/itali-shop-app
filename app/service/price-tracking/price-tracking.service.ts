@@ -1,0 +1,287 @@
+import { prisma } from "@shared/lib/prisma/prisma.server";
+import { Decimal } from "@prisma/client/runtime/library";
+import { queuePriceNotification } from "./price-notification.service";
+
+interface ProductVariant {
+  id: number;
+  product_id: number;
+  price: string;
+  compare_at_price: string | null;
+  sku: string;
+  title: string;
+  inventory_quantity?: number;
+  inventory_policy?: string;
+}
+
+interface ProductPayload {
+  id: number;
+  title: string;
+  handle: string;
+  status?: string;
+  variants: ProductVariant[];
+}
+
+export async function processPriceUpdate(
+  shop: string,
+  product: ProductPayload
+): Promise<void> {
+  const shopifyProductId = `gid://shopify/Product/${product.id}`;
+
+  console.log(`Processing price update for product ${product.id} (${product.title})`);
+
+  for (const variant of product.variants) {
+    const shopifyVariantId = `gid://shopify/ProductVariant/${variant.id}`;
+    const currentPrice = new Decimal(variant.price);
+    const compareAtPrice = variant.compare_at_price
+      ? new Decimal(variant.compare_at_price)
+      : null;
+
+    // Check inventory status
+    const isInStock =
+      variant.inventory_quantity === undefined ||
+      variant.inventory_quantity > 0 ||
+      variant.inventory_policy === "continue";
+
+    // Get the last recorded price for this variant
+    const lastPrice = await prisma.priceHistory.findFirst({
+      where: { shopifyVariantId },
+      orderBy: { recordedAt: "desc" },
+    });
+
+    // Only record if price changed or no history exists
+    const priceChanged =
+      !lastPrice || !lastPrice.price.equals(currentPrice);
+
+    if (priceChanged) {
+      console.log(
+        `Price changed for variant ${variant.id}: ${lastPrice?.price.toString() || "N/A"} -> ${currentPrice.toString()}`
+      );
+
+      // Record new price in history
+      await prisma.priceHistory.create({
+        data: {
+          shopifyProductId,
+          shopifyVariantId,
+          price: currentPrice,
+          compareAtPrice,
+          currencyCode: "UAH",
+        },
+      });
+
+      // Check for subscriptions that should be notified (only if in stock)
+      if (isInStock) {
+        await checkAndNotifySubscriptions(
+          shopifyProductId,
+          shopifyVariantId,
+          currentPrice,
+          product.title,
+          variant.title
+        );
+      } else {
+        console.log(
+          `Variant ${variant.id} is out of stock, skipping notifications`
+        );
+      }
+    }
+
+    // Check for back-in-stock notifications
+    if (isInStock) {
+      await checkAndNotifyBackInStock(
+        shopifyProductId,
+        shopifyVariantId,
+        currentPrice,
+        product.title,
+        variant.title
+      );
+    }
+  }
+}
+
+// Check and notify subscriptions waiting for back-in-stock
+async function checkAndNotifyBackInStock(
+  shopifyProductId: string,
+  shopifyVariantId: string,
+  currentPrice: Decimal,
+  productTitle?: string,
+  variantTitle?: string
+): Promise<void> {
+  // Find BACK_IN_STOCK subscriptions
+  const subscriptions = await prisma.priceSubscription.findMany({
+    where: {
+      isActive: true,
+      subscriptionType: "BACK_IN_STOCK",
+      OR: [
+        { shopifyProductId, shopifyVariantId: null },
+        { shopifyProductId, shopifyVariantId },
+        { shopifyVariantId },
+      ],
+    },
+  });
+
+  if (subscriptions.length > 0) {
+    console.log(
+      `Found ${subscriptions.length} back-in-stock subscriptions to check`
+    );
+
+    for (const subscription of subscriptions) {
+      // Only notify if not recently notified (prevent spam)
+      const recentlyNotified = subscription.notifiedAt &&
+        (new Date().getTime() - subscription.notifiedAt.getTime()) < 24 * 60 * 60 * 1000; // 24 hours
+
+      if (!recentlyNotified) {
+        await queuePriceNotification(
+          subscription.id,
+          currentPrice.toString(),
+          productTitle,
+          variantTitle
+        );
+
+        console.log(
+          `Queued back-in-stock notification for subscription ${subscription.id} (${subscription.email})`
+        );
+      }
+    }
+  }
+}
+
+async function checkAndNotifySubscriptions(
+  shopifyProductId: string,
+  shopifyVariantId: string,
+  currentPrice: Decimal,
+  productTitle?: string,
+  variantTitle?: string
+): Promise<void> {
+  // Find active PRICE_DROP subscriptions where target price is met
+  const priceDropSubscriptions = await prisma.priceSubscription.findMany({
+    where: {
+      isActive: true,
+      notifiedAt: null,
+      subscriptionType: "PRICE_DROP",
+      OR: [
+        { shopifyProductId, shopifyVariantId: null },
+        { shopifyProductId, shopifyVariantId },
+        { shopifyVariantId },
+      ],
+      targetPrice: {
+        gte: currentPrice,
+      },
+    },
+  });
+
+  // Find active ANY_CHANGE subscriptions
+  const anyChangeSubscriptions = await prisma.priceSubscription.findMany({
+    where: {
+      isActive: true,
+      subscriptionType: "ANY_CHANGE",
+      OR: [
+        { shopifyProductId, shopifyVariantId: null },
+        { shopifyProductId, shopifyVariantId },
+        { shopifyVariantId },
+      ],
+    },
+  });
+
+  const subscriptions = [...priceDropSubscriptions, ...anyChangeSubscriptions];
+
+  if (subscriptions.length > 0) {
+    console.log(
+      `Found ${subscriptions.length} subscriptions to notify for price ${currentPrice.toString()}`
+    );
+
+    // Queue notifications for each subscription
+    for (const subscription of subscriptions) {
+      // For ANY_CHANGE, prevent spam - only notify once per 24 hours
+      if (subscription.subscriptionType === "ANY_CHANGE" && subscription.notifiedAt) {
+        const hoursSinceNotified =
+          (new Date().getTime() - subscription.notifiedAt.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceNotified < 24) {
+          continue;
+        }
+      }
+
+      await queuePriceNotification(
+        subscription.id,
+        currentPrice.toString(),
+        productTitle,
+        variantTitle
+      );
+
+      console.log(
+        `Queued notification for subscription ${subscription.id} (${subscription.email})`
+      );
+    }
+  }
+}
+
+// API functions for external use
+
+type SubscriptionType = "PRICE_DROP" | "BACK_IN_STOCK" | "ANY_CHANGE";
+
+export async function createPriceSubscription(data: {
+  email: string;
+  shopifyProductId: string;
+  shopifyVariantId?: string;
+  subscriptionType?: SubscriptionType;
+  targetPrice?: number;
+}) {
+  return prisma.priceSubscription.create({
+    data: {
+      email: data.email,
+      shopifyProductId: data.shopifyProductId,
+      shopifyVariantId: data.shopifyVariantId || null,
+      subscriptionType: data.subscriptionType || "PRICE_DROP",
+      targetPrice: data.targetPrice ? new Decimal(data.targetPrice) : null,
+    },
+  });
+}
+
+export async function getPriceHistory(
+  shopifyProductId: string,
+  shopifyVariantId?: string,
+  limit = 30
+) {
+  return prisma.priceHistory.findMany({
+    where: {
+      shopifyProductId,
+      ...(shopifyVariantId && { shopifyVariantId }),
+    },
+    orderBy: { recordedAt: "desc" },
+    take: limit,
+  });
+}
+
+export async function getCurrentPrices(shopifyProductId: string) {
+  // Get distinct variant IDs for this product
+  const variants = await prisma.priceHistory.findMany({
+    where: { shopifyProductId },
+    select: { shopifyVariantId: true },
+    distinct: ["shopifyVariantId"],
+  });
+
+  // Get latest price for each variant
+  const prices = await Promise.all(
+    variants.map(async ({ shopifyVariantId }) => {
+      const latestPrice = await prisma.priceHistory.findFirst({
+        where: { shopifyProductId, shopifyVariantId },
+        orderBy: { recordedAt: "desc" },
+      });
+      return latestPrice;
+    })
+  );
+
+  return prices.filter(Boolean);
+}
+
+export async function getSubscriptionsByEmail(email: string) {
+  return prisma.priceSubscription.findMany({
+    where: { email, isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function cancelSubscription(id: string, email: string) {
+  return prisma.priceSubscription.updateMany({
+    where: { id, email },
+    data: { isActive: false },
+  });
+}

@@ -32,10 +32,12 @@ export const buildProductInput = (
   discountPercentage: string | undefined,
   sortOrder: number,
   productType?: string,
+  existingProductId?: string, // Add parameter for existing product ID
 ): ProductSetInput => {
   const cleanedDescription = decodeHtmlEntities(ukrainianDescription.description);
   const discount = discountPercentage ? Number(discountPercentage) : 0;
   const input: ProductSetInput = {
+    ...(existingProductId && { id: existingProductId }), // Add ID if updating existing product
     title: ukrainianDescription.name,
     descriptionHtml: cleanedDescription,
     handle: ukrainianDescription.seo_keyword,

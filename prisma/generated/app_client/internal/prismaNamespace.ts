@@ -397,7 +397,9 @@ export const ModelName = {
   Metaobject: 'Metaobject',
   ProductMap: 'ProductMap',
   CustomerMap: 'CustomerMap',
-  OrderMap: 'OrderMap'
+  OrderMap: 'OrderMap',
+  PriceSubscription: 'PriceSubscription',
+  PriceHistory: 'PriceHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -413,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap"
+    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap" | "priceSubscription" | "priceHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1009,6 +1011,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PriceSubscription: {
+      payload: Prisma.$PriceSubscriptionPayload<ExtArgs>
+      fields: Prisma.PriceSubscriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PriceSubscriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PriceSubscriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.PriceSubscriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PriceSubscriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>
+        }
+        findMany: {
+          args: Prisma.PriceSubscriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>[]
+        }
+        create: {
+          args: Prisma.PriceSubscriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>
+        }
+        createMany: {
+          args: Prisma.PriceSubscriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PriceSubscriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.PriceSubscriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>
+        }
+        update: {
+          args: Prisma.PriceSubscriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PriceSubscriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PriceSubscriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PriceSubscriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.PriceSubscriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceSubscriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.PriceSubscriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePriceSubscription>
+        }
+        groupBy: {
+          args: Prisma.PriceSubscriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PriceSubscriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PriceSubscriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PriceSubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    PriceHistory: {
+      payload: Prisma.$PriceHistoryPayload<ExtArgs>
+      fields: Prisma.PriceHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PriceHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PriceHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.PriceHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PriceHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.PriceHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.PriceHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.PriceHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PriceHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.PriceHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>
+        }
+        update: {
+          args: Prisma.PriceHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.PriceHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PriceHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PriceHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.PriceHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PriceHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.PriceHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePriceHistory>
+        }
+        groupBy: {
+          args: Prisma.PriceHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PriceHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PriceHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PriceHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1152,6 +1302,35 @@ export const OrderMapScalarFieldEnum = {
 export type OrderMapScalarFieldEnum = (typeof OrderMapScalarFieldEnum)[keyof typeof OrderMapScalarFieldEnum]
 
 
+export const PriceSubscriptionScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  shopifyProductId: 'shopifyProductId',
+  shopifyVariantId: 'shopifyVariantId',
+  subscriptionType: 'subscriptionType',
+  targetPrice: 'targetPrice',
+  isActive: 'isActive',
+  notifiedAt: 'notifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PriceSubscriptionScalarFieldEnum = (typeof PriceSubscriptionScalarFieldEnum)[keyof typeof PriceSubscriptionScalarFieldEnum]
+
+
+export const PriceHistoryScalarFieldEnum = {
+  id: 'id',
+  shopifyProductId: 'shopifyProductId',
+  shopifyVariantId: 'shopifyVariantId',
+  price: 'price',
+  compareAtPrice: 'compareAtPrice',
+  currencyCode: 'currencyCode',
+  recordedAt: 'recordedAt'
+} as const
+
+export type PriceHistoryScalarFieldEnum = (typeof PriceHistoryScalarFieldEnum)[keyof typeof PriceHistoryScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1242,6 +1421,34 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SubscriptionType'
+ */
+export type EnumSubscriptionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionType'>
+    
+
+
+/**
+ * Reference to a field of type 'SubscriptionType[]'
+ */
+export type ListEnumSubscriptionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal'
+ */
+export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal[]'
+ */
+export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
 
 
@@ -1353,6 +1560,8 @@ export type GlobalOmitConfig = {
   productMap?: Prisma.ProductMapOmit
   customerMap?: Prisma.CustomerMapOmit
   orderMap?: Prisma.OrderMapOmit
+  priceSubscription?: Prisma.PriceSubscriptionOmit
+  priceHistory?: Prisma.PriceHistoryOmit
 }
 
 /* Types for Logging */

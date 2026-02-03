@@ -57,3 +57,13 @@ export type CustomerMap = Prisma.CustomerMapModel
  * 
  */
 export type OrderMap = Prisma.OrderMapModel
+/**
+ * Model PriceSubscription
+ * 
+ */
+export type PriceSubscription = Prisma.PriceSubscriptionModel
+/**
+ * Model PriceHistory
+ * 
+ */
+export type PriceHistory = Prisma.PriceHistoryModel

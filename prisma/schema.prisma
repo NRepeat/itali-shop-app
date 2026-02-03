@@ -87,3 +87,43 @@ model OrderMap {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+enum SubscriptionType {
+  PRICE_DROP    // Notify when price drops to target
+  BACK_IN_STOCK // Notify when product is back in stock
+  ANY_CHANGE    // Notify on any price change
+}
+
+// Price tracking subscription
+model PriceSubscription {
+  id              String           @id @default(cuid())
+  email           String
+  shopifyProductId String
+  shopifyVariantId String?
+  subscriptionType SubscriptionType @default(PRICE_DROP)
+  targetPrice     Decimal?         @db.Decimal(10, 2)
+  isActive        Boolean          @default(true)
+  notifiedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([shopifyProductId])
+  @@index([shopifyVariantId])
+  @@index([email])
+  @@index([subscriptionType])
+}
+
+// Price history for products/variants
+model PriceHistory {
+  id              String   @id @default(cuid())
+  shopifyProductId String
+  shopifyVariantId String
+  price           Decimal  @db.Decimal(10, 2)
+  compareAtPrice  Decimal? @db.Decimal(10, 2)
+  currencyCode    String   @default("UAH")
+  recordedAt      DateTime @default(now())
+
+  @@index([shopifyProductId])
+  @@index([shopifyVariantId])
+  @@index([recordedAt])
+}

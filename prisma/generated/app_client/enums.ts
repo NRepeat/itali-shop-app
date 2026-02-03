@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const SubscriptionType = {
+  PRICE_DROP: 'PRICE_DROP',
+  BACK_IN_STOCK: 'BACK_IN_STOCK',
+  ANY_CHANGE: 'ANY_CHANGE'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type SubscriptionType = (typeof SubscriptionType)[keyof typeof SubscriptionType]

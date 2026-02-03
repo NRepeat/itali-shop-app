@@ -19,6 +19,7 @@
     "vite": "vite",
     "start:worker": "dotenv -e .env tsx app/worker.ts",
     "start:collection-worker": "dotenv -e .env tsx app/collection-worker.ts",
+    "start:price-worker": "dotenv -e .env tsx app/price-notification-worker.ts",
     "typecheck": "react-router typegen && tsc --noEmit"
   },
   "type": "module",

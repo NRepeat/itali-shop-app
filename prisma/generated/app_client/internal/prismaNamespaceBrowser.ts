@@ -56,7 +56,9 @@ export const ModelName = {
   Metaobject: 'Metaobject',
   ProductMap: 'ProductMap',
   CustomerMap: 'CustomerMap',
-  OrderMap: 'OrderMap'
+  OrderMap: 'OrderMap',
+  PriceSubscription: 'PriceSubscription',
+  PriceHistory: 'PriceHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -177,6 +179,35 @@ export const OrderMapScalarFieldEnum = {
 } as const
 
 export type OrderMapScalarFieldEnum = (typeof OrderMapScalarFieldEnum)[keyof typeof OrderMapScalarFieldEnum]
+
+
+export const PriceSubscriptionScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  shopifyProductId: 'shopifyProductId',
+  shopifyVariantId: 'shopifyVariantId',
+  subscriptionType: 'subscriptionType',
+  targetPrice: 'targetPrice',
+  isActive: 'isActive',
+  notifiedAt: 'notifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PriceSubscriptionScalarFieldEnum = (typeof PriceSubscriptionScalarFieldEnum)[keyof typeof PriceSubscriptionScalarFieldEnum]
+
+
+export const PriceHistoryScalarFieldEnum = {
+  id: 'id',
+  shopifyProductId: 'shopifyProductId',
+  shopifyVariantId: 'shopifyVariantId',
+  price: 'price',
+  compareAtPrice: 'compareAtPrice',
+  currencyCode: 'currencyCode',
+  recordedAt: 'recordedAt'
+} as const
+
+export type PriceHistoryScalarFieldEnum = (typeof PriceHistoryScalarFieldEnum)[keyof typeof PriceHistoryScalarFieldEnum]
 
 
 export const SortOrder = {

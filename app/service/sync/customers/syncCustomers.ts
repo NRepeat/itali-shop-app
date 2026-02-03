@@ -16,6 +16,28 @@ const CUSTOMER_CREATE_MUTATION = `
   }
 `;
 
+const EMAIL_MARKETING_CONSENT_MUTATION = `
+  mutation customerEmailMarketingConsentUpdate($input: CustomerEmailMarketingConsentUpdateInput!) {
+    customerEmailMarketingConsentUpdate(input: $input) {
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const SMS_MARKETING_CONSENT_MUTATION = `
+  mutation customerSmsMarketingConsentUpdate($input: CustomerSmsMarketingConsentUpdateInput!) {
+    customerSmsMarketingConsentUpdate(input: $input) {
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 export const syncCustomers = async (
   domain: string,
   accessToken: string,
@@ -110,6 +132,42 @@ export const syncCustomers = async (
             shopifyCustomerId,
           },
         });
+
+        // Set email marketing consent
+        if (customer.email) {
+          await client.request<any, any>({
+            query: EMAIL_MARKETING_CONSENT_MUTATION,
+            variables: {
+              input: {
+                customerId: shopifyCustomerId,
+                emailMarketingConsent: {
+                  marketingOptInLevel: "SINGLE_OPT_IN",
+                  marketingState: "SUBSCRIBED",
+                },
+              },
+            },
+            accessToken,
+            shopDomain: domain,
+          });
+        }
+
+        // Set SMS marketing consent
+        if (customer.telephone) {
+          await client.request<any, any>({
+            query: SMS_MARKETING_CONSENT_MUTATION,
+            variables: {
+              input: {
+                customerId: shopifyCustomerId,
+                smsMarketingConsent: {
+                  marketingOptInLevel: "SINGLE_OPT_IN",
+                  marketingState: "SUBSCRIBED",
+                },
+              },
+            },
+            accessToken,
+            shopDomain: domain,
+          });
+        }
 
         log(
           `[${i + 1}/${customersToSync.length}] Created: ${shopifyCustomerId}`,

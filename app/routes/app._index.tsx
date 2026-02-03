@@ -12,6 +12,7 @@ import {
   syncBrandCollections,
 } from "@/service/sync/collection/syncCollections";
 import { syncProducts } from "@/service/sync/products/syncProducts";
+import { updateExistingProductLinks } from "@/service/sync/products/update-existing-product-links";
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
@@ -73,6 +74,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
         (await syncProducts(session.shop, session.accessToken!, limit)) || [];
+    } else if (body.action === "update-product-links") {
+      const limit = body.limit ? Number(body.limit) : undefined;
+      const offset = body.offset ? Number(body.offset) : 0;
+      const result = await updateExistingProductLinks(
+        session.accessToken!,
+        session.shop,
+        limit,
+        offset
+      );
+      logs = result.logs;
     } else if (body.action === "sync-customers") {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
@@ -81,6 +92,56 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
         (await syncOrders(session.shop, session.accessToken!, limit)) || [];
+    } else if (body.action === "delete-all-customers") {
+      logs.push("Fetching all customers from Shopify...");
+      let deletedCount = 0;
+      let hasNextPage = true;
+      let cursor: string | null = null;
+
+      while (hasNextPage) {
+        const listResponse = await admin.graphql(
+          `
+          query customers($after: String) {
+            customers(first: 100, after: $after) {
+              nodes { id }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        `,
+          { variables: { after: cursor } },
+        );
+        const { data } = await listResponse.json();
+        const customers = data.customers.nodes;
+
+        if (customers.length === 0) break;
+
+        for (const c of customers) {
+          try {
+            await admin.graphql(
+              `
+              mutation customerDelete($id: ID!) {
+                customerDelete(input: { id: $id }) {
+                  deletedCustomerId
+                  userErrors { field message }
+                }
+              }
+            `,
+              { variables: { id: c.id } },
+            );
+            deletedCount++;
+          } catch (e: any) {
+            logs.push(`Error deleting ${c.id}: ${e.message}`);
+          }
+        }
+
+        logs.push(`Deleted ${deletedCount} customers so far...`);
+        hasNextPage = data.customers.pageInfo.hasNextPage;
+        cursor = data.customers.pageInfo.endCursor;
+      }
+
+      await prisma.customerMap.deleteMany();
+      logs.push(`Deleted ${deletedCount} customers from Shopify`);
+      logs.push("Cleared CustomerMap table");
     } else if (body.action === "delete-cart-transform") {
       logs.push("Looking for active cart transforms...");
 
@@ -281,14 +342,19 @@ export default function Index() {
   const stats = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const [productLimit, setProductLimit] = useState("5");
+  const [updateLinksLimit, setUpdateLinksLimit] = useState("100");
+  const [updateLinksOffset, setUpdateLinksOffset] = useState("0");
   const [customerLimit, setCustomerLimit] = useState("5");
   const [orderLimit, setOrderLimit] = useState("5");
   const isLoading = fetcher.state !== "idle";
 
-  const handleAction = (action: string, limit?: string) => {
+  const handleAction = (action: string, limit?: string, offset?: string) => {
     const payload: Record<string, string> = { action };
     if (limit) {
       payload.limit = limit;
+    }
+    if (offset) {
+      payload.offset = offset;
     }
     fetcher.submit(payload, { method: "post", encType: "application/json" });
   };
@@ -410,6 +476,58 @@ export default function Index() {
         </div>
       </s-section>
 
+      <s-section heading="Update Product Links (Metafields)">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Updates metafields (bound-products & recommended_products) for existing products
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "flex-end",
+            flexWrap: "wrap" as const,
+          }}
+        >
+          <s-text-field
+            label="Limit"
+            type="number"
+            value={updateLinksLimit}
+            min="1"
+            onInput={(e: any) => setUpdateLinksLimit(e.target.value)}
+            help-text="Number of products to update"
+          ></s-text-field>
+          <s-text-field
+            label="Offset"
+            type="number"
+            value={updateLinksOffset}
+            min="0"
+            onInput={(e: any) => setUpdateLinksOffset(e.target.value)}
+            help-text="Skip first N products"
+          ></s-text-field>
+          <s-button
+            variant="primary"
+            onClick={() => handleAction("update-product-links", updateLinksLimit, updateLinksOffset)}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "update-product-links"
+              ? "Updating..."
+              : `Update ${updateLinksLimit} Products`}
+          </s-button>
+          <s-button
+            variant="primary"
+            tone="critical"
+            onClick={() => handleAction("update-product-links")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading &&
+            fetcher.json?.action === "update-product-links" &&
+            !fetcher.json?.limit
+              ? "Updating all..."
+              : `Update ALL (${stats.syncedCount})`}
+          </s-button>
+        </div>
+      </s-section>
+
       <s-section heading="Sync Customers">
         <div
           style={{
@@ -449,6 +567,15 @@ export default function Index() {
             !fetcher.json?.limit
               ? "Syncing all..."
               : `Sync ALL (${stats.remainingCustomers})`}
+          </s-button>
+          <s-button
+            tone="critical"
+            onClick={() => handleAction("delete-all-customers")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "delete-all-customers"
+              ? "Deleting all customers..."
+              : "Delete ALL Customers"}
           </s-button>
         </div>
       </s-section>
