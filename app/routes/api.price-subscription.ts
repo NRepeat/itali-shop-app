@@ -1,9 +1,8 @@
+import { getSubscriptionsByEmail, createPriceSubscription, cancelSubscription } from "@/service/price-tracking/price-tracking.service";
+import { checkProductExistsById } from "@/service/shopify/products/api/check-product-exists";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import {
-  createPriceSubscription,
-  getSubscriptionsByEmail,
-  cancelSubscription,
-} from "~/service/price-tracking/price-tracking.service";
+
+
 
 // GET /api/price-subscription?email=xxx
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -79,6 +78,16 @@ async function handleCreate(request: Request) {
       return Response.json(
         { error: `Invalid subscriptionType. Must be one of: ${validTypes.join(", ")}` },
         { status: 400 }
+      );
+    }
+
+    // Check if product exists in Shopify
+    const productExists = await checkProductExistsById(shopifyProductId);
+
+    if (!productExists) {
+      return Response.json(
+        { error: "Product not found in Shopify" },
+        { status: 404 }
       );
     }
 

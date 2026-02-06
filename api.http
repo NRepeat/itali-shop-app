@@ -1,0 +1,55 @@
+@api_host = https://p3v6erpkh7rbsmr6l22ee7ibki.srv.us
+
+### Get price subscriptions by email
+GET {{api_host}}/api/price-subscription?email=test@example.com
+
+### Create price subscription (success)
+POST {{api_host}}/api/price-subscription
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "shopifyProductId": "gid://shopify/Product/8903010812066",
+  "shopifyVariantId": "gid://shopify/ProductVariant/46556754706594",
+  "subscriptionType": "ANY_CHANGE",
+  "targetPrice": "19.99"
+}
+
+### Create price subscription (product not found)
+POST {{api_host}}/api/price-subscription
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "shopifyProductId": "gid://shopify/Product/9999999999999",
+  "shopifyVariantId": "gid://shopify/ProductVariant/9999999999999",
+  "subscriptionType": "PRICE_DROP",
+  "targetPrice": "19.99"
+}
+
+### Delete price subscription
+DELETE {{api_host}}/api/price-subscription
+Content-Type: application/json
+
+{
+  "id": "subscription_id_here",
+  "email": "test@example.com"
+}
+
+### Get current prices for a product (success)
+GET {{api_host}}/api/prices/8739115206977
+
+### Get current prices for a product (product not found)
+GET {{api_host}}/api/prices/9999999999999
+
+### Get current prices for a product with variant
+GET {{api_host}}/api/prices/8739115206977?variantId=46903276851521
+
+### Get price history for a product
+GET {{api_host}}/api/prices/8739115206977?history=true&limit=5
+
+### Get price history for a product with variant
+GET {{api_host}}/api/prices/8739115206977?variantId=46903276851521&history=true&limit=5
+
+### Unsubscribe from price notifications
+GET {{api_host}}/api/unsubscribe?id=subscription_id_here&email=test@example.com&token=your_unsubscribe_token_here

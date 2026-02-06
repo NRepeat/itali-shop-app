@@ -1,8 +1,7 @@
+import { getCurrentPrices, getPriceHistory } from "@/service/price-tracking/price-tracking.service";
+import { checkProductExistsById } from "@/service/shopify/products/api/check-product-exists";
 import type { LoaderFunctionArgs } from "react-router";
-import {
-  getCurrentPrices,
-  getPriceHistory,
-} from "~/service/price-tracking/price-tracking.service";
+
 
 // GET /api/prices/:productId?variantId=xxx&history=true&limit=30
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
@@ -19,6 +18,16 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const shopifyProductId = productId.startsWith("gid://")
     ? productId
     : `gid://shopify/Product/${productId}`;
+
+  // Check if product exists in Shopify
+  const productExists = await checkProductExistsById(shopifyProductId);
+
+  if (!productExists) {
+    return Response.json(
+      { error: "Product not found in Shopify" },
+      { status: 404 }
+    );
+  }
 
   const url = new URL(request.url);
   const variantId = url.searchParams.get("variantId");

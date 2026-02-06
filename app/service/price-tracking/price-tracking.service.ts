@@ -105,18 +105,20 @@ async function checkAndNotifyBackInStock(
   productTitle?: string,
   variantTitle?: string
 ): Promise<void> {
+  console.log(`[checkAndNotifyBackInStock] Checking for BACK_IN_STOCK subscriptions for product ${shopifyProductId}, variant ${shopifyVariantId}`);
   // Find BACK_IN_STOCK subscriptions
   const subscriptions = await prisma.priceSubscription.findMany({
     where: {
       isActive: true,
       subscriptionType: "BACK_IN_STOCK",
       OR: [
-        { shopifyProductId, shopifyVariantId: null },
-        { shopifyProductId, shopifyVariantId },
-        { shopifyVariantId },
+        { shopifyProductId, shopifyVariantId: null }, // Product-level subscription
+        { shopifyProductId, shopifyVariantId },       // Variant-specific subscription
       ],
     },
   });
+
+  console.log(`[checkAndNotifyBackInStock] Found ${subscriptions.length} BACK_IN_STOCK subscriptions.`);
 
   if (subscriptions.length > 0) {
     console.log(
@@ -151,6 +153,7 @@ async function checkAndNotifySubscriptions(
   productTitle?: string,
   variantTitle?: string
 ): Promise<void> {
+  console.log(`[checkAndNotifySubscriptions] Checking for PRICE_DROP/ANY_CHANGE subscriptions for product ${shopifyProductId}, variant ${shopifyVariantId} at price ${currentPrice.toString()}`);
   // Find active PRICE_DROP subscriptions where target price is met
   const priceDropSubscriptions = await prisma.priceSubscription.findMany({
     where: {
@@ -158,15 +161,15 @@ async function checkAndNotifySubscriptions(
       notifiedAt: null,
       subscriptionType: "PRICE_DROP",
       OR: [
-        { shopifyProductId, shopifyVariantId: null },
-        { shopifyProductId, shopifyVariantId },
-        { shopifyVariantId },
+        { shopifyProductId, shopifyVariantId: null }, // Product-level subscription
+        { shopifyProductId, shopifyVariantId },       // Variant-specific subscription
       ],
       targetPrice: {
         gte: currentPrice,
       },
     },
   });
+  console.log(`[checkAndNotifySubscriptions] Found ${priceDropSubscriptions.length} PRICE_DROP subscriptions meeting criteria.`);
 
   // Find active ANY_CHANGE subscriptions
   const anyChangeSubscriptions = await prisma.priceSubscription.findMany({
@@ -174,12 +177,12 @@ async function checkAndNotifySubscriptions(
       isActive: true,
       subscriptionType: "ANY_CHANGE",
       OR: [
-        { shopifyProductId, shopifyVariantId: null },
-        { shopifyProductId, shopifyVariantId },
-        { shopifyVariantId },
+        { shopifyProductId, shopifyVariantId: null }, // Product-level subscription
+        { shopifyProductId, shopifyVariantId },       // Variant-specific subscription
       ],
     },
   });
+  console.log(`[checkAndNotifySubscriptions] Found ${anyChangeSubscriptions.length} ANY_CHANGE subscriptions.`);
 
   const subscriptions = [...priceDropSubscriptions, ...anyChangeSubscriptions];
 
@@ -190,14 +193,15 @@ async function checkAndNotifySubscriptions(
 
     // Queue notifications for each subscription
     for (const subscription of subscriptions) {
-      // For ANY_CHANGE, prevent spam - only notify once per 24 hours
-      if (subscription.subscriptionType === "ANY_CHANGE" && subscription.notifiedAt) {
-        const hoursSinceNotified =
-          (new Date().getTime() - subscription.notifiedAt.getTime()) / (1000 * 60 * 60);
-        if (hoursSinceNotified < 24) {
-          continue;
-        }
-      }
+      // For ANY_CHANGE, notify on every change (no spam prevention)
+      // Original logic for spam prevention commented out
+      // if (subscription.subscriptionType === "ANY_CHANGE" && subscription.notifiedAt) {
+      //   const hoursSinceNotified =
+      //     (new Date().getTime() - subscription.notifiedAt.getTime()) / (1000 * 60 * 60);
+      //   if (hoursSinceNotified < 24) {
+      //     continue;
+      //   }
+      // }
 
       await queuePriceNotification(
         subscription.id,

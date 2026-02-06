@@ -56,13 +56,21 @@ const createShopifyCategoryMap = (categories: any[]): Map<string, string> => {
   return nameToIdMap;
 };
 
-// Load and parse the Shopify category taxonomy file
-const shopifyCategoryYaml = await fs.readFile(
-  path.resolve("app/service/maps/shopify_category"),
-  "utf8",
-);
-const shopifyCategories = yaml.load(shopifyCategoryYaml) as any[];
-const shopifyCategoryNameToIdMap = createShopifyCategoryMap(shopifyCategories);
+// Lazy load Shopify category taxonomy
+let shopifyCategoryNameToIdMap: Map<string, string> | null = null;
+
+const getShopifyCategoryMap = async (): Promise<Map<string, string>> => {
+  if (shopifyCategoryNameToIdMap) {
+    return shopifyCategoryNameToIdMap;
+  }
+  const shopifyCategoryYaml = await fs.readFile(
+    path.resolve("app/service/maps/shopify_category"),
+    "utf8",
+  );
+  const shopifyCategories = yaml.load(shopifyCategoryYaml) as any[];
+  shopifyCategoryNameToIdMap = createShopifyCategoryMap(shopifyCategories);
+  return shopifyCategoryNameToIdMap;
+};
 
 const TRANSLATIONS_REGISTER_MUTATION = `
   #graphql
@@ -184,8 +192,8 @@ export const processSyncTask = async (job: Job) => {
 
         if (categoryMap[categoryDescription.name]) {
           const googleTaxonomyName = categoryMap[categoryDescription.name];
-          const shopifyCategoryId =
-            shopifyCategoryNameToIdMap.get(googleTaxonomyName);
+          const categoryNameMap = await getShopifyCategoryMap();
+          const shopifyCategoryId = categoryNameMap.get(googleTaxonomyName);
 
           if (shopifyCategoryId) {
             shopifyCategoryGid = `gid://shopify/TaxonomyCategory/${shopifyCategoryId}`;

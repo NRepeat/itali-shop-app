@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { processPriceUpdate } from "~/service/price-tracking/price-tracking.service";
+import { processPriceUpdate } from "@/service/price-tracking/price-tracking.service";
+
 
 interface ProductVariant {
   id: number;

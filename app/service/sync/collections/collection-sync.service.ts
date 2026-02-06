@@ -302,6 +302,31 @@ function buildSanityDocument(
         getTranslationValue(ruTranslations, "body_html") ||
         collection.descriptionHtml,
     },
+    // SEO data with translations
+    seo: {
+      title: {
+        default: collection.seo.title || collection.title,
+        uk:
+          getTranslationValue(ukTranslations, "meta_title") ||
+          collection.seo.title ||
+          collection.title,
+        ru:
+          getTranslationValue(ruTranslations, "meta_title") ||
+          collection.seo.title ||
+          collection.title,
+      },
+      description: {
+        default: collection.seo.description || "",
+        uk:
+          getTranslationValue(ukTranslations, "meta_description") ||
+          collection.seo.description ||
+          "",
+        ru:
+          getTranslationValue(ruTranslations, "meta_description") ||
+          collection.seo.description ||
+          "",
+      },
+    },
   };
 }
 
@@ -370,9 +395,12 @@ export async function syncCollectionToSanity(
     ruTranslations
   );
 
-  // Upsert to Sanity
-  await sanityClient.createOrReplace(sanityDocument);
+  console.log(`Sanity document to save:`, JSON.stringify(sanityDocument, null, 2));
 
+  // Upsert to Sanity
+  const result = await sanityClient.createOrReplace(sanityDocument);
+
+  console.log(`Sanity createOrReplace result:`, JSON.stringify(result, null, 2));
   console.log(
     `Successfully synced collection ${collectionId} to Sanity as ${sanityDocument._id}`
   );

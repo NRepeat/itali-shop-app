@@ -1,5 +1,6 @@
+import { unsubscribeWithToken } from "@/service/price-tracking/price-notification.service";
 import type { LoaderFunctionArgs } from "react-router";
-import { unsubscribeWithToken } from "~/service/price-tracking/price-notification.service";
+
 
 // GET /api/unsubscribe?id=xxx&email=xxx&token=xxx
 // This endpoint is designed for email unsubscribe links (one-click unsubscribe)
