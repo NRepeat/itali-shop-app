@@ -70,6 +70,7 @@ services:
       DATABASE_URL: "postgresql://${DATABASE_USER:-user}:${DATABASE_PASS:-password}@db:5432/${DATABASE_NAME:-italy-db}?schema=public"
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PRISMA_QUERY_ENGINE_LIBRARY: /app/prisma/generated/app_client/libquery_engine-linux-musl-arm64-openssl-3.0.x.so.node
     env_file:
       - .env
 
@@ -90,6 +91,7 @@ services:
       DATABASE_URL: "postgresql://${DATABASE_USER:-user}:${DATABASE_PASS:-password}@db:5432/${DATABASE_NAME:-italy-db}?schema=public"
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PRISMA_QUERY_ENGINE_LIBRARY: /app/prisma/generated/app_client/libquery_engine-linux-musl-arm64-openssl-3.0.x.so.node
     env_file:
       - .env
 
@@ -110,6 +112,7 @@ services:
       DATABASE_URL: "postgresql://${DATABASE_USER:-user}:${DATABASE_PASS:-password}@db:5432/${DATABASE_NAME:-italy-db}?schema=public"
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PRISMA_QUERY_ENGINE_LIBRARY: /app/prisma/generated/app_client/libquery_engine-linux-musl-arm64-openssl-3.0.x.so.node
     env_file:
       - .env
 
