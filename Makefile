@@ -4,7 +4,7 @@
 #----------- Make Environment ----------------------
 SHELL=/bin/sh
 docker_bin=$(shell command -v docker 2> /dev/null)
-docker_compose_bin=$(shell if command -v docker-compose > /dev/null 2>&1; then echo 'docker-compose'; else echo 'docker compose'; fi)
+docker_compose_bin=$(shell if docker compose version > /dev/null 2>&1; then echo 'docker compose'; else echo 'docker-compose'; fi)
 
 # Export all variables from .env automatically
 ifneq (,$(wildcard .env))
