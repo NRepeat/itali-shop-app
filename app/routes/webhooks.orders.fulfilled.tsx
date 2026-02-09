@@ -1,11 +1,17 @@
 import { authenticate } from "@/shopify.server";
 import { ActionFunctionArgs } from "react-router";
+import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { payload, admin, session } = await authenticate.webhook(request);
+  const { payload, shop } = await authenticate.webhook(request);
 
   console.log("🚀 ~ Order Fulfilled Webhook Payload:", payload);
-  // TODO: Enqueue a job to process the fulfilled order asynchronously
+
+  await esputnikOrderQueue.add("esputnik-order-sync", {
+    payload,
+    status: "DELIVERED",
+    shop,
+  });
 
   return new Response("OK", { status: 200 });
 };

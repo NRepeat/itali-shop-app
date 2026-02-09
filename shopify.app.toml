@@ -2,7 +2,7 @@
 
 client_id = "4975a472f8afc31d6809e4281ec1390f"
 name = "mio-mio-system"
-application_url = "https://development.nninc.uk"
+application_url = "https://prod.nnninc.uk"
 embedded = true
 
 [build]
@@ -16,45 +16,44 @@ api_version = "2026-01"
   uri = "/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
+  topics = [ "collections/delete" ]
+  uri = "/webhooks/collections/delete"
 
   [[webhooks.subscriptions]]
-  topics = [ "collections/create" ]
-  uri = "/webhooks/collections/create"
+  topics = [ "orders/paid" ]
+  uri = "/webhooks/orders/paid"
 
   [[webhooks.subscriptions]]
   topics = [ "collections/update" ]
   uri = "/webhooks/collections/update"
 
   [[webhooks.subscriptions]]
-  topics = [ "collections/delete" ]
-  uri = "/webhooks/collections/delete"
-
-  [[webhooks.subscriptions]]
-  topics = [ "products/update" ]
-  uri = "/webhooks/products/update"
-
-  [[webhooks.subscriptions]]
   topics = [ "orders/create" ]
   uri = "/webhooks/orders/create"
-
-  [[webhooks.subscriptions]]
-  topics = [ "orders/cancelled" ]
-  uri = "/webhooks/orders/cancelled"
 
   [[webhooks.subscriptions]]
   topics = [ "orders/fulfilled" ]
   uri = "/webhooks/orders/fulfilled"
 
   [[webhooks.subscriptions]]
-  topics = [ "orders/paid" ]
-  uri = "/webhooks/orders/paid"
+  topics = [ "products/update" ]
+  uri = "/webhooks/products/update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "collections/create" ]
+  uri = "/webhooks/collections/create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/cancelled" ]
+  uri = "/webhooks/orders/cancelled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products, read_products, write_metaobjects, read_metaobjects, write_translations, read_translations, write_content, read_content, write_discounts, read_discounts, write_customers, read_customers, write_orders, read_orders, write_draft_orders, read_draft_orders, write_cart_transforms, read_locales"
+scopes = "read_content,read_customers,read_discounts,read_draft_orders,read_locales,read_metaobjects,read_orders,read_products,read_translations,write_cart_transforms,write_content,write_customers,write_discounts,write_draft_orders,write_metaobjects,write_orders,write_products,write_translations"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
@@ -62,6 +61,6 @@ use_legacy_install_flow = false
 redirect_urls = [ ]
 
 [app_proxy]
-url = "/my-app-proxy"
+url = "https://app.miomio.com.ua/my-app-proxy"
 subpath = "testproxy"
 prefix = "apps"
