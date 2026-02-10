@@ -89,6 +89,14 @@ model OrderMap {
   updatedAt      DateTime @updatedAt
 }
 
+model KeyCrmOrderMap {
+  id             String   @id @default(cuid())
+  shopifyOrderId String   @unique
+  keycrmOrderId  Int      @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 enum SubscriptionType {
   PRICE_DROP    // Notify when price drops to target
   BACK_IN_STOCK // Notify when product is back in stock

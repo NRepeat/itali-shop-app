@@ -3,6 +3,13 @@
 /* eslint-disable */
 import type * as AdminTypes from './admin.types';
 
+export type FulfillmentCreateMutationVariables = AdminTypes.Exact<{
+  fulfillment: AdminTypes.FulfillmentInput;
+}>;
+
+
+export type FulfillmentCreateMutation = { fulfillmentCreate?: AdminTypes.Maybe<{ fulfillment?: AdminTypes.Maybe<Pick<AdminTypes.Fulfillment, 'id' | 'status'>>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
 export type CreateCollectionMutationVariables = AdminTypes.Exact<{
   input: AdminTypes.CollectionInput;
 }>;
@@ -243,6 +250,7 @@ interface GeneratedQueryTypes {
 }
 
 interface GeneratedMutationTypes {
+  "#graphql\n  mutation fulfillmentCreate($fulfillment: FulfillmentInput!) {\n    fulfillmentCreate(fulfillment: $fulfillment) {\n      fulfillment { id status }\n      userErrors { field message }\n    }\n  }\n": {return: FulfillmentCreateMutation, variables: FulfillmentCreateMutationVariables},
   "\n  #graphql\n  mutation CreateCollection($input: CollectionInput!) {\n    collectionCreate(input: $input) {\n      collection {\n        id\n        title\n        handle\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: CreateCollectionMutation, variables: CreateCollectionMutationVariables},
   "\n  #graphql\n  mutation CreateBasicAutomaticDiscount($basicAutomaticDiscount: DiscountAutomaticBasicInput!) {\n     discountAutomaticBasicCreate(automaticBasicDiscount: $basicAutomaticDiscount) {\n       automaticDiscountNode {\n       id\n       }\n       userErrors {\n         field\n         message\n         code\n       }\n     }\n   }\n": {return: CreateBasicAutomaticDiscountMutation, variables: CreateBasicAutomaticDiscountMutationVariables},
   "\n  #graphql\n  mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {\n    metafieldDefinitionCreate(definition: $definition) {\n      createdDefinition {\n        id\n        name\n        key\n        namespace\n        ownerType\n        type{\n          name\n          category\n        }\n      }\n      userErrors {\n        field\n        message\n        code\n      }\n    }\n  }\n": {return: CreateMetafieldDefinitionMutation, variables: CreateMetafieldDefinitionMutationVariables},

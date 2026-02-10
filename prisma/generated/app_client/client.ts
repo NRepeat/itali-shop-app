@@ -93,6 +93,11 @@ export type CustomerMap = Prisma.CustomerMapModel
  */
 export type OrderMap = Prisma.OrderMapModel
 /**
+ * Model KeyCrmOrderMap
+ * 
+ */
+export type KeyCrmOrderMap = Prisma.KeyCrmOrderMapModel
+/**
  * Model PriceSubscription
  * 
  */

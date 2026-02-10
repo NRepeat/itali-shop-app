@@ -398,6 +398,7 @@ export const ModelName = {
   ProductMap: 'ProductMap',
   CustomerMap: 'CustomerMap',
   OrderMap: 'OrderMap',
+  KeyCrmOrderMap: 'KeyCrmOrderMap',
   PriceSubscription: 'PriceSubscription',
   PriceHistory: 'PriceHistory'
 } as const
@@ -415,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap" | "priceSubscription" | "priceHistory"
+    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap" | "keyCrmOrderMap" | "priceSubscription" | "priceHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1011,6 +1012,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    KeyCrmOrderMap: {
+      payload: Prisma.$KeyCrmOrderMapPayload<ExtArgs>
+      fields: Prisma.KeyCrmOrderMapFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KeyCrmOrderMapFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KeyCrmOrderMapFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>
+        }
+        findFirst: {
+          args: Prisma.KeyCrmOrderMapFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KeyCrmOrderMapFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>
+        }
+        findMany: {
+          args: Prisma.KeyCrmOrderMapFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>[]
+        }
+        create: {
+          args: Prisma.KeyCrmOrderMapCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>
+        }
+        createMany: {
+          args: Prisma.KeyCrmOrderMapCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KeyCrmOrderMapCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>[]
+        }
+        delete: {
+          args: Prisma.KeyCrmOrderMapDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>
+        }
+        update: {
+          args: Prisma.KeyCrmOrderMapUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>
+        }
+        deleteMany: {
+          args: Prisma.KeyCrmOrderMapDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KeyCrmOrderMapUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KeyCrmOrderMapUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>[]
+        }
+        upsert: {
+          args: Prisma.KeyCrmOrderMapUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyCrmOrderMapPayload>
+        }
+        aggregate: {
+          args: Prisma.KeyCrmOrderMapAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKeyCrmOrderMap>
+        }
+        groupBy: {
+          args: Prisma.KeyCrmOrderMapGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KeyCrmOrderMapGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KeyCrmOrderMapCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KeyCrmOrderMapCountAggregateOutputType> | number
+        }
+      }
+    }
     PriceSubscription: {
       payload: Prisma.$PriceSubscriptionPayload<ExtArgs>
       fields: Prisma.PriceSubscriptionFieldRefs
@@ -1302,6 +1377,17 @@ export const OrderMapScalarFieldEnum = {
 export type OrderMapScalarFieldEnum = (typeof OrderMapScalarFieldEnum)[keyof typeof OrderMapScalarFieldEnum]
 
 
+export const KeyCrmOrderMapScalarFieldEnum = {
+  id: 'id',
+  shopifyOrderId: 'shopifyOrderId',
+  keycrmOrderId: 'keycrmOrderId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KeyCrmOrderMapScalarFieldEnum = (typeof KeyCrmOrderMapScalarFieldEnum)[keyof typeof KeyCrmOrderMapScalarFieldEnum]
+
+
 export const PriceSubscriptionScalarFieldEnum = {
   id: 'id',
   email: 'email',
@@ -1560,6 +1646,7 @@ export type GlobalOmitConfig = {
   productMap?: Prisma.ProductMapOmit
   customerMap?: Prisma.CustomerMapOmit
   orderMap?: Prisma.OrderMapOmit
+  keyCrmOrderMap?: Prisma.KeyCrmOrderMapOmit
   priceSubscription?: Prisma.PriceSubscriptionOmit
   priceHistory?: Prisma.PriceHistoryOmit
 }

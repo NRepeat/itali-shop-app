@@ -57,6 +57,7 @@ export const ModelName = {
   ProductMap: 'ProductMap',
   CustomerMap: 'CustomerMap',
   OrderMap: 'OrderMap',
+  KeyCrmOrderMap: 'KeyCrmOrderMap',
   PriceSubscription: 'PriceSubscription',
   PriceHistory: 'PriceHistory'
 } as const
@@ -179,6 +180,17 @@ export const OrderMapScalarFieldEnum = {
 } as const
 
 export type OrderMapScalarFieldEnum = (typeof OrderMapScalarFieldEnum)[keyof typeof OrderMapScalarFieldEnum]
+
+
+export const KeyCrmOrderMapScalarFieldEnum = {
+  id: 'id',
+  shopifyOrderId: 'shopifyOrderId',
+  keycrmOrderId: 'keycrmOrderId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KeyCrmOrderMapScalarFieldEnum = (typeof KeyCrmOrderMapScalarFieldEnum)[keyof typeof KeyCrmOrderMapScalarFieldEnum]
 
 
 export const PriceSubscriptionScalarFieldEnum = {
