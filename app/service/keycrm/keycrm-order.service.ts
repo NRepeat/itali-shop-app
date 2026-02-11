@@ -13,6 +13,10 @@ const GET_PRODUCTS_QUERY = `
           nodes {
             id
             image { url }
+            selectedOptions {
+              name
+              value
+            }
           }
         }
       }
@@ -20,11 +24,16 @@ const GET_PRODUCTS_QUERY = `
   }
 `;
 
-async function fetchProductImages(
+interface VariantData {
+  imageUrl: string | null;
+  selectedOptions: Array<{ name: string; value: string }>;
+}
+
+async function fetchProductVariants(
   shop: string,
   productIds: string[]
-): Promise<Map<string, Map<string, string | null>>> {
-  const result = new Map<string, Map<string, string | null>>();
+): Promise<Map<string, Map<string, VariantData>>> {
+  const result = new Map<string, Map<string, VariantData>>();
   if (productIds.length === 0) return result;
 
   const session = await prisma.session.findFirst({
@@ -45,14 +54,17 @@ async function fetchProductImages(
   for (const node of data.nodes) {
     if (!node?.id) continue;
     const numericId = node.id.replace("gid://shopify/Product/", "");
-    const variantImages = new Map<string, string | null>();
+    const variants = new Map<string, VariantData>();
 
     for (const variant of node.variants?.nodes || []) {
       const variantId = variant.id.replace("gid://shopify/ProductVariant/", "");
-      variantImages.set(variantId, variant.image?.url || node.featuredImage?.url || null);
+      variants.set(variantId, {
+        imageUrl: variant.image?.url || node.featuredImage?.url || null,
+        selectedOptions: variant.selectedOptions || [],
+      });
     }
 
-    result.set(numericId, variantImages);
+    result.set(numericId, variants);
   }
 
   return result;
@@ -70,6 +82,7 @@ interface KeyCrmProduct {
   quantity: number;
   name: string;
   picture?: string;
+  properties?: Array<{ name: string; value: string }>;
 }
 
 interface KeyCrmShipping {
@@ -165,17 +178,24 @@ export async function mapShopifyOrderToKeyCrm(
     ),
   ];
 
-  let productImages = new Map<string, Map<string, string | null>>();
+  let productVariants = new Map<string, Map<string, VariantData>>();
   try {
-    productImages = await fetchProductImages(shop, productIds);
+    productVariants = await fetchProductVariants(shop, productIds);
   } catch (error) {
-    console.warn("Failed to fetch product images from Shopify:", error);
+    console.warn("Failed to fetch product variants from Shopify:", error);
   }
 
   const products: KeyCrmProduct[] = lineItems.map((item: any) => {
     const nameParts = [item.title, item.variant_title].filter(Boolean);
-    const variantImages = productImages.get(String(item.product_id));
-    const imageUrl = variantImages?.get(String(item.variant_id)) || null;
+    const variants = productVariants.get(String(item.product_id));
+    const variantData = variants?.get(String(item.variant_id));
+    const imageUrl = variantData?.imageUrl || null;
+
+    const properties: Array<{ name: string; value: string }> = (
+      variantData?.selectedOptions || []
+    ).filter(
+      (opt) => opt.name !== "Title" && opt.value !== "Default Title"
+    );
 
     return {
       name: nameParts.join(" - "),
@@ -183,6 +203,7 @@ export async function mapShopifyOrderToKeyCrm(
       quantity: item.quantity,
       ...(item.sku ? { sku: item.sku } : {}),
       ...(imageUrl ? { picture: imageUrl } : {}),
+      ...(properties.length > 0 ? { properties } : {}),
     };
   });
 
