@@ -69,20 +69,14 @@ export async function processPriceUpdate(
         },
       });
 
-      // Check for subscriptions that should be notified (only if in stock)
-      if (isInStock) {
-        await checkAndNotifySubscriptions(
-          shopifyProductId,
-          shopifyVariantId,
-          currentPrice,
-          product.title,
-          variant.title
-        );
-      } else {
-        console.log(
-          `Variant ${variant.id} is out of stock, skipping notifications`
-        );
-      }
+      // Notify on any price change regardless of stock status
+      await checkAndNotifySubscriptions(
+        shopifyProductId,
+        shopifyVariantId,
+        currentPrice,
+        product.title,
+        variant.title
+      );
     }
 
     // Check for back-in-stock notifications
@@ -112,10 +106,7 @@ async function checkAndNotifyBackInStock(
     where: {
       isActive: true,
       subscriptionType: "BACK_IN_STOCK",
-      OR: [
-        { shopifyProductId, shopifyVariantId: null }, // Product-level subscription
-        { shopifyProductId, shopifyVariantId },       // Variant-specific subscription
-      ],
+      shopifyProductId,
     },
   });
 
@@ -176,10 +167,7 @@ async function checkAndNotifySubscriptions(
       isActive: true,
       notifiedAt: null,
       subscriptionType: "PRICE_DROP",
-      OR: [
-        { shopifyProductId, shopifyVariantId: null }, // Product-level subscription
-        { shopifyProductId, shopifyVariantId },       // Variant-specific subscription
-      ],
+      shopifyProductId,
       targetPrice: {
         gte: currentPrice,
       },
@@ -192,10 +180,7 @@ async function checkAndNotifySubscriptions(
     where: {
       isActive: true,
       subscriptionType: "ANY_CHANGE",
-      OR: [
-        { shopifyProductId, shopifyVariantId: null }, // Product-level subscription
-        { shopifyProductId, shopifyVariantId },       // Variant-specific subscription
-      ],
+      shopifyProductId,
     },
   });
   console.log(`[checkAndNotifySubscriptions] Found ${anyChangeSubscriptions.length} ANY_CHANGE subscriptions.`);
