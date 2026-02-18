@@ -28,7 +28,7 @@ export async function sendPriceDropEventToEsputnik(
       : []),
   ];
 
-  const response = await fetch(`${ESPUTNIK_CONFIG.baseUrl}/events`, {
+  const response = await fetch(`${ESPUTNIK_CONFIG.baseUrl}/event`, {
     method: "POST",
     headers: {
       Authorization: ESPUTNIK_CONFIG.authHeader,
