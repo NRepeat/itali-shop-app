@@ -6,19 +6,30 @@ import { client } from "@shared/lib/shopify/client/client";
 import type { LoaderFunctionArgs } from "react-router";
 
 const CUSTOMER_WITH_ORDERS_QUERY = `
-  query getCustomerByEmail($query: String!) {
-    customers(first: 1, query: $query) {
-      nodes {
-        id
-        firstName
-        lastName
-        email
+  query getCustomerByEmail($identifier: CustomerIdentifierInput!) {
+    customerByIdentifier(identifier: $identifier) {
+      id
+      firstName
+      lastName
+      email
+      phone
+      createdAt
+      note
+      tags
+      defaultAddress {
+        address1
+        address2
+        city
+        zip
+        country
+        province
         phone
-        createdAt
-        updatedAt
-        note
-        tags
-        defaultAddress {
+      }
+      addressesV2(first: 20) {
+        nodes {
+          firstName
+          lastName
+          company
           address1
           address2
           city
@@ -27,63 +38,48 @@ const CUSTOMER_WITH_ORDERS_QUERY = `
           province
           phone
         }
-        addresses(first: 20) {
-          nodes {
+      }
+      orders(first: 250, sortKey: CREATED_AT, reverse: true) {
+        nodes {
+          id
+          name
+          createdAt
+          cancelledAt
+          displayFinancialStatus
+          displayFulfillmentStatus
+          tags
+          note
+          totalPriceSet {
+            shopMoney { amount currencyCode }
+          }
+          subtotalPriceSet {
+            shopMoney { amount currencyCode }
+          }
+          shippingAddress {
+            firstName
+            lastName
             address1
             address2
             city
             zip
             country
-            province
             phone
-            firstName
-            lastName
-            company
           }
-        }
-        orders(first: 250, sortKey: CREATED_AT, reverse: true) {
-          nodes {
-            id
-            name
-            createdAt
-            updatedAt
-            cancelledAt
-            financialStatus
-            fulfillmentStatus
-            tags
-            note
-            totalPriceSet {
-              shopMoney { amount currencyCode }
-            }
-            subtotalPriceSet {
-              shopMoney { amount currencyCode }
-            }
-            shippingAddress {
-              firstName
-              lastName
-              address1
-              address2
-              city
-              zip
-              country
-              phone
-            }
-            lineItems(first: 50) {
-              nodes {
+          lineItems(first: 50) {
+            nodes {
+              title
+              quantity
+              originalUnitPriceSet {
+                shopMoney { amount currencyCode }
+              }
+              variant {
+                id
                 title
-                quantity
-                originalUnitPriceSet {
-                  shopMoney { amount currencyCode }
-                }
-                variant {
-                  id
-                  title
-                  sku
-                }
-                product {
-                  id
-                  handle
-                }
+                sku
+              }
+              product {
+                id
+                handle
               }
             }
           }
@@ -115,17 +111,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   try {
     const data = await client.request<{
-      customers: {
-        nodes: any[];
-      };
+      customerByIdentifier: any;
     }>({
       query: CUSTOMER_WITH_ORDERS_QUERY,
-      variables: { query: `email:${email}` },
+      variables: { identifier: { emailAddress: email } },
       accessToken: session.accessToken,
       shopDomain: session.shop,
     });
 
-    const customer = data.customers?.nodes?.[0];
+    const customer = data.customerByIdentifier;
 
     if (!customer) {
       return Response.json({ error: "Customer not found" }, { status: 404 });
@@ -142,15 +136,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         note: customer.note,
         tags: customer.tags,
         defaultAddress: customer.defaultAddress,
-        addresses: customer.addresses?.nodes ?? [],
+        addresses: customer.addressesV2?.nodes ?? [],
         ordersCount: customer.orders?.nodes?.length ?? 0,
         orders: (customer.orders?.nodes ?? []).map((order: any) => ({
           id: order.id,
           name: order.name,
           createdAt: order.createdAt,
           cancelledAt: order.cancelledAt,
-          financialStatus: order.financialStatus,
-          fulfillmentStatus: order.fulfillmentStatus,
+          financialStatus: order.displayFinancialStatus,
+          fulfillmentStatus: order.displayFulfillmentStatus,
           tags: order.tags,
           note: order.note,
           total: order.totalPriceSet?.shopMoney,
