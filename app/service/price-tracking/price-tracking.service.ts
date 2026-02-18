@@ -1,6 +1,5 @@
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { Decimal } from "@prisma/client/runtime/library";
-import { queuePriceNotification } from "./price-notification.service";
 import { sendPriceDropEventToEsputnik } from "@/service/esputnik/esputnik-price.service";
 
 interface ProductVariant {
@@ -118,36 +117,18 @@ async function checkAndNotifyBackInStock(
     );
 
     for (const subscription of subscriptions) {
-      // Only notify if not recently notified (prevent spam)
-      const recentlyNotified = subscription.notifiedAt &&
-        (new Date().getTime() - subscription.notifiedAt.getTime()) < 24 * 60 * 60 * 1000; // 24 hours
-
-      if (!recentlyNotified) {
-        await queuePriceNotification(
-          subscription.id,
-          currentPrice.toString(),
+      try {
+        await sendPriceDropEventToEsputnik({
+          email: subscription.email,
+          productId: shopifyProductId,
           productTitle,
-          variantTitle
-        );
-
-        try {
-          await sendPriceDropEventToEsputnik({
-            email: subscription.email,
-            productId: shopifyProductId,
-            productTitle,
-            variantTitle,
-            newPrice: currentPrice.toString(),
-          });
-        } catch (error) {
-          console.warn(
-            `Failed to send eSputnik back-in-stock event for ${subscription.email}:`,
-            error
-          );
-        }
-
-        console.log(
-          `Queued back-in-stock notification for subscription ${subscription.id} (${subscription.email})`
-        );
+          variantTitle,
+          newPrice: currentPrice.toString(),
+          subscriptionId: subscription.id,
+        });
+        console.log(`eSputnik back-in-stock event sent for subscription ${subscription.id} (${subscription.email})`);
+      } catch (error) {
+        console.warn(`Failed to send eSputnik back-in-stock event for ${subscription.email}:`, error);
       }
     }
   }
@@ -192,25 +173,7 @@ async function checkAndNotifySubscriptions(
       `Found ${subscriptions.length} subscriptions to notify for price ${currentPrice.toString()}`
     );
 
-    // Queue notifications for each subscription
     for (const subscription of subscriptions) {
-      // For ANY_CHANGE, notify on every change (no spam prevention)
-      // Original logic for spam prevention commented out
-      // if (subscription.subscriptionType === "ANY_CHANGE" && subscription.notifiedAt) {
-      //   const hoursSinceNotified =
-      //     (new Date().getTime() - subscription.notifiedAt.getTime()) / (1000 * 60 * 60);
-      //   if (hoursSinceNotified < 24) {
-      //     continue;
-      //   }
-      // }
-
-      await queuePriceNotification(
-        subscription.id,
-        currentPrice.toString(),
-        productTitle,
-        variantTitle
-      );
-
       try {
         await sendPriceDropEventToEsputnik({
           email: subscription.email,
@@ -218,17 +181,12 @@ async function checkAndNotifySubscriptions(
           productTitle,
           variantTitle,
           newPrice: currentPrice.toString(),
+          subscriptionId: subscription.id,
         });
+        console.log(`eSputnik event sent for subscription ${subscription.id} (${subscription.email})`);
       } catch (error) {
-        console.warn(
-          `Failed to send eSputnik price event for ${subscription.email}:`,
-          error
-        );
+        console.warn(`Failed to send eSputnik event for ${subscription.email}:`, error);
       }
-
-      console.log(
-        `Queued notification for subscription ${subscription.id} (${subscription.email})`
-      );
     }
   }
 }

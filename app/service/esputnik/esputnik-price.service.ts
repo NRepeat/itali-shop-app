@@ -8,6 +8,7 @@ export interface EsputnikPriceEventParams {
   newPrice: string;
   oldPrice?: string;
   currency?: string;
+  subscriptionId?: string;
 }
 
 export async function sendPriceDropEventToEsputnik(
@@ -25,6 +26,9 @@ export async function sendPriceDropEventToEsputnik(
       : []),
     ...(params.oldPrice
       ? [{ name: "oldPrice", value: params.oldPrice }]
+      : []),
+    ...(params.subscriptionId
+      ? [{ name: "subscriptionId", value: params.subscriptionId }]
       : []),
   ];
 
