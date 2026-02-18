@@ -32,6 +32,27 @@ const ORDER_WITH_CUSTOMER_QUERY = `
       totalShippingPriceSet {
         shopMoney { amount currencyCode }
       }
+      totalDiscountsSet {
+        shopMoney { amount currencyCode }
+      }
+      totalReceivedSet {
+        shopMoney { amount currencyCode }
+      }
+      totalRefundedSet {
+        shopMoney { amount currencyCode }
+      }
+      paymentGatewayNames
+      transactions(first: 10) {
+        id
+        gateway
+        kind
+        status
+        amountSet {
+          shopMoney { amount currencyCode }
+        }
+        processedAt
+        errorCode
+      }
       shippingAddress {
         firstName
         lastName
@@ -170,6 +191,19 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
         subtotal: order.subtotalPriceSet?.shopMoney,
         totalTax: order.totalTaxSet?.shopMoney,
         totalShipping: order.totalShippingPriceSet?.shopMoney,
+        totalDiscounts: order.totalDiscountsSet?.shopMoney,
+        totalReceived: order.totalReceivedSet?.shopMoney,
+        totalRefunded: order.totalRefundedSet?.shopMoney,
+        paymentGateways: order.paymentGatewayNames ?? [],
+        transactions: (order.transactions ?? []).map((tx: any) => ({
+          id: tx.id,
+          gateway: tx.gateway,
+          kind: tx.kind,
+          status: tx.status,
+          amount: tx.amountSet?.shopMoney,
+          processedAt: tx.processedAt,
+          errorCode: tx.errorCode ?? null,
+        })),
         shippingAddress: order.shippingAddress,
         billingAddress: order.billingAddress,
         lineItems: (order.lineItems?.nodes ?? []).map((item: any) => ({

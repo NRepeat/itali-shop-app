@@ -199,6 +199,11 @@ export const syncOrders = async (
         const financialStatus = mapFinancialStatus(order.order_status_id);
         const tags = mapOrderTags(order.order_status_id, "imported");
 
+        const noteAttributes: Array<{ name: string; value: string }> = [];
+        if (order.payment_method) {
+          noteAttributes.push({ name: "payment_method", value: order.payment_method });
+        }
+
         const orderPayload: Record<string, any> = {
           order: {
             line_items: lineItems,
@@ -207,6 +212,7 @@ export const syncOrders = async (
             created_at: order.date_added.toISOString(),
             tags,
             note: order.comment || undefined,
+            note_attributes: noteAttributes.length > 0 ? noteAttributes : undefined,
             shipping_address: {
               first_name: order.shipping_firstname,
               last_name: order.shipping_lastname,
