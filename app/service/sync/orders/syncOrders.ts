@@ -20,9 +20,46 @@ const GET_PRODUCT_VARIANTS_QUERY = `
   }
 `;
 
+function mapFinancialStatus(orderStatusId: number): string {
+  switch (orderStatusId) {
+    case 1:  // Ожидание
+      return "pending";
+    case 8:  // Возврат
+    case 11: // Возмещенный
+    case 13: // Полный возврат
+      return "refunded";
+    case 9:  // Отмена и аннулирование
+    case 16: // Анулированный
+      return "voided";
+    default: // 2 Подтвержден, 3 Отправлен, 5 Выполнен, 7 Отказ, 10 Обмен, 12, 14, 15
+      return "paid";
+  }
+}
+
 function mapFulfillmentStatus(orderStatusId: number): string | null {
   if (orderStatusId === 3 || orderStatusId === 5) return "fulfilled";
   return null;
+}
+
+function mapOrderTags(orderStatusId: number, baseTag: string): string {
+  const statusTags: Record<number, string> = {
+    1:  "status-pending",
+    2:  "status-confirmed",
+    3:  "status-shipped",
+    5:  "status-completed",
+    7:  "status-refused",
+    8:  "status-return",
+    9:  "status-cancelled",
+    10: "status-size-exchange",
+    11: "status-refunded",
+    12: "status-changed",
+    13: "status-full-return",
+    14: "status-out-of-stock",
+    15: "status-processed",
+    16: "status-annulled",
+  };
+  const statusTag = statusTags[orderStatusId];
+  return statusTag ? `${baseTag},${statusTag}` : baseTag;
 }
 
 function extractShopifyNumericId(gid: string): string {
@@ -159,15 +196,16 @@ export const syncOrders = async (
         }
 
         const fulfillmentStatus = mapFulfillmentStatus(order.order_status_id);
+        const financialStatus = mapFinancialStatus(order.order_status_id);
+        const tags = mapOrderTags(order.order_status_id, "imported");
 
         const orderPayload: Record<string, any> = {
           order: {
             line_items: lineItems,
-            financial_status: "paid",
+            financial_status: financialStatus,
             currency: order.currency_code || "UAH",
             created_at: order.date_added.toISOString(),
-            closed_at: order.date_modified.toISOString(),
-            tags: "imported",
+            tags,
             note: order.comment || undefined,
             shipping_address: {
               first_name: order.shipping_firstname,
@@ -202,8 +240,14 @@ export const syncOrders = async (
           orderPayload.order.customer = {
             id: Number(extractShopifyNumericId(shopifyCustomerGid)),
           };
-        } else if (order.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) {
-          orderPayload.order.email = order.email;
+        } else {
+          if (order.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) {
+            orderPayload.order.email = order.email;
+          }
+          if (order.telephone) {
+            const phone = order.telephone.trim().replace(/\s+/g, "");
+            orderPayload.order.phone = phone.startsWith("+") ? phone : `+${phone}`;
+          }
         }
 
         // Add shipping cost from totals if present

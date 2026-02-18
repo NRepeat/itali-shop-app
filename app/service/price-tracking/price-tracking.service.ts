@@ -1,6 +1,7 @@
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import { queuePriceNotification } from "./price-notification.service";
+import { sendPriceDropEventToEsputnik } from "@/service/esputnik/esputnik-price.service";
 
 interface ProductVariant {
   id: number;
@@ -138,6 +139,21 @@ async function checkAndNotifyBackInStock(
           variantTitle
         );
 
+        try {
+          await sendPriceDropEventToEsputnik({
+            email: subscription.email,
+            productId: shopifyProductId,
+            productTitle,
+            variantTitle,
+            newPrice: currentPrice.toString(),
+          });
+        } catch (error) {
+          console.warn(
+            `Failed to send eSputnik back-in-stock event for ${subscription.email}:`,
+            error
+          );
+        }
+
         console.log(
           `Queued back-in-stock notification for subscription ${subscription.id} (${subscription.email})`
         );
@@ -209,6 +225,21 @@ async function checkAndNotifySubscriptions(
         productTitle,
         variantTitle
       );
+
+      try {
+        await sendPriceDropEventToEsputnik({
+          email: subscription.email,
+          productId: shopifyProductId,
+          productTitle,
+          variantTitle,
+          newPrice: currentPrice.toString(),
+        });
+      } catch (error) {
+        console.warn(
+          `Failed to send eSputnik price event for ${subscription.email}:`,
+          error
+        );
+      }
 
       console.log(
         `Queued notification for subscription ${subscription.id} (${subscription.email})`

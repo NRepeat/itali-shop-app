@@ -20,6 +20,46 @@ const decodeHtmlEntities = (str: string): string =>
     .replace(/&#039;/g, "'")
     .replace(/&#39;/g, "'");
 
+function slugifyBrand(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * Builds a clean product handle:
+ * - Removes brand slug from seo_keyword
+ * - If product has related articles (color variants), ensures colorSlug is present
+ */
+export function buildHandle(
+  seoKeyword: string,
+  brandName: string | null | undefined,
+  model: string,
+  colorSlug: string | null | undefined,
+  hasRelatedArticles: boolean,
+): string {
+  let handle = seoKeyword.replace(/^\//, "").trim();
+
+  if (brandName) {
+    const brandSlug = slugifyBrand(brandName);
+    if (brandSlug) {
+      const parts = handle.split("-");
+      const filtered = parts.filter((p) => p.toLowerCase() !== brandSlug);
+      handle = filtered.join("-");
+    }
+  }
+
+  handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
+
+  // Color insertion disabled — add when needed
+  // if (hasRelatedArticles && colorSlug && !handle.includes(colorSlug)) { ... }
+
+  return handle;
+}
+
 export const buildProductInput = (
   ukrainianDescription: any,
   sProductOptions: InputMaybe<OptionSetInput[]> | undefined,
@@ -32,15 +72,25 @@ export const buildProductInput = (
   discountPercentage: string | undefined,
   sortOrder: number,
   productType?: string,
-  existingProductId?: string, // Add parameter for existing product ID
+  existingProductId?: string,
+  colorSlug?: string | null,
+  hasRelatedArticles?: boolean,
+  model?: string,
 ): ProductSetInput => {
   const cleanedDescription = decodeHtmlEntities(ukrainianDescription.description);
   const discount = discountPercentage ? Number(discountPercentage) : 0;
+  const handle = buildHandle(
+    ukrainianDescription.seo_keyword,
+    vendor?.name,
+    model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "",
+    colorSlug,
+    hasRelatedArticles ?? false,
+  );
   const input: ProductSetInput = {
-    ...(existingProductId && { id: existingProductId }), // Add ID if updating existing product
+    ...(existingProductId && { id: existingProductId }),
     title: ukrainianDescription.name,
     descriptionHtml: cleanedDescription,
-    handle: ukrainianDescription.seo_keyword,
+    handle,
     status: "ACTIVE" as InputMaybe<ProductStatus>,
     category: category,
     productOptions: sProductOptions,

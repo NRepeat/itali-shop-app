@@ -190,7 +190,7 @@ export async function mapShopifyOrderToEsputnik(
       : null;
 
     const url = productInfo
-      ? `https://${storefrontDomain}.myshopify.com/products/${productInfo.handle}`
+      ? `https://app.miomio.com.ua/products/${productInfo.handle}`
       : null;
 
     return {

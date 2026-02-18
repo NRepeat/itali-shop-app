@@ -7,7 +7,7 @@ import {
   buildFiles,
   buildMetafields,
 } from "./shopify-product-builder";
-import { buildProductInput } from "./build-product-input";
+import { buildProductInput, buildHandle } from "./build-product-input";
 import { linkProducts } from "./link-products";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
@@ -260,8 +260,37 @@ export const processSyncTask = async (job: Job) => {
       });
     }
 
+    // --- Color slug for handle ---
+    const colorMappingForHandle: Record<string, string> = {
+      Блакитний: "blakitnij", Рожевий: "rozhevij", Фіолетовий: "fioletovij",
+      Коричневий: "korichnevij", Гірчичний: "girchichnij", Бордовий: "bordovij",
+      Червоний: "chervonij", Срібло: "sriblo", Зелений: "zelenij",
+      Жовтий: "zhovtij", Хакі: "haki", Помаранчевий: "pomaranchevij",
+      Рудий: "rudij", Синій: "sinij", Бежевий: "bilij", Чорний: "chornij",
+      Білий: "bilij", Золото: "zoloto", Бронзовий: "bronzovij", Сірий: "sirij",
+      Мультиколор: "multikolor", "М'ятний": "m-jatnij", Пітон: "piton",
+    };
+    const colorOptionDesc = optionDescriptions.find((od) => od.name === "Колір");
+    let colorSlugForHandle: string | null = null;
+    if (colorOptionDesc) {
+      const colorPov = productOptionValue.find((pov) => pov.option_id === colorOptionDesc.option_id);
+      if (colorPov) {
+        const colorValDesc = optionValues.find((ov) => ov.option_value_id === colorPov.option_value_id);
+        if (colorValDesc) {
+          colorSlugForHandle = colorMappingForHandle[colorValDesc.name] ?? null;
+        }
+      }
+    }
+
+    // --- Related articles check ---
+    const relatedArticles = await externalDB.bc_product_related_article.findMany({
+      where: { article_id: product.product_id },
+      select: { product_id: true },
+    });
+    const hasRelatedArticles = relatedArticles.length > 0;
+
     // --- End Discount Creation Logic ---
- const discountPercentage = product.extra_special?.split("|")[0];
+    const discountPercentage = product.extra_special?.split("|")[0];
     const input = buildProductInput(
       ukrainianDescription,
       sProductOptions,
@@ -274,7 +303,10 @@ export const processSyncTask = async (job: Job) => {
       discountPercentage,
       product.sort_order,
       productType,
-      existingProductId, // Use product ID from Shopify if found
+      existingProductId,
+      colorSlugForHandle,
+      hasRelatedArticles,
+      product.model,
     );
     console.log(JSON.stringify(input));
     const productInput: CreateProductAsynchronousMutationVariables = {

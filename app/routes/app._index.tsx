@@ -13,6 +13,7 @@ import {
 } from "@/service/sync/collection/syncCollections";
 import { syncProducts } from "@/service/sync/products/syncProducts";
 import { updateExistingProductLinks } from "@/service/sync/products/update-existing-product-links";
+import { updateProductHandles } from "@/service/sync/products/update-product-handles";
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
@@ -82,6 +83,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         session.shop,
         limit,
         offset
+      );
+      logs = result.logs;
+    } else if (body.action === "fix-handles") {
+      const limit = body.limit ? Number(body.limit) : undefined;
+      const offset = body.offset ? Number(body.offset) : 0;
+      const dryRun = false;
+      const result = await updateProductHandles(
+        session.accessToken!,
+        session.shop,
+        limit,
+        offset,
+        dryRun,
       );
       logs = result.logs;
     } else if (body.action === "sync-customers") {
@@ -344,6 +357,8 @@ export default function Index() {
   const [productLimit, setProductLimit] = useState("5");
   const [updateLinksLimit, setUpdateLinksLimit] = useState("100");
   const [updateLinksOffset, setUpdateLinksOffset] = useState("0");
+  const [fixHandlesLimit, setFixHandlesLimit] = useState("100");
+  const [fixHandlesOffset, setFixHandlesOffset] = useState("0");
   const [customerLimit, setCustomerLimit] = useState("5");
   const [orderLimit, setOrderLimit] = useState("5");
   const isLoading = fetcher.state !== "idle";
@@ -524,6 +539,56 @@ export default function Index() {
             !fetcher.json?.limit
               ? "Updating all..."
               : `Update ALL (${stats.syncedCount})`}
+          </s-button>
+        </div>
+      </s-section>
+
+      <s-section heading="Fix Product Handles (Remove Brand)">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Removes brand slug from product handles (e.g. krosivky-ash-movie → krosivky-movie)
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "flex-end",
+            flexWrap: "wrap" as const,
+          }}
+        >
+          <s-text-field
+            label="Limit"
+            type="number"
+            value={fixHandlesLimit}
+            min="1"
+            onInput={(e: any) => setFixHandlesLimit(e.target.value)}
+            help-text="Number of products to process"
+          ></s-text-field>
+          <s-text-field
+            label="Offset"
+            type="number"
+            value={fixHandlesOffset}
+            min="0"
+            onInput={(e: any) => setFixHandlesOffset(e.target.value)}
+            help-text="Skip first N products"
+          ></s-text-field>
+          <s-button
+            variant="primary"
+            onClick={() => handleAction("fix-handles", fixHandlesLimit, fixHandlesOffset)}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "fix-handles" && fetcher.json?.limit
+              ? "Fixing..."
+              : `Fix ${fixHandlesLimit} Products`}
+          </s-button>
+          <s-button
+            variant="primary"
+            tone="critical"
+            onClick={() => handleAction("fix-handles")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "fix-handles" && !fetcher.json?.limit
+              ? "Fixing all..."
+              : `Fix ALL Handles`}
           </s-button>
         </div>
       </s-section>

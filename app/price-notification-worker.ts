@@ -54,6 +54,7 @@ setInterval(pollPendingNotifications, POLL_INTERVAL);
 // Initial poll on startup
 pollPendingNotifications();
 
+
 console.log(
   "Price Notification Worker is running and listening for price-notification-queue jobs..."
 );
