@@ -1,5 +1,6 @@
 import { getMetafields } from "@/service/shopify/metafields/getMetafields";
 import { getMetaobject } from "@/service/shopify/metaobjects/getMetaobject";
+import { createMetaobject } from "@/service/shopify/metaobjects/createMetaobject";
 import {
   InputMaybe,
   OptionSetInput,
@@ -9,9 +10,64 @@ import {
   FileSetInput,
   FileContentType,
   MetafieldInput,
+  MetaobjectStatus,
 } from "@/types";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
-import { externalDB } from "@shared/lib/prisma/prisma.server";
+import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
+
+const slugifyHandle = (name: string): string =>
+  name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/**
+ * Looks up a metaobject by handle+type in the local DB.
+ * If not found, creates it in Shopify and persists it locally.
+ * Returns the Shopify GID, or null on failure.
+ */
+const ensureMetaobject = async (
+  admin: AdminApiContext,
+  type: string,
+  handle: string,
+  label: string,
+): Promise<string | null> => {
+  if (!handle) return null;
+
+  const existing = await prisma.metaobject.findFirst({ where: { handle, type } });
+  if (existing) return existing.metaobjectId;
+
+  const created = await createMetaobject(
+    {
+      metaobject: {
+        type,
+        handle,
+        capabilities: { publishable: { status: "ACTIVE" as MetaobjectStatus } },
+        fields: [
+          { key: "slug", value: handle },
+          { key: "label", value: label },
+        ],
+      },
+    },
+    admin,
+  );
+
+  if (!created) {
+    console.warn(`[ensureMetaobject] Failed to create metaobject handle="${handle}" type="${type}"`);
+    return null;
+  }
+
+  await prisma.metaobject.upsert({
+    where: { handle },
+    update: { metaobjectId: created.id, type: created.type },
+    create: { handle, metaobjectId: created.id, type: created.type },
+  });
+
+  console.log(`[ensureMetaobject] Created metaobject handle="${handle}" type="${type}" id="${created.id}"`);
+  return created.id;
+};
 
 // Helper function to generate Cartesian product of arrays
 const cartesian = <T>(...args: T[][]): T[][] => {
@@ -37,6 +93,7 @@ export const buildProductOptions = async (
   productOptions: any[],
   optionDescriptions: any[],
   optionValues: any[],
+  productOptionValue: any[],
 ) => {
   const sProductOptions: InputMaybe<OptionSetInput[]> | undefined = [];
   const colorMapping = {
@@ -79,72 +136,63 @@ export const buildProductOptions = async (
     for (const option of productOptions) {
       const optionId = option.option_id;
       const optionName = optionDescriptions.find((o) => o.option_id === optionId);
+
+      // Get the option values that belong specifically to this option
+      const relevantOptionValueIds = productOptionValue
+        .filter((pov) => pov.option_id === optionId)
+        .map((pov) => pov.option_value_id);
+      const relevantOptionValues = optionValues.filter((ov) =>
+        relevantOptionValueIds.includes(ov.option_value_id),
+      );
+
       const existOptionMetafields = await getMetafields(admin, {
         ownerType: "PRODUCT" as MetafieldOwnerType.Product,
         first: 1,
         query: optionName?.name,
       });
       if (!existOptionMetafields || !existOptionMetafields[0]) {
-        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" (option_id: ${optionId})`);
+        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" — using plain values`);
+        if (relevantOptionValues.length > 0) {
+          sProductOptions.push({
+            name: optionName?.name,
+            values: [...new Set(relevantOptionValues.map((ov) => ov.name))].map((n) => ({ name: n })),
+          });
+        }
         continue;
       }
 
-      const metObjects = await getMetaobject(admin, {
-        first: 250,
-        type: existOptionMetafields[0].type,
-      });
       const rawType = existOptionMetafields[0].type || "";
       const metafieldKey = rawType.startsWith("custom.") ? rawType.slice("custom.".length) : rawType;
 
       if (optionName?.name === "Колір") {
-        const values = [];
-        for (const ov of optionValues) {
-          if (colorMapping[ov.name]) {
-            const metaobject = metObjects.find(
-              (m) => m.handle === colorMapping[ov.name],
-            );
-            if (metaobject) {
-              values.push(metaobject.metaobjectId);
-            }
+        const values: string[] = [];
+        for (const ov of relevantOptionValues) {
+          const colorHandle = colorMapping[ov.name];
+          if (!colorHandle) {
+            console.warn(`[buildProductOptions] Color "${ov.name}" not in colorMapping, skipping`);
+            continue;
           }
+          const id = await ensureMetaobject(admin, rawType, colorHandle, ov.name);
+          if (id) values.push(id);
         }
         if (values.length > 0) {
-          const input: OptionSetInput = {
+          sProductOptions.push({
             name: optionName?.name,
-            linkedMetafield: {
-              key: metafieldKey,
-              namespace: "custom",
-              values: values,
-            },
-          };
-          if (existOptionMetafields) {
-            sProductOptions.push(input);
-          }
+            linkedMetafield: { key: metafieldKey, namespace: "custom", values },
+          });
         }
-      } else if (optionName?.name !== "Колір") {
-        const values = [];
-        for (const ov of optionValues) {
-          const metaobject = metObjects.find(
-            (m) =>
-              m.handle.toLowerCase().replace(",", "-") ===
-              ov.name.toLowerCase().replace(",", "-"),
-          );
-          if (metaobject) {
-            values.push(metaobject.metaobjectId);
-          }
+      } else {
+        const values: string[] = [];
+        for (const ov of relevantOptionValues) {
+          const handle = ov.name.toLowerCase().replace(",", "-");
+          const id = await ensureMetaobject(admin, rawType, handle, ov.name);
+          if (id) values.push(id);
         }
         if (values.length > 0) {
-          const input: OptionSetInput = {
+          sProductOptions.push({
             name: optionName?.name,
-            linkedMetafield: {
-              key: metafieldKey,
-              namespace: "custom",
-              values: values,
-            },
-          };
-          if (existOptionMetafields) {
-            sProductOptions.push(input);
-          }
+            linkedMetafield: { key: metafieldKey, namespace: "custom", values },
+          });
         }
       }
     }
@@ -258,32 +306,40 @@ export const buildProductVariants = async (
           query: optionDesc.name,
         });
 
-        if (!existOptionMetafields[0]) continue;
+        if (!existOptionMetafields[0]) {
+          // No metaobject definition for this option — plain fallback
+          optionValuesForVariant.push({ optionName: optionDesc.name, name: optionValueDesc.name });
+          skuParts.push(optionValueDesc.name);
+          variantQuantity = Math.min(variantQuantity, pov.quantity);
+          continue;
+        }
 
-        const metObjects = await getMetaobject(admin, {
-          first: 250,
-          type: existOptionMetafields[0].type,
-        });
+        const type = existOptionMetafields[0].type;
 
-        let metaObject;
+        let metaobjectId: string | null = null;
         if (optionDesc.name === "Колір") {
           const colorHandle = colorMapping[optionValueDesc.name];
           if (colorHandle) {
-            metaObject = metObjects?.find((m) => m.handle === colorHandle);
+            metaobjectId = await ensureMetaobject(admin, type, colorHandle, optionValueDesc.name);
+          } else {
+            console.warn(`[buildProductVariants] Color "${optionValueDesc.name}" not in colorMapping, skipping linked value`);
           }
         } else {
-          metaObject = metObjects?.find(
-            (m) =>
-              m.handle.toLowerCase().replace(",", "-") ===
-              optionValueDesc.name.toLowerCase().replace(",", "-"),
-          );
+          const handle = optionValueDesc.name.toLowerCase().replace(",", "-");
+          metaobjectId = await ensureMetaobject(admin, type, handle, optionValueDesc.name);
         }
 
-        if (!metaObject) continue;
+        if (!metaobjectId) {
+          // ensureMetaobject failed — plain fallback
+          optionValuesForVariant.push({ optionName: optionDesc.name, name: optionValueDesc.name });
+          skuParts.push(optionValueDesc.name);
+          variantQuantity = Math.min(variantQuantity, pov.quantity);
+          continue;
+        }
 
         optionValuesForVariant.push({
           optionName: optionDesc.name,
-          linkedMetafieldValue: metaObject.metaobjectId,
+          linkedMetafieldValue: metaobjectId,
         });
 
         skuParts.push(optionValueDesc.name);

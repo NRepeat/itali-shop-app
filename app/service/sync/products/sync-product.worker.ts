@@ -223,6 +223,7 @@ export const processSyncTask = async (job: Job) => {
       productOptions,
       optionDescriptions,
       optionValues,
+      productOptionValue,
     );
 
     const variants = await buildProductVariants(
