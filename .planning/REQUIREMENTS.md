@@ -32,15 +32,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | | Pending |
-| CORE-02 | | Pending |
-| SYNC-01 | | Pending |
-| PROD-01 | | Pending |
-| PROD-02 | | Pending |
-| PROD-03 | | Pending |
-| ORD-01 | | Pending |
-| ORD-02 | | Pending |
-| CUST-01 | | Pending |
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| SYNC-01 | Phase 2 | Pending |
+| PROD-01 | Phase 2 | Pending |
+| PROD-02 | Phase 2 | Pending |
+| PROD-03 | Phase 2 | Pending |
+| ORD-01 | Phase 3 | Pending |
+| ORD-02 | Phase 3 | Pending |
+| CUST-01 | Phase 3 | Pending |
 
 ---
 *Last updated: 2026-02-23*
