@@ -21,10 +21,11 @@
 - **Shopify as Master**: All sync logic must prioritize Shopify `updated_at` timestamps and data.
 - **Asynchronous Processing**: All webhooks must be offloaded to BullMQ to avoid Shopify timeout issues.
 - **Handle Collision Strategy**: SKU/ID suffix-based resolution implemented in Phase 2.
+- **Metaobject Three-Step Lookup**: local DB -> Shopify -> create, with DB backfill on Shopify hit (quick-1).
 
 ### Todos & Blockers
 None.
 
 ## Session Continuity
-- **Last Action**: Completed Phase 3 (Order & Customer Lifecycle) on 2026-02-23.
+- **Last Action**: Completed quick task 1 (metaobject upsert Shopify fallback lookup) on 2026-02-23.
 - **Next Step**: Audit milestone or start new milestone.
