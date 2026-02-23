@@ -151,13 +151,7 @@ export const buildProductOptions = async (
         query: optionName?.name,
       });
       if (!existOptionMetafields || !existOptionMetafields[0]) {
-        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" — using plain values`);
-        if (relevantOptionValues.length > 0) {
-          sProductOptions.push({
-            name: optionName?.name,
-            values: [...new Set(relevantOptionValues.map((ov) => ov.name))].map((n) => ({ name: n })),
-          });
-        }
+        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" — skipping (do not override option-linked metafields)`);
         continue;
       }
 
@@ -307,10 +301,7 @@ export const buildProductVariants = async (
         });
 
         if (!existOptionMetafields[0]) {
-          // No metaobject definition for this option — plain fallback
-          optionValuesForVariant.push({ optionName: optionDesc.name, name: optionValueDesc.name });
-          skuParts.push(optionValueDesc.name);
-          variantQuantity = Math.min(variantQuantity, pov.quantity);
+          // No metaobjectDefinition — skip this pov (don't override option-linked metafield with plain value)
           continue;
         }
 
@@ -330,10 +321,7 @@ export const buildProductVariants = async (
         }
 
         if (!metaobjectId) {
-          // ensureMetaobject failed — plain fallback
-          optionValuesForVariant.push({ optionName: optionDesc.name, name: optionValueDesc.name });
-          skuParts.push(optionValueDesc.name);
-          variantQuantity = Math.min(variantQuantity, pov.quantity);
+          // ensureMetaobject failed — skip this pov
           continue;
         }
 

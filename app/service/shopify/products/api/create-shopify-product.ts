@@ -43,56 +43,23 @@ export const createProductAsynchronous = async (
     }
     const accessToken = session.accessToken;
 
-    let currentVariables = variables;
+    const res = await client.request<
+      CreateProductAsynchronousMutation,
+      CreateProductAsynchronousMutationVariables
+    >({
+      query: CREATE_PRODUCTS_QUERY,
+      variables,
+      accessToken,
+      shopDomain: domain,
+    });
+    console.log("res", JSON.stringify(res));
 
-    for (let attempt = 0; attempt <= 1; attempt++) {
-      const res = await client.request<
-        CreateProductAsynchronousMutation,
-        CreateProductAsynchronousMutationVariables
-      >({
-        query: CREATE_PRODUCTS_QUERY,
-        variables: currentVariables,
-        accessToken,
-        shopDomain: domain,
-      });
-      console.log("res", JSON.stringify(res));
-
-      const userErrors = res.productSet?.userErrors ?? [];
-
-      if (userErrors.length === 0) {
-        return res.productSet?.product;
-      }
-
-      // On first attempt, check for CAPABILITY_VIOLATION (metafield connected to option)
-      if (attempt === 0) {
-        const violations = userErrors.filter((e: any) => e.code === "CAPABILITY_VIOLATION");
-        if (violations.length > 0) {
-          const offendingKeys = new Set<string>();
-          for (const err of violations) {
-            const match = (err.message as string).match(/Metafield Key:\s*([^\s,]+)/);
-            if (match) offendingKeys.add(match[1]);
-          }
-          console.warn(
-            `[productSet] CAPABILITY_VIOLATION — removing option-linked metafields [${[...offendingKeys].join(", ")}] and retrying`,
-          );
-          currentVariables = {
-            ...currentVariables,
-            productSet: {
-              ...currentVariables.productSet,
-              metafields: (currentVariables.productSet.metafields ?? []).filter(
-                (mf: any) => !offendingKeys.has(mf.key),
-              ),
-            },
-          };
-          continue;
-        }
-      }
-
+    const userErrors = res.productSet?.userErrors ?? [];
+    if (userErrors.length > 0) {
       console.error(`[productSet] userErrors:`, JSON.stringify(userErrors));
       return null;
     }
-
-    return null;
+    return res.productSet?.product;
   } catch (error) {
     console.error(error);
     throw new Error(`Failed to update Shopify product: ${error}`);
