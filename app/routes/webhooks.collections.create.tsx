@@ -1,6 +1,5 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { collectionSyncQueue } from "@shared/lib/queue/collection-sync.queue";
 import { getSyncQueue } from "~/service/sync/sync.registry";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -10,7 +9,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   await getSyncQueue(topic).add(topic, { shop, topic, payload });
 
-  // console.log(`Added collection ${collectionData.id} to sync queue`); // Old log, replaced by new queue mechanism
+
 
   return new Response(null, { status: 200 });
 };
