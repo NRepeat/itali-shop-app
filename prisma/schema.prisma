@@ -136,3 +136,17 @@ model PriceHistory {
   @@index([shopifyVariantId])
   @@index([recordedAt])
 }
+
+model SyncAuditLog {
+  id         String   @id @default(cuid())
+  entityType String // e.g., "PRODUCT", "ORDER", "CUSTOMER"
+  entityId   String // Shopify ID of the entity
+  status     String // e.g., "SUCCESS", "FAILURE", "QUEUED"
+  message    String? // Optional detailed message
+  error      Json? // Optional JSON field for error details
+  createdAt  DateTime @default(now())
+
+  @@index([entityType])
+  @@index([entityId])
+  @@index([status])
+}
