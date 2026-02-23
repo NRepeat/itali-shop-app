@@ -1,25 +1,18 @@
 import { authenticate } from "@/shopify.server";
 import { ActionFunctionArgs } from "react-router";
-import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
-import { keycrmOrderQueue } from "@shared/lib/queue/keycrm-order.queue";
+import { getSyncQueue } from "~/service/sync/sync.registry";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { payload, shop } = await authenticate.webhook(request);
+  const { payload, shop, topic } = await authenticate.webhook(request);
 
-  console.log("🚀 ~ Order Fulfilled Webhook Payload:", payload);
+  console.log("🚀 ~ Received", topic, "webhook for", shop);
 
-  await Promise.all([
-    // esputnikOrderQueue.add("esputnik-order-sync", {
-    //   payload,
-    //   status: "DELIVERED",
-    //   shop,
-    // }),
-    // keycrmOrderQueue.add("keycrm-order-sync", {
-    //   payload,
-    //   status: "DELIVERED",
-    //   shop,
-    // }),
-  ]);
+  const queue = getSyncQueue(topic);
+  if (queue) {
+    await queue.add(topic, { shop, topic, payload });
+  } else {
+    console.error(`No sync queue found for topic: ${topic}`);
+  }
 
-  return new Response("OK", { status: 200 });
+  return new Response(null, { status: 200 });
 };
