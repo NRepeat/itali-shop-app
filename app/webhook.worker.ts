@@ -1,68 +1,75 @@
-import { Worker } from 'bullmq';
-import { AuditService } from './service/sync/audit.service';
-// Placeholder for queues, will be defined in app/service/sync/queues.ts
-import { REDIS_CONNECTION } from './shared/config/redis.config';
+import { Worker, JobsOptions } from 'bullmq';
+import { AuditService } from '../service/sync/audit.service';
+import {
+  productSyncQueue,
+  orderSyncQueue,
+  customerSyncQueue,
+} from '../service/sync/queues';
 
 const auditService = new AuditService();
 
-// Placeholder for queue names - these will be imported from queues.ts later
-export const WEBHOOK_QUEUE_NAMES = {
-  PRODUCT: 'productSyncQueue',
-  ORDER: 'orderSyncQueue',
-  CUSTOMER: 'customerSyncQueue',
+// Define a list of all queue names this worker should listen to
+const webhookQueueNames = [
+  productSyncQueue.name,
+  orderSyncQueue.name,
+  customerSyncQueue.name,
+];
+
+// Worker options
+const workerOptions = {
+  connection: productSyncQueue.opts.connection, // Use the same connection as the queues
+  concurrency: 5, // Process up to 5 jobs at a time
 };
 
-const webhookWorker = new Worker(
-  Object.values(WEBHOOK_QUEUE_NAMES),
+export const webhookWorker = new Worker(
+  webhookQueueNames,
   async (job) => {
-    const { name, data } = job;
-    console.log(`Processing job ${job.id} from queue ${name} with data:`, data);
-
+    const { name, data, id } = job;
     try {
-      await auditService.log(
-        name, // entityType - using job name as a proxy for now
-        data.admin_graphql_api_id || data.id, // entityId - trying to get Shopify ID
-        'PROCESSING',
-        `Started processing webhook for topic: ${name}, entity ID: ${data.admin_graphql_api_id || data.id}`,
-      );
+      console.log(`Processing job ${id} from queue ${name} with data:`, data);
+      await auditService.log(id || 'unknown', name, 'PROCESSING', `Job ${id} started.`);
 
-      // In later phases, this is where the job will be dispatched to the appropriate syncer.
-      // For now, we just simulate success.
-      console.log(`Successfully processed job ${job.id} for topic: ${name}`);
+      // TODO: In future phases, dispatch to specific syncer based on job.name or job.data.topic
+      // For now, just simulate success
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate async work
 
-      await auditService.log(
-        name,
-        data.admin_graphql_api_id || data.id,
-        'SUCCESS',
-        `Finished processing webhook for topic: ${name}, entity ID: ${data.admin_graphql_api_id || data.id}`,
-      );
+      await auditService.log(id || 'unknown', name, 'SUCCESS', `Job ${id} completed.`);
+      console.log(`Job ${id} from queue ${name} completed successfully.`);
     } catch (error: any) {
-      console.error(`Error processing job ${job.id} for topic ${name}:`, error);
-      await auditService.log(
-        name,
-        data.admin_graphql_api_id || data.id,
-        'FAILURE',
-        `Failed to process webhook for topic: ${name}, error: ${error.message}`,
-        error,
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await auditService.log(id || 'unknown', name, 'FAILURE', `Job ${id} failed: ${errorMessage}`);
+      console.error(`Job ${id} from queue ${name} failed:`, error);
       throw error; // Re-throw to mark job as failed in BullMQ
     }
   },
-  {
-    connection: REDIS_CONNECTION,
-    concurrency: 5, // Example concurrency, can be configured
-    // Other global worker options can be added here
-  },
+  workerOptions,
 );
 
-webhookWorker.on('completed', (job) => {
-  console.log(`Job ${job.id} has completed!`);
+webhookWorker.on('ready', () => {
+  console.log(`Webhook worker is ready and listening to queues: ${webhookQueueNames.join(', ')}`);
+});
+
+webhookWorker.on('active', (job) => {
+  console.log(`Job ${job.id} from queue ${job.name} is now active.`);
+});
+
+webhookWorker.on('completed', (job, result) => {
+  console.log(`Job ${job.id} from queue ${job.name} completed. Result:`, result);
 });
 
 webhookWorker.on('failed', (job, err) => {
-  console.error(`Job ${job?.id} has failed with error ${err.message}`);
+  console.error(`Job ${job?.id} from queue ${job?.name} failed with error:`, err);
 });
 
-console.log('Webhook worker started, listening for jobs...');
+webhookWorker.on('error', (err) => {
+  // Log any worker errors
+  console.error('Webhook worker experienced an error:', err);
+});
 
-export default webhookWorker;
+webhookWorker.on('close', () => {
+  console.log('Webhook worker closed.');
+});
+
+// To keep the worker running, we might need to explicitly call .run()
+// However, in a Remix app, this typically runs as part of the server process.
+// For now, simply exporting it is sufficient for instantiation.
