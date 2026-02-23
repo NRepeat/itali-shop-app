@@ -140,7 +140,7 @@ const GET_PRODUCT_VARIANTS_QUERY = `
 
 const PRODUCT_VARIANTS_BULK_UPDATE_MUTATION = `
   #graphql
-  mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+  mutation syncWorkerVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
     productVariantsBulkUpdate(productId: $productId, variants: $variants) {
       productVariants {
         id
