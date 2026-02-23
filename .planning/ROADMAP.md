@@ -49,4 +49,4 @@ Standardize the synchronization flow between Shopify and the internal system to 
 |-------|----------------|--------|-----------|
 | 1: Foundation | 3/3 | Completed | 2026-02-23 |
 | 2: Products | 3/3 | Completed | 2026-02-23 |
-| 3: Orders/Cust | 0/1 | Not started | - |
+| 3: Orders/Cust | 3/3 | Completed | 2026-02-23 |
