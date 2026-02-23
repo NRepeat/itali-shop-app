@@ -26,6 +26,12 @@
 ### Todos & Blockers
 None.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | check metaobject upsert logic in productSet | 2026-02-23 | 118eeac | [1-check-metaobject-upsert-logic-in-product](./quick/1-check-metaobject-upsert-logic-in-product/) |
+
 ## Session Continuity
-- **Last Action**: Completed quick task 1 (metaobject upsert Shopify fallback lookup) on 2026-02-23.
+- **Last Action**: 2026-02-23 - Completed quick task 1: check metaobject upsert logic in productSet
 - **Next Step**: Audit milestone or start new milestone.
