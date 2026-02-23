@@ -75,6 +75,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
         (await syncProducts(session.shop, session.accessToken!, limit)) || [];
+    } else if (body.action === "reset-sync-products") {
+      const limit = body.limit ? Number(body.limit) : undefined;
+      logs =
+        (await syncProducts(session.shop, session.accessToken!, limit, true)) || [];
     } else if (body.action === "update-product-links") {
       const limit = body.limit ? Number(body.limit) : undefined;
       const offset = body.offset ? Number(body.offset) : 0;
@@ -488,6 +492,31 @@ export default function Index() {
               ? "Creating all..."
               : `Sync ALL (${stats.remaining})`}
           </s-button>
+        </div>
+        <div style={{ marginTop: "16px", borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
+          <div style={{ marginBottom: "8px", color: "#666", fontSize: "13px" }}>
+            Reset sync — forces <code>productSet</code> for all products (re-syncs variants, price &amp; inventory even for existing products)
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" as const }}>
+            <s-button
+              tone="critical"
+              onClick={() => handleAction("reset-sync-products", productLimit)}
+              disabled={isLoading || undefined}
+            >
+              {isLoading && fetcher.json?.action === "reset-sync-products" && fetcher.json?.limit
+                ? "Resetting..."
+                : `Reset Sync ${productLimit || "N"} Products`}
+            </s-button>
+            <s-button
+              tone="critical"
+              onClick={() => handleAction("reset-sync-products")}
+              disabled={isLoading || undefined}
+            >
+              {isLoading && fetcher.json?.action === "reset-sync-products" && !fetcher.json?.limit
+                ? "Resetting all..."
+                : `Reset Sync ALL`}
+            </s-button>
+          </div>
         </div>
       </s-section>
 

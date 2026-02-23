@@ -124,11 +124,12 @@ const GET_TRANSLATABLE_METAFIELD_QUERY = `
 `;
 
 export const processSyncTask = async (job: Job) => {
-  const { product, domain, shop, accessToken } = job.data as {
+  const { product, domain, shop, accessToken, forceProductSet } = job.data as {
     product: Product;
     domain: string;
     shop: string;
     accessToken: string;
+    forceProductSet?: boolean;
   };
 
   const admin = {
@@ -296,7 +297,7 @@ export const processSyncTask = async (job: Job) => {
 
     let shopifYproduct: { id: string } | null | undefined;
 
-    if (existingProductId) {
+    if (existingProductId && !forceProductSet) {
       console.log(`[Update] Updating existing product ${existingProductId}`);
       const updateInput = buildProductUpdateInput(
         existingProductId,
@@ -315,7 +316,12 @@ export const processSyncTask = async (job: Job) => {
       const result = await updateShopifyProduct(domain, { product: updateInput });
       shopifYproduct = result?.product ?? null;
     } else {
-      console.log(`[Create] Creating new product for ${product.product_id}`);
+      // CREATE path — also used for force-reset (passes existingProductId so productSet updates rather than duplicating)
+      if (forceProductSet && existingProductId) {
+        console.log(`[Reset] Force productSet on existing product ${existingProductId}`);
+      } else {
+        console.log(`[Create] Creating new product for ${product.product_id}`);
+      }
       const input = buildProductInput(
         ukrainianDescription,
         sProductOptions,
@@ -328,7 +334,7 @@ export const processSyncTask = async (job: Job) => {
         discountPercentage,
         product.sort_order,
         productType,
-        undefined,
+        forceProductSet ? existingProductId : undefined,
         colorSlugForHandle,
         hasRelatedArticles,
         product.model,

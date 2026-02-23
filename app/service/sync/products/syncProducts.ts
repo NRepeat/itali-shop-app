@@ -5,6 +5,7 @@ export const syncProducts = async (
   domain: string,
   accessToken: string,
   limit?: number,
+  forceProductSet?: boolean,
 ) => {
   const logs: string[] = [];
   const log = (msg: string) => {
@@ -70,7 +71,7 @@ export const syncProducts = async (
           `[${i + 1}/${productsToCreate.length}] Creating product: ${product.model || product.product_id}`,
         );
         const fakeJob = {
-          data: { product, domain, shop: domain, accessToken },
+          data: { product, domain, shop: domain, accessToken, forceProductSet },
         };
         await processSyncTask(fakeJob as any);
         log(
