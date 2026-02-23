@@ -31,6 +31,31 @@ function slugifyBrand(name: string): string {
 }
 
 /**
+ * Removes vendor name and (if numeric) SKU from the product title.
+ * "Кросівки жіночі Fru.it 6214"  → "Кросівки жіночі"   (numeric SKU removed)
+ * "Кросівки жіночі Fru.it movie" → "Кросівки жіночі movie" (alpha SKU kept)
+ */
+export function cleanTitle(
+  title: string,
+  brandName: string | null | undefined,
+  model: string,
+): string {
+  let t = title;
+
+  if (brandName) {
+    const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    t = t.replace(new RegExp(escaped, "gi"), "");
+  }
+
+  if (/^\d+$/.test(model)) {
+    const escapedModel = model.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    t = t.replace(new RegExp(`(^|\\s)${escapedModel}(?=\\s|$)`, "g"), " ");
+  }
+
+  return t.replace(/\s+/g, " ").trim();
+}
+
+/**
  * Builds a clean product handle:
  * - Removes brand slug from seo_keyword
  * - If product has related articles (color variants), ensures colorSlug is present
@@ -79,16 +104,18 @@ export const buildProductInput = (
 ): ProductSetInput => {
   const cleanedDescription = decodeHtmlEntities(ukrainianDescription.description);
   const discount = discountPercentage ? Number(discountPercentage) : 0;
+  const resolvedModel = model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "";
   const handle = buildHandle(
     ukrainianDescription.seo_keyword,
     vendor?.name,
-    model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "",
+    resolvedModel,
     colorSlug,
     hasRelatedArticles ?? false,
   );
+  const title = cleanTitle(ukrainianDescription.name, vendor?.name, resolvedModel);
   const input: ProductSetInput = {
     ...(existingProductId && { id: existingProductId }),
-    title: ukrainianDescription.name,
+    title,
     descriptionHtml: cleanedDescription,
     handle,
     status: "ACTIVE" as InputMaybe<ProductStatus>,
@@ -144,16 +171,18 @@ export const buildProductUpdateInput = (
 ): ProductUpdateInput => {
   const cleanedDescription = decodeHtmlEntities(ukrainianDescription.description);
   const discount = discountPercentage ? Number(discountPercentage) : 0;
+  const resolvedModel = model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "";
   const handle = buildHandle(
     ukrainianDescription.seo_keyword,
     vendor?.name,
-    model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "",
+    resolvedModel,
     colorSlug,
     hasRelatedArticles ?? false,
   );
+  const title = cleanTitle(ukrainianDescription.name, vendor?.name, resolvedModel);
   return {
     id: existingProductId,
-    title: ukrainianDescription.name,
+    title,
     descriptionHtml: cleanedDescription,
     handle,
     status: "ACTIVE" as InputMaybe<ProductStatus>,

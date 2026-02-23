@@ -28,7 +28,7 @@ export const getMetafields = async (
       where: variables.key
         ? { type: variables.key }
         : {
-            name: variables.query,
+            name: { equals: variables.query, mode: "insensitive" },
           },
     });
     // const res = await admin.graphql(query, {
