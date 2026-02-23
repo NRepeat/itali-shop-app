@@ -22,6 +22,7 @@
 - **Asynchronous Processing**: All webhooks must be offloaded to BullMQ to avoid Shopify timeout issues.
 - **Handle Collision Strategy**: SKU/ID suffix-based resolution implemented in Phase 2.
 - **Metaobject Three-Step Lookup**: local DB -> Shopify -> create, with DB backfill on Shopify hit (quick-1).
+- **Shopify-First Authority**: Removed local DB pre-check from ensureMetaobject; Shopify query is always first, local DB is write-through cache only (quick-2).
 
 ### Todos & Blockers
 None.
@@ -31,7 +32,8 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | check metaobject upsert logic in productSet | 2026-02-23 | 118eeac | [1-check-metaobject-upsert-logic-in-product](./quick/1-check-metaobject-upsert-logic-in-product/) |
+| 2 | make Shopify source of truth in ensureMetaobject | 2026-02-23 | 78c6f8d | [2-make-shopify-source-of-truth-in-ensureme](./quick/2-make-shopify-source-of-truth-in-ensureme/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-23 - Completed quick task 1: check metaobject upsert logic in productSet
+- **Last Action**: 2026-02-23 - Completed quick task 2: make Shopify source of truth in ensureMetaobject
 - **Next Step**: Audit milestone or start new milestone.
