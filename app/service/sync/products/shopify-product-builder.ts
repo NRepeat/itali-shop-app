@@ -1,5 +1,6 @@
 import { getMetafields } from "@/service/shopify/metafields/getMetafields";
 import { createMetaobject } from "@/service/shopify/metaobjects/createMetaobject";
+import { getMetaobjectByHandle } from "@/service/shopify/metaobjects/getMetaobjectByHandle";
 import {
   InputMaybe,
   OptionSetInput,
@@ -37,6 +38,18 @@ const ensureMetaobject = async (
 
   const existing = await prisma.metaobject.findFirst({ where: { handle, type } });
   if (existing) return existing.metaobjectId;
+
+  const fromShopify = await getMetaobjectByHandle(admin, handle, type);
+  if (fromShopify) {
+    // Backfill local DB so future calls hit the fast path
+    await prisma.metaobject.upsert({
+      where: { handle },
+      update: { metaobjectId: fromShopify.id, type: fromShopify.type },
+      create: { handle, metaobjectId: fromShopify.id, type: fromShopify.type },
+    });
+    console.log(`[ensureMetaobject] Backfilled from Shopify handle="${handle}" type="${type}" id="${fromShopify.id}"`);
+    return fromShopify.id;
+  }
 
   const created = await createMetaobject(
     {
