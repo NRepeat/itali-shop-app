@@ -1,5 +1,4 @@
 import { getMetafields } from "@/service/shopify/metafields/getMetafields";
-import { getMetaobject } from "@/service/shopify/metaobjects/getMetaobject";
 import { createMetaobject } from "@/service/shopify/metaobjects/createMetaobject";
 import {
   InputMaybe,
@@ -151,7 +150,14 @@ export const buildProductOptions = async (
         query: optionName?.name,
       });
       if (!existOptionMetafields || !existOptionMetafields[0]) {
-        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" — skipping (do not override option-linked metafields)`);
+        // No metafield definition — fall back to plain string values so the option is not dropped
+        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" — falling back to plain string values`);
+        if (relevantOptionValues.length > 0) {
+          sProductOptions.push({
+            name: optionName?.name,
+            values: relevantOptionValues.map((ov) => ({ name: ov.name })),
+          });
+        }
         continue;
       }
 
@@ -301,7 +307,14 @@ export const buildProductVariants = async (
         });
 
         if (!existOptionMetafields[0]) {
-          // No metaobjectDefinition — skip this pov (don't override option-linked metafield with plain value)
+          // No metaobjectDefinition — fall back to plain name value so the variant is not dropped
+          console.warn(`[buildProductVariants] No metafield definition for option "${optionDesc.name}" — using plain value`);
+          optionValuesForVariant.push({
+            optionName: optionDesc.name,
+            name: optionValueDesc.name,
+          });
+          skuParts.push(optionValueDesc.name);
+          variantQuantity = Math.min(variantQuantity, pov.quantity);
           continue;
         }
 
@@ -321,7 +334,14 @@ export const buildProductVariants = async (
         }
 
         if (!metaobjectId) {
-          // ensureMetaobject failed — skip this pov
+          // ensureMetaobject failed — fall back to plain name value so the variant is not dropped
+          console.warn(`[buildProductVariants] ensureMetaobject failed for "${optionValueDesc.name}" (option "${optionDesc.name}") — using plain value`);
+          optionValuesForVariant.push({
+            optionName: optionDesc.name,
+            name: optionValueDesc.name,
+          });
+          skuParts.push(optionValueDesc.name);
+          variantQuantity = Math.min(variantQuantity, pov.quantity);
           continue;
         }
 
@@ -461,6 +481,13 @@ export const buildMetafields = async (
   };
   const mappedFilters = mapFiltersByOption(filterValue, bc_ocfilter_option);
 
+  // Pre-fetch Ukrainian labels for all filter values in one query
+  const allValueIds = filterValue.map((v) => v.value_id);
+  const descriptions = await externalDB.bc_ocfilter_option_value_description.findMany({
+    where: { value_id: { in: allValueIds }, language_id: 3 },
+  });
+  const descriptionMap = new Map(descriptions.map((d) => [d.value_id.toString(), d.name]));
+
   const keys = Object.keys(mappedFilters);
 
   let productMetafieldsmetObjects: MetafieldInput[] = [];
@@ -474,24 +501,25 @@ export const buildMetafields = async (
     if (!existOptionMetafields || !existOptionMetafields[0]) {
       continue;
     }
-    const metObjects = await getMetaobject(admin, {
-      first: 100,
-      type: existOptionMetafields[0].type,
-    });
-    const mmm = [];
+
+    const type = existOptionMetafields[0].type;
+    const mmm: string[] = [];
+
     for (const v of mappedFilters[key].values) {
-      for (const m of metObjects) {
-        if (v.keyword === m.handle) {
-          mmm.push(m.metaobjectId);
-        }
-      }
+      if (!v.keyword) continue;
+      const label = descriptionMap.get(v.value_id.toString()) ?? v.keyword;
+      const id = await ensureMetaobject(admin, type, v.keyword, label);
+      if (id) mmm.push(id);
     }
-    productMetafieldsmetObjects.push({
-      key: existOptionMetafields[0].type,
-      namespace: "custom",
-      type: "list.metaobject_reference",
-      value: JSON.stringify(mmm),
-    });
+
+    if (mmm.length > 0) {
+      productMetafieldsmetObjects.push({
+        key: type,
+        namespace: "custom",
+        type: "list.metaobject_reference",
+        value: JSON.stringify(mmm),
+      });
+    }
   }
   return productMetafieldsmetObjects;
 };
