@@ -92,6 +92,9 @@ export const buildProductOptions = async (
         first: 250,
         type: existOptionMetafields[0].type,
       });
+      const rawType = existOptionMetafields[0].type || "";
+      const metafieldKey = rawType.startsWith("custom.") ? rawType.slice("custom.".length) : rawType;
+
       if (optionName?.name === "Колір") {
         const values = [];
         for (const ov of optionValues) {
@@ -108,7 +111,7 @@ export const buildProductOptions = async (
           const input: OptionSetInput = {
             name: optionName?.name,
             linkedMetafield: {
-              key: existOptionMetafields[0].type || "",
+              key: metafieldKey,
               namespace: "custom",
               values: values,
             },
@@ -133,7 +136,7 @@ export const buildProductOptions = async (
           const input: OptionSetInput = {
             name: optionName?.name,
             linkedMetafield: {
-              key: existOptionMetafields[0].type || "",
+              key: metafieldKey,
               namespace: "custom",
               values: values,
             },
