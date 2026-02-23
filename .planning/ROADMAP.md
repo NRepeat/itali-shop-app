@@ -17,7 +17,9 @@ Standardize the synchronization flow between Shopify and the internal system to 
 **Success Criteria**:
   1. All incoming Shopify webhooks are pushed to BullMQ queues without processing in the request handler.
   2. A shared "Sync Service" interface exists and is ready for entity-specific implementations.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 01-sync-foundation-architecture-01-PLAN.md — Implement BaseSyncer Abstract Class and Centralized Sync Audit Log
+- [ ] 01-sync-foundation-architecture-02-PLAN.md — Configure BullMQ Queues and Webhook-to-Worker Integration
 
 ### Phase 2: Product & Handle Reconciliation
 **Goal**: Implement robust product updates and handle sanitization.
@@ -44,6 +46,6 @@ Standardize the synchronization flow between Shopify and the internal system to 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1: Foundation | 0/1 | Not started | - |
+| 1: Foundation | 0/2 | Not started | - |
 | 2: Products | 0/1 | Not started | - |
 | 3: Orders/Cust | 0/1 | Not started | - |
