@@ -24,8 +24,9 @@ const slugifyHandle = (name: string): string =>
     .replace(/^-|-$/g, "");
 
 /**
- * Looks up a metaobject by handle+type in the local DB.
- * If not found, creates it in Shopify and persists it locally.
+ * Looks up a metaobject by handle+type in Shopify (authoritative).
+ * If found in Shopify, upserts local DB as a write-through cache and returns the GID.
+ * If not found in Shopify, creates it and persists to local DB.
  * Returns the Shopify GID, or null on failure.
  */
 const ensureMetaobject = async (
@@ -35,9 +36,6 @@ const ensureMetaobject = async (
   label: string,
 ): Promise<string | null> => {
   if (!handle) return null;
-
-  const existing = await prisma.metaobject.findFirst({ where: { handle, type } });
-  if (existing) return existing.metaobjectId;
 
   const fromShopify = await getMetaobjectByHandle(admin, handle, type);
   if (fromShopify) {
