@@ -123,6 +123,129 @@ const GET_TRANSLATABLE_METAFIELD_QUERY = `
   }
 `;
 
+const GET_PRODUCT_VARIANTS_QUERY = `
+  #graphql
+  query getProductVariants($id: ID!) {
+    product(id: $id) {
+      variants(first: 100) {
+        nodes {
+          id
+          inventoryItem { id }
+          selectedOptions { name value }
+        }
+      }
+    }
+  }
+`;
+
+const PRODUCT_VARIANTS_BULK_UPDATE_MUTATION = `
+  #graphql
+  mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+    productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+      productVariants {
+        id
+        inventoryItem { id }
+      }
+      userErrors { field message }
+    }
+  }
+`;
+
+const INVENTORY_SET_QUANTITIES_MUTATION = `
+  #graphql
+  mutation inventorySetQuantities($input: InventorySetQuantitiesInput!) {
+    inventorySetQuantities(input: $input) {
+      inventoryAdjustmentGroup {
+        reason
+        changes { name delta }
+      }
+      userErrors { field message }
+    }
+  }
+`;
+
+const LOCATION_ID = "gid://shopify/Location/78249492642";
+
+async function updateVariantsAndInventory(
+  admin: { graphql: (query: string, opts?: { variables: any }) => Promise<{ data: any }> },
+  productId: string,
+  newVariants: any[],
+): Promise<void> {
+  const { data } = await admin.graphql(GET_PRODUCT_VARIANTS_QUERY, { variables: { id: productId } });
+  const existingVariants: Array<{ id: string; inventoryItem: { id: string }; selectedOptions: Array<{ name: string; value: string }> }> =
+    data?.product?.variants?.nodes ?? [];
+
+  if (existingVariants.length === 0) {
+    console.log(`[VariantUpdate] No existing variants for ${productId}, skipping`);
+    return;
+  }
+
+  const matchKey = (optValues: Array<{ name: string }>) =>
+    optValues.map((o) => o.name).sort().join("|");
+  const existingKey = (selOpts: Array<{ name: string; value: string }>) =>
+    selOpts.map((o) => o.value).sort().join("|");
+
+  const existingMap = new Map(existingVariants.map((v) => [existingKey(v.selectedOptions), v]));
+
+  const variantUpdates: Array<{ id: string; price: string; sku?: string; inventoryPolicy: string; metafields?: any[] }> = [];
+  const inventoryItemIds: string[] = [];
+
+  for (const nv of newVariants) {
+    const key = matchKey((nv.optionValues as Array<{ name: string }>) ?? []);
+    const existing = existingMap.get(key);
+    if (!existing) {
+      console.log(`[VariantUpdate] No match for variant key "${key}", skipping`);
+      continue;
+    }
+    variantUpdates.push({
+      id: existing.id,
+      price: nv.price as string,
+      sku: nv.sku as string | undefined,
+      inventoryPolicy: nv.inventoryPolicy as string,
+      metafields: nv.metafields as any[] | undefined,
+    });
+    inventoryItemIds.push(existing.inventoryItem.id);
+  }
+
+  if (variantUpdates.length === 0) {
+    console.log(`[VariantUpdate] No matched variants to update for ${productId}`);
+    return;
+  }
+
+  const updateRes = await admin.graphql(PRODUCT_VARIANTS_BULK_UPDATE_MUTATION, {
+    variables: { productId, variants: variantUpdates },
+  });
+  const updateErrors = updateRes.data?.productVariantsBulkUpdate?.userErrors ?? [];
+  if (updateErrors.length > 0) {
+    console.error(`[VariantUpdate] Errors:`, JSON.stringify(updateErrors));
+  } else {
+    console.log(`[VariantUpdate] Updated ${variantUpdates.length} variants for ${productId}`);
+  }
+
+  const quantity = (newVariants[0]?.inventoryQuantities as Array<{ quantity: number }> | undefined)?.[0]?.quantity ?? 1;
+  const inventoryQuantities = inventoryItemIds.map((inventoryItemId) => ({
+    inventoryItemId,
+    locationId: LOCATION_ID,
+    quantity,
+  }));
+
+  const invRes = await admin.graphql(INVENTORY_SET_QUANTITIES_MUTATION, {
+    variables: {
+      input: {
+        name: "available",
+        reason: "correction",
+        quantities: inventoryQuantities,
+      },
+    },
+  });
+  const invErrors = invRes.data?.inventorySetQuantities?.userErrors ?? [];
+  if (invErrors.length > 0) {
+    console.error(`[InventoryUpdate] Errors:`, JSON.stringify(invErrors));
+  } else {
+    console.log(`[InventoryUpdate] Set inventory for ${inventoryItemIds.length} items`);
+  }
+}
+
 export const processSyncTask = async (job: Job) => {
   const { product, domain, shop, accessToken, forceProductSet } = job.data as {
     product: Product;
@@ -315,6 +438,9 @@ export const processSyncTask = async (job: Job) => {
       );
       const result = await updateShopifyProduct(domain, { product: updateInput });
       shopifYproduct = result?.product ?? null;
+      if (shopifYproduct) {
+        await updateVariantsAndInventory(admin as any, existingProductId, variants);
+      }
     } else {
       // CREATE path — also used for force-reset (passes existingProductId so productSet updates rather than duplicating)
       if (forceProductSet && existingProductId) {
