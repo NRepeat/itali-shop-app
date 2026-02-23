@@ -85,6 +85,7 @@ export const buildProductOptions = async (
         query: optionName?.name,
       });
       if (!existOptionMetafields || !existOptionMetafields[0]) {
+        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" (option_id: ${optionId})`);
         continue;
       }
 

@@ -7,9 +7,10 @@ import {
   buildFiles,
   buildMetafields,
 } from "./shopify-product-builder";
-import { buildProductInput, buildHandle } from "./build-product-input";
+import { buildProductInput, buildProductUpdateInput, buildHandle } from "./build-product-input";
 import { linkProducts } from "./link-products";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
+import { updateShopifyProduct } from "@/service/shopify/products/api/update-shopify-product";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import {
   CreateBasicAutomaticDiscountMutationVariables,
@@ -291,39 +292,52 @@ export const processSyncTask = async (job: Job) => {
 
     // --- End Discount Creation Logic ---
     const discountPercentage = product.extra_special?.split("|")[0];
-    const input = buildProductInput(
-      ukrainianDescription,
-      sProductOptions,
-      variants,
-      files,
-      vendor,
-      tags,
-      productMetafieldsmetObjects,
-      shopifyCategoryGid,
-      discountPercentage,
-      product.sort_order,
-      productType,
-      existingProductId,
-      colorSlugForHandle,
-      hasRelatedArticles,
-      product.model,
-    );
-    console.log(JSON.stringify(input));
-    const productInput: CreateProductAsynchronousMutationVariables = {
-      synchronous: true,
-      productSet: input,
-    };
+
+    let shopifYproduct: { id: string } | null | undefined;
 
     if (existingProductId) {
       console.log(`[Update] Updating existing product ${existingProductId}`);
+      const updateInput = buildProductUpdateInput(
+        existingProductId,
+        ukrainianDescription,
+        vendor,
+        tags,
+        productMetafieldsmetObjects,
+        shopifyCategoryGid,
+        discountPercentage,
+        product.sort_order,
+        productType,
+        colorSlugForHandle,
+        hasRelatedArticles,
+        product.model,
+      );
+      const result = await updateShopifyProduct(domain, { product: updateInput });
+      shopifYproduct = result?.product ?? null;
     } else {
       console.log(`[Create] Creating new product for ${product.product_id}`);
+      const input = buildProductInput(
+        ukrainianDescription,
+        sProductOptions,
+        variants,
+        files,
+        vendor,
+        tags,
+        productMetafieldsmetObjects,
+        shopifyCategoryGid,
+        discountPercentage,
+        product.sort_order,
+        productType,
+        undefined,
+        colorSlugForHandle,
+        hasRelatedArticles,
+        product.model,
+      );
+      const productInput: CreateProductAsynchronousMutationVariables = {
+        synchronous: true,
+        productSet: input,
+      };
+      shopifYproduct = await createProductAsynchronous(domain, productInput);
     }
-
-    const shopifYproduct = await createProductAsynchronous(
-      domain,
-      productInput,
-    );
 
     if (shopifYproduct) {
       await prisma.productMap.upsert({
@@ -341,7 +355,7 @@ export const processSyncTask = async (job: Job) => {
     }
 
     if (!shopifYproduct) {
-      throw new Error('Failed to create product');
+      throw new Error('Failed to create/update product');
     }
 
     // --- Russian translations ---

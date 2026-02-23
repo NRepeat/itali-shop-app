@@ -1,5 +1,6 @@
 import {
   ProductSetInput,
+  ProductUpdateInput,
   ProductStatus,
   InputMaybe,
   OptionSetInput,
@@ -92,8 +93,8 @@ export const buildProductInput = (
     handle,
     status: "ACTIVE" as InputMaybe<ProductStatus>,
     category: category,
-    productOptions: sProductOptions,
-    variants: variants,
+    ...(sProductOptions && sProductOptions.length > 0 && { productOptions: sProductOptions }),
+    ...(variants && variants.length > 0 && { variants }),
     files: files,
     productType: productType || undefined,
     vendor: vendor?.name,
@@ -125,4 +126,65 @@ export const buildProductInput = (
     },
   };
   return input;
+};
+
+export const buildProductUpdateInput = (
+  existingProductId: string,
+  ukrainianDescription: any,
+  vendor: { name: string } | null,
+  tags: string[],
+  productMetafieldsmetObjects: MetafieldInput[],
+  category: string,
+  discountPercentage: string | undefined,
+  sortOrder: number,
+  productType?: string,
+  colorSlug?: string | null,
+  hasRelatedArticles?: boolean,
+  model?: string,
+): ProductUpdateInput => {
+  const cleanedDescription = decodeHtmlEntities(ukrainianDescription.description);
+  const discount = discountPercentage ? Number(discountPercentage) : 0;
+  const handle = buildHandle(
+    ukrainianDescription.seo_keyword,
+    vendor?.name,
+    model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "",
+    colorSlug,
+    hasRelatedArticles ?? false,
+  );
+  return {
+    id: existingProductId,
+    title: ukrainianDescription.name,
+    descriptionHtml: cleanedDescription,
+    handle,
+    status: "ACTIVE" as InputMaybe<ProductStatus>,
+    category: category,
+    productType: productType || undefined,
+    vendor: vendor?.name,
+    tags: tags,
+    metafields: [
+      {
+        key: "meta-keyword",
+        value: dedupeKeywords(ukrainianDescription.meta_keyword || ""),
+        namespace: "custom",
+        type: "single_line_text_field",
+      },
+      {
+        key: "znizka",
+        value: discount.toString(),
+        namespace: "custom",
+        type: "number_integer",
+      },
+      {
+        key: "sort_order",
+        value: sortOrder.toString(),
+        namespace: "custom",
+        type: "number_integer",
+      },
+      ...productMetafieldsmetObjects,
+    ],
+    seo: {
+      description: decodeHtmlEntities(ukrainianDescription.meta_description),
+      title: ukrainianDescription.meta_title,
+    },
+  };
 };

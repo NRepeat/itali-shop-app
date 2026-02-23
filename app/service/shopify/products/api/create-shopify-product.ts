@@ -52,6 +52,11 @@ export const createProductAsynchronous = async (
       shopDomain: domain,
     });
     console.log("res",JSON.stringify(res));
+    const userErrors = res.productSet?.userErrors ?? [];
+    if (userErrors.length > 0) {
+      console.error(`[productSet] userErrors:`, JSON.stringify(userErrors));
+      return null;
+    }
     return res.productSet?.product;
   } catch (error) {
     console.error(error);

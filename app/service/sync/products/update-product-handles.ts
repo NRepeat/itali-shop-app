@@ -180,7 +180,7 @@ export async function updateProductHandles(
   let errors = 0;
 
   const products = await externalDB.bc_product.findMany({
-    where: { status: true, quantity: { gt: 0 } },
+    where: { status: true },
     select: {
       product_id: true,
       model: true,
