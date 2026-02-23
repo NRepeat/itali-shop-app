@@ -67,9 +67,11 @@ function slugifyBrand(name: string): string {
  * e.g. "kedy-zhenskie-ash-movie" + brandSlug "ash" → "kedy-zhenskie-movie"
  */
 function removeBrandFromHandle(handle: string, brandSlug: string): string {
-  const parts = handle.split("-");
-  const filtered = parts.filter((p) => p.toLowerCase() !== brandSlug.toLowerCase());
-  return filtered.join("-");
+  const escaped = brandSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return handle
+    .replace(new RegExp(`(?:^|-)${escaped}(?=-|$)`, "g"), "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 /**

@@ -46,9 +46,8 @@ export function buildHandle(
   if (brandName) {
     const brandSlug = slugifyBrand(brandName);
     if (brandSlug) {
-      const parts = handle.split("-");
-      const filtered = parts.filter((p) => p.toLowerCase() !== brandSlug);
-      handle = filtered.join("-");
+      const escaped = brandSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      handle = handle.replace(new RegExp(`(?:^|-)${escaped}(?=-|$)`, "g"), "");
     }
   }
 
