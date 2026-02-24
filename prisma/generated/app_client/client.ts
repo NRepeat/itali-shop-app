@@ -107,3 +107,8 @@ export type PriceSubscription = Prisma.PriceSubscriptionModel
  * 
  */
 export type PriceHistory = Prisma.PriceHistoryModel
+/**
+ * Model SyncAuditLog
+ * 
+ */
+export type SyncAuditLog = Prisma.SyncAuditLogModel

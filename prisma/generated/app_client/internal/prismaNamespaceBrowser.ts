@@ -59,7 +59,8 @@ export const ModelName = {
   OrderMap: 'OrderMap',
   KeyCrmOrderMap: 'KeyCrmOrderMap',
   PriceSubscription: 'PriceSubscription',
-  PriceHistory: 'PriceHistory'
+  PriceHistory: 'PriceHistory',
+  SyncAuditLog: 'SyncAuditLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -222,12 +223,33 @@ export const PriceHistoryScalarFieldEnum = {
 export type PriceHistoryScalarFieldEnum = (typeof PriceHistoryScalarFieldEnum)[keyof typeof PriceHistoryScalarFieldEnum]
 
 
+export const SyncAuditLogScalarFieldEnum = {
+  id: 'id',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  status: 'status',
+  message: 'message',
+  error: 'error',
+  createdAt: 'createdAt'
+} as const
+
+export type SyncAuditLogScalarFieldEnum = (typeof SyncAuditLogScalarFieldEnum)[keyof typeof SyncAuditLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -244,4 +266,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

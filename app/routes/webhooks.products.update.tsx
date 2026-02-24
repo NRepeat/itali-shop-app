@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { getSyncQueue } from "~/service/sync/sync.registry";
-import { revalidateNextJs } from "~/service/revalidate/revalidate-nextjs";
+import { getSyncQueue } from "@/service/sync/sync.registry";
+import { revalidateNextJs } from "@/service/revalidate/revalidate-nextjs";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, topic, payload } = await authenticate.webhook(request);

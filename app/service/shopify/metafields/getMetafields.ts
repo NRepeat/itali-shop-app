@@ -6,26 +6,26 @@ export const getMetafields = async (
   admin: AdminApiContext,
   variables: MetafieldDefinitionsQueryVariables,
 ) => {
+  console.log(variables, "variables");
   try {
-    // MetaobjectDefinition rows are seeded by syncProductMetafields when definitions
-    // are created in Shopify. We query local DB only — no Shopify fallback.
-    //
-    // key-based lookup: try both "rozmir" and "custom.rozmir" since Shopify
-    // prefixes metaobject definition types with "custom." on creation.
-    const data = await prisma.metaobjectDefinition.findMany({
-      where: variables.key
-        ? {
-            OR: [
-              { type: variables.key },
-              { type: `custom.${variables.key}` },
-            ],
-          }
-        : {
-            name: { equals: variables.query, mode: "insensitive" },
-          },
-    });
-
-    return data || [];
+    const data = await admin.graphql(
+      `#graphql
+  query MetafieldDefinitions($ownerType: MetafieldOwnerType!, $first: Int, $query: String,$key:String) {
+    metafieldDefinitions(ownerType: $ownerType, first: $first,query:$query,key:$key ) {
+      nodes {
+        name
+        id
+        namespace
+        key
+        type {
+          name
+        }
+      }
+    }
+  }`,
+      { variables },
+    );
+    return data.data.metafieldDefinitions.nodes || [];
   } catch (e) {
     console.log(e);
     throw new Error("Meta not found");

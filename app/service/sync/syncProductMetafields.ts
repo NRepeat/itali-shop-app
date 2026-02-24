@@ -81,34 +81,43 @@ export const syncProductMetafields = async (admin: AdminApiContext) => {
           },
         };
 
-      shopifyDefinitionResult = await createMetaobjectDefinition(
-        metaobjectDefinitionPayload,
-        admin,
-      );
-
-      if (!shopifyDefinitionResult) {
-        console.error(
-          `Failed to create metafield definition for type: ${type}. Skipping metaobjects creation.`,
+      if (localDefinition) {
+        shopifyDefinitionResult = {
+          id: localDefinition.metaobjecDefinitionId,
+          name: localDefinition.name,
+          type: localDefinition.type,
+        };
+        console.log(`[Definition Exists] Using local definition for type: ${type}`);
+      } else {
+        shopifyDefinitionResult = await createMetaobjectDefinition(
+          metaobjectDefinitionPayload,
+          admin,
         );
-        continue;
+
+        if (!shopifyDefinitionResult) {
+          console.error(
+            `Failed to create metafield definition for type: ${type}. Skipping metaobjects creation.`,
+          );
+          continue;
+        }
+
+        console.log(
+          `[Definition Created] Successfully created definition: ${shopifyDefinitionResult.name}`,
+        );
+
+        localDefinition = await prisma.metaobjectDefinition.upsert({
+          where: { name: shopifyDefinitionResult.name },
+          update: {
+            metaobjecDefinitionId: shopifyDefinitionResult.id,
+            type: shopifyDefinitionResult.type,
+          },
+          create: {
+            metaobjecDefinitionId: shopifyDefinitionResult.id,
+            name: shopifyDefinitionResult.name,
+            type: shopifyDefinitionResult.type,
+          },
+        });
       }
-
-      console.log(
-        `[Definition Created] Successfully created definition: ${shopifyDefinitionResult.name}`,
-      );
-
-      localDefinition = await prisma.metaobjectDefinition.upsert({
-        where: { name: shopifyDefinitionResult.name },
-        update: {
-          metaobjecDefinitionId: shopifyDefinitionResult.id,
-          type: shopifyDefinitionResult.type,
-        },
-        create: {
-          metaobjecDefinitionId: shopifyDefinitionResult.id,
-          name: shopifyDefinitionResult.name,
-          type: shopifyDefinitionResult.type,
-        },
-      });
 
       const filterOptions = await getocFilterOptionValues(
         metafield[1].filter_id,

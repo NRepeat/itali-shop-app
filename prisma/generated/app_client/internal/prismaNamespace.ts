@@ -400,7 +400,8 @@ export const ModelName = {
   OrderMap: 'OrderMap',
   KeyCrmOrderMap: 'KeyCrmOrderMap',
   PriceSubscription: 'PriceSubscription',
-  PriceHistory: 'PriceHistory'
+  PriceHistory: 'PriceHistory',
+  SyncAuditLog: 'SyncAuditLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap" | "keyCrmOrderMap" | "priceSubscription" | "priceHistory"
+    modelProps: "session" | "metafieldDefinition" | "metaobjectDefinition" | "collection" | "metaobject" | "productMap" | "customerMap" | "orderMap" | "keyCrmOrderMap" | "priceSubscription" | "priceHistory" | "syncAuditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1234,6 +1235,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SyncAuditLog: {
+      payload: Prisma.$SyncAuditLogPayload<ExtArgs>
+      fields: Prisma.SyncAuditLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SyncAuditLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SyncAuditLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>
+        }
+        findFirst: {
+          args: Prisma.SyncAuditLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SyncAuditLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>
+        }
+        findMany: {
+          args: Prisma.SyncAuditLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>[]
+        }
+        create: {
+          args: Prisma.SyncAuditLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>
+        }
+        createMany: {
+          args: Prisma.SyncAuditLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SyncAuditLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>[]
+        }
+        delete: {
+          args: Prisma.SyncAuditLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>
+        }
+        update: {
+          args: Prisma.SyncAuditLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.SyncAuditLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SyncAuditLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SyncAuditLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.SyncAuditLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncAuditLogPayload>
+        }
+        aggregate: {
+          args: Prisma.SyncAuditLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSyncAuditLog>
+        }
+        groupBy: {
+          args: Prisma.SyncAuditLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SyncAuditLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SyncAuditLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SyncAuditLogCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1417,12 +1492,33 @@ export const PriceHistoryScalarFieldEnum = {
 export type PriceHistoryScalarFieldEnum = (typeof PriceHistoryScalarFieldEnum)[keyof typeof PriceHistoryScalarFieldEnum]
 
 
+export const SyncAuditLogScalarFieldEnum = {
+  id: 'id',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  status: 'status',
+  message: 'message',
+  error: 'error',
+  createdAt: 'createdAt'
+} as const
+
+export type SyncAuditLogScalarFieldEnum = (typeof SyncAuditLogScalarFieldEnum)[keyof typeof SyncAuditLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1439,6 +1535,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -1535,6 +1640,20 @@ export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'Decimal[]'
  */
 export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1649,6 +1768,7 @@ export type GlobalOmitConfig = {
   keyCrmOrderMap?: Prisma.KeyCrmOrderMapOmit
   priceSubscription?: Prisma.PriceSubscriptionOmit
   priceHistory?: Prisma.PriceHistoryOmit
+  syncAuditLog?: Prisma.SyncAuditLogOmit
 }
 
 /* Types for Logging */

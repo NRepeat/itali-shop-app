@@ -60,7 +60,7 @@ export const syncProducts = async (
     });
     log(`Found ${allProducts.length} products in external DB`);
 
-    const productsToCreate = limit ? allProducts : allProducts;
+    const productsToCreate = limit ? allProducts.slice(0, limit) : allProducts;
     log(
       `Creating ${productsToCreate.length} products${limit ? ` (limited to ${limit})` : ""}`,
     );
