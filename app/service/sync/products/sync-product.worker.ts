@@ -436,11 +436,11 @@ export const processSyncTask = async (job: Job) => {
         hasRelatedArticles,
         product.model,
       );
-      const result = await updateShopifyProduct(domain, { product: updateInput });
-      shopifYproduct = result?.product ?? null;
-      if (shopifYproduct) {
-        await updateVariantsAndInventory(admin as any, existingProductId, variants);
-      }
+      // const result = await updateShopifyProduct(domain, { product: updateInput });
+      // shopifYproduct = result?.product ?? null;
+      // if (shopifYproduct) {
+      //   await updateVariantsAndInventory(admin as any, existingProductId, variants);
+      // }
     } else {
       // CREATE path — also used for force-reset (passes existingProductId so productSet updates rather than duplicating)
       if (forceProductSet && existingProductId) {
