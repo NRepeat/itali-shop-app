@@ -125,6 +125,11 @@ export const buildProductOptions = async (
             name: optionName?.name,
             linkedMetafield: { key: metafieldKey, namespace: "custom", values },
           });
+        } else if (relevantOptionValues.length > 0) {
+          sProductOptions.push({
+            name: optionName?.name,
+            values: relevantOptionValues.map((ov) => ({ name: ov.name })),
+          });
         }
       } else {
         const values: string[] = [];
@@ -137,6 +142,11 @@ export const buildProductOptions = async (
           sProductOptions.push({
             name: optionName?.name,
             linkedMetafield: { key: metafieldKey, namespace: "custom", values },
+          });
+        } else if (relevantOptionValues.length > 0) {
+          sProductOptions.push({
+            name: optionName?.name,
+            values: relevantOptionValues.map((ov) => ({ name: ov.name })),
           });
         }
       }
