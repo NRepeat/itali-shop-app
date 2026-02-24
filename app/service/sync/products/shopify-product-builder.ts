@@ -1,6 +1,4 @@
 import { getMetafields } from "@/service/shopify/metafields/getMetafields";
-import { createMetaobject } from "@/service/shopify/metaobjects/createMetaobject";
-import { getMetaobjectByHandle } from "@/service/shopify/metaobjects/getMetaobjectByHandle";
 import {
   InputMaybe,
   OptionSetInput,
@@ -10,73 +8,18 @@ import {
   FileSetInput,
   FileContentType,
   MetafieldInput,
-  MetaobjectStatus,
 } from "@/types";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 
-const slugifyHandle = (name: string): string =>
-  name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-
 /**
- * Looks up a metaobject by handle+type in Shopify (authoritative).
- * If found in Shopify, upserts local DB as a write-through cache and returns the GID.
- * If not found in Shopify, creates it and persists to local DB.
- * Returns the Shopify GID, or null on failure.
+ * Looks up a metaobject GID from local DB only.
+ * Returns the GID if found, null otherwise (no creation, no Shopify API call).
  */
-const ensureMetaobject = async (
-  admin: AdminApiContext,
-  type: string,
-  handle: string,
-  label: string,
-): Promise<string | null> => {
+const lookupMetaobject = async (handle: string): Promise<string | null> => {
   if (!handle) return null;
-
-  const fromShopify = await getMetaobjectByHandle(admin, handle, type);
-  if (fromShopify) {
-    // Backfill local DB so future calls hit the fast path
-    await prisma.metaobject.upsert({
-      where: { handle },
-      update: { metaobjectId: fromShopify.id, type: fromShopify.type },
-      create: { handle, metaobjectId: fromShopify.id, type: fromShopify.type },
-    });
-    console.log(`[ensureMetaobject] Backfilled from Shopify handle="${handle}" type="${type}" id="${fromShopify.id}"`);
-    return fromShopify.id;
-  }
-
-  const created = await createMetaobject(
-    {
-      metaobject: {
-        type,
-        handle,
-        capabilities: { publishable: { status: "ACTIVE" as MetaobjectStatus } },
-        fields: [
-          { key: "slug", value: handle },
-          { key: "label", value: label },
-        ],
-      },
-    },
-    admin,
-  );
-
-  if (!created) {
-    console.warn(`[ensureMetaobject] Failed to create metaobject handle="${handle}" type="${type}"`);
-    return null;
-  }
-
-  await prisma.metaobject.upsert({
-    where: { handle },
-    update: { metaobjectId: created.id, type: created.type },
-    create: { handle, metaobjectId: created.id, type: created.type },
-  });
-
-  console.log(`[ensureMetaobject] Created metaobject handle="${handle}" type="${type}" id="${created.id}"`);
-  return created.id;
+  const local = await prisma.metaobject.findUnique({ where: { handle } });
+  return local?.metaobjectId ?? null;
 };
 
 // Helper function to generate Cartesian product of arrays
@@ -131,23 +74,14 @@ export const buildProductOptions = async (
     "М'ятний": "m-jatnij",
     Пітон: "piton",
   };
-  if(!productOptions || productOptions.length === 0){
-    const input: OptionSetInput = {
-      name: "Title",
-      values:[{name: "Default Title"}]
-      // linkedMetafield: {
-      //   key: existOptionMetafields[0].type || "",
-      //   namespace: "custom",
-      //   values: values,
-      // },
-    };
-      sProductOptions.push(input);
-  }else if(productOptions.length>0 ){
+
+  if (!productOptions || productOptions.length === 0) {
+    sProductOptions.push({ name: "Title", values: [{ name: "Default Title" }] });
+  } else {
     for (const option of productOptions) {
       const optionId = option.option_id;
       const optionName = optionDescriptions.find((o) => o.option_id === optionId);
 
-      // Get the option values that belong specifically to this option
       const relevantOptionValueIds = productOptionValue
         .filter((pov) => pov.option_id === optionId)
         .map((pov) => pov.option_value_id);
@@ -160,9 +94,9 @@ export const buildProductOptions = async (
         first: 1,
         query: optionName?.name,
       });
+
       if (!existOptionMetafields || !existOptionMetafields[0]) {
-        // No metafield definition — fall back to plain string values so the option is not dropped
-        console.warn(`[buildProductOptions] No metaobjectDefinition found for option "${optionName?.name}" — falling back to plain string values`);
+        console.warn(`[buildProductOptions] No metafield definition for option "${optionName?.name}" — falling back to plain string values`);
         if (relevantOptionValues.length > 0) {
           sProductOptions.push({
             name: optionName?.name,
@@ -183,7 +117,7 @@ export const buildProductOptions = async (
             console.warn(`[buildProductOptions] Color "${ov.name}" not in colorMapping, skipping`);
             continue;
           }
-          const id = await ensureMetaobject(admin, rawType, colorHandle, ov.name);
+          const id = await lookupMetaobject(colorHandle);
           if (id) values.push(id);
         }
         if (values.length > 0) {
@@ -196,7 +130,7 @@ export const buildProductOptions = async (
         const values: string[] = [];
         for (const ov of relevantOptionValues) {
           const handle = ov.name.toLowerCase().replace(",", "-");
-          const id = await ensureMetaobject(admin, rawType, handle, ov.name);
+          const id = await lookupMetaobject(handle);
           if (id) values.push(id);
         }
         if (values.length > 0) {
@@ -246,11 +180,10 @@ export const buildProductVariants = async (
     Пітон: "piton",
   };
 
-  // 1. Group productOptionValue by option_id
   const optionsMap = new Map<number, any[]>();
 
   if (productOptionValue.length === 0) {
-    const input: ProductVariantSetInput = {
+    variants.push({
       price: product.price.toString(),
       inventoryPolicy: "DENY" as ProductVariantInventoryPolicy,
       inventoryQuantities: [
@@ -261,54 +194,28 @@ export const buildProductVariants = async (
         },
       ],
       sku: product.model,
-      inventoryItem: {
-        tracked: true,
-        requiresShipping: true,
-        cost: product.price.toString(),
-      },
-      optionValues: [{name: "Default Title", optionName: "Title"}],
-      metafields: [
-        {
-          namespace: "custom",
-          key: "at_the_fitting",
-          type: "boolean",
-          value: "false",
-        },
-      ],
-    };
-    variants.push(input);
-  }else if(productOptionValue.length >= 1){
-    console.log(productOptionValue.length,"productOptionValue--------");
-
+      inventoryItem: { tracked: true, requiresShipping: true, cost: product.price.toString() },
+      optionValues: [{ name: "Default Title", optionName: "Title" }],
+      metafields: [{ namespace: "custom", key: "at_the_fitting", type: "boolean", value: "false" }],
+    });
+  } else {
     productOptionValue.forEach((pov) => {
-      if (!optionsMap.has(pov.option_id)) {
-        optionsMap.set(pov.option_id, []);
-      }
+      if (!optionsMap.has(pov.option_id)) optionsMap.set(pov.option_id, []);
       optionsMap.get(pov.option_id)!.push(pov);
     });
 
     const optionValueGroups = Array.from(optionsMap.values());
-    console.log(JSON.stringify(optionValueGroups),'-----');
-    if (optionValueGroups.length === 0) {
-      return [];
-    }
+    if (optionValueGroups.length === 0) return [];
 
-    // 2. Generate combinations
     const combinations = cartesian(...optionValueGroups);
 
     for (const combo of combinations) {
       const optionValuesForVariant = [];
       let variantQuantity = Infinity;
-      const skuParts: string[] = [product.model];
 
       for (const pov of combo) {
-        const optionValueDesc = optionValues.find(
-          (ovd) => ovd.option_value_id === pov.option_value_id,
-        );
-        const optionDesc = optionDescriptions.find(
-          (od) => od.option_id === pov.option_id,
-        );
-
+        const optionValueDesc = optionValues.find((ovd) => ovd.option_value_id === pov.option_value_id);
+        const optionDesc = optionDescriptions.find((od) => od.option_id === pov.option_id);
         if (!optionDesc || !optionValueDesc) continue;
 
         const existOptionMetafields = await getMetafields(admin, {
@@ -318,13 +225,8 @@ export const buildProductVariants = async (
         });
 
         if (!existOptionMetafields[0]) {
-          // No metaobjectDefinition — fall back to plain name value so the variant is not dropped
           console.warn(`[buildProductVariants] No metafield definition for option "${optionDesc.name}" — using plain value`);
-          optionValuesForVariant.push({
-            optionName: optionDesc.name,
-            name: optionValueDesc.name,
-          });
-          skuParts.push(optionValueDesc.name);
+          optionValuesForVariant.push({ optionName: optionDesc.name, name: optionValueDesc.name });
           variantQuantity = Math.min(variantQuantity, pov.quantity);
           continue;
         }
@@ -335,42 +237,29 @@ export const buildProductVariants = async (
         if (optionDesc.name === "Колір") {
           const colorHandle = colorMapping[optionValueDesc.name];
           if (colorHandle) {
-            metaobjectId = await ensureMetaobject(admin, type, colorHandle, optionValueDesc.name);
+            metaobjectId = await lookupMetaobject(colorHandle);
           } else {
             console.warn(`[buildProductVariants] Color "${optionValueDesc.name}" not in colorMapping, skipping linked value`);
           }
         } else {
           const handle = optionValueDesc.name.toLowerCase().replace(",", "-");
-          metaobjectId = await ensureMetaobject(admin, type, handle, optionValueDesc.name);
+          metaobjectId = await lookupMetaobject(handle);
         }
 
         if (!metaobjectId) {
-          // ensureMetaobject failed — fall back to plain name value so the variant is not dropped
-          console.warn(`[buildProductVariants] ensureMetaobject failed for "${optionValueDesc.name}" (option "${optionDesc.name}") — using plain value`);
-          optionValuesForVariant.push({
-            optionName: optionDesc.name,
-            name: optionValueDesc.name,
-          });
-          skuParts.push(optionValueDesc.name);
+          console.warn(`[buildProductVariants] Metaobject not found for "${optionValueDesc.name}" (option "${optionDesc.name}") — using plain value`);
+          optionValuesForVariant.push({ optionName: optionDesc.name, name: optionValueDesc.name });
           variantQuantity = Math.min(variantQuantity, pov.quantity);
           continue;
         }
 
-        optionValuesForVariant.push({
-          optionName: optionDesc.name,
-          linkedMetafieldValue: metaobjectId,
-        });
-
-        skuParts.push(optionValueDesc.name);
+        optionValuesForVariant.push({ optionName: optionDesc.name, linkedMetafieldValue: metaobjectId });
         variantQuantity = Math.min(variantQuantity, pov.quantity);
       }
 
-      // Ensure the variant is complete before adding
-      if (optionValuesForVariant.length !== optionsMap.size) {
-          continue;
-      }
+      if (optionValuesForVariant.length !== optionsMap.size) continue;
 
-      const input: ProductVariantSetInput = {
+      variants.push({
         price: product.price.toString(),
         inventoryPolicy: "DENY" as ProductVariantInventoryPolicy,
         inventoryQuantities: [
@@ -381,24 +270,18 @@ export const buildProductVariants = async (
           },
         ],
         sku: product.model,
-        inventoryItem: {
-          tracked: true,
-          requiresShipping: true,
-          cost: product.price.toString(),
-        },
+        inventoryItem: { tracked: true, requiresShipping: true, cost: product.price.toString() },
         optionValues: optionValuesForVariant,
         metafields: [
           {
             namespace: "custom",
             key: "at_the_fitting",
             type: "boolean",
-            value: combo.some(pov => pov.reserved) ? "true" : "false",
+            value: combo.some((pov) => pov.reserved) ? "true" : "false",
           },
         ],
-      };
-      variants.push(input);
+      });
     }
-
   }
 
   return variants;
@@ -419,27 +302,17 @@ export const buildTags = async (
         where: { category_id: category.parent_id },
       });
       if (parrent) {
-        const parrentDescription =
-          await externalDB.bc_category_description.findFirst({
-            where: {
-              language_id: 3,
-              category_id: parrent.category_id,
-            },
-          });
+        const parrentDescription = await externalDB.bc_category_description.findFirst({
+          where: { language_id: 3, category_id: parrent.category_id },
+        });
         const tag = parrentDescription?.name;
-        if (tag) {
-          tags.push(tag);
-        }
+        if (tag) tags.push(tag);
       }
     }
   }
 
-  if (product.new && product.new === 1) {
-    tags.push("new");
-  }
-  if (product.rasprodaja && product.rasprodaja === 1) {
-    tags.push("sale");
-  }
+  if (product.new && product.new === 1) tags.push("new");
+  if (product.rasprodaja && product.rasprodaja === 1) tags.push("sale");
   if (ukrainianDescription && ukrainianDescription.tag) {
     tags.push(...ukrainianDescription.tag.split(", "));
   }
@@ -455,8 +328,6 @@ export const buildFiles = (
   return [product, ...productImages]
     .filter((f) => f && f.image)
     .map((f) => {
-      // The image path might contain spaces or other characters that need encoding.
-      // We use encodeURI to handle this, which will correctly encode spaces as %20 etc.
       const encodedImagePath = encodeURI(f.image);
       return {
         originalSource: "https://italishoes.com.ua/image/" + encodedImagePath,
@@ -473,53 +344,40 @@ export const buildMetafields = async (
 ) => {
   const mapFiltersByOption = (filterValue, bc_ocfilter_option) => {
     const optionsMap = bc_ocfilter_option.reduce((acc, option) => {
-      acc[option.option_id] = {
-        ...option,
-        values: [],
-      };
+      acc[option.option_id] = { ...option, values: [] };
       return acc;
     }, {});
-
     filterValue.forEach((value) => {
-      const optionId = value.option_id;
-
-      if (optionsMap[optionId]) {
-        optionsMap[optionId].values.push(value);
-      }
+      if (optionsMap[value.option_id]) optionsMap[value.option_id].values.push(value);
     });
-
     return optionsMap;
   };
+
   const mappedFilters = mapFiltersByOption(filterValue, bc_ocfilter_option);
 
-  // Pre-fetch Ukrainian labels for all filter values in one query
   const allValueIds = filterValue.map((v) => v.value_id);
   const descriptions = await externalDB.bc_ocfilter_option_value_description.findMany({
     where: { value_id: { in: allValueIds }, language_id: 3 },
   });
   const descriptionMap = new Map(descriptions.map((d) => [d.value_id.toString(), d.name]));
 
-  const keys = Object.keys(mappedFilters);
+  const productMetafieldsmetObjects: MetafieldInput[] = [];
 
-  let productMetafieldsmetObjects: MetafieldInput[] = [];
-  for (const key of keys) {
+  for (const key of Object.keys(mappedFilters)) {
     const existOptionMetafields = await getMetafields(admin, {
       ownerType: "PRODUCT" as MetafieldOwnerType.Product,
       first: 1,
       key: mappedFilters[key].keyword,
     });
 
-    if (!existOptionMetafields || !existOptionMetafields[0]) {
-      continue;
-    }
+    if (!existOptionMetafields || !existOptionMetafields[0]) continue;
 
     const type = existOptionMetafields[0].type;
     const mmm: string[] = [];
 
     for (const v of mappedFilters[key].values) {
       if (!v.keyword) continue;
-      const label = descriptionMap.get(v.value_id.toString()) ?? v.keyword;
-      const id = await ensureMetaobject(admin, type, v.keyword, label);
+      const id = await lookupMetaobject(v.keyword);
       if (id) mmm.push(id);
     }
 
@@ -532,5 +390,6 @@ export const buildMetafields = async (
       });
     }
   }
+
   return productMetafieldsmetObjects;
 };
