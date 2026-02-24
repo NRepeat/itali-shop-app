@@ -18,6 +18,10 @@ export const syncProducts = async (
         status: true,
         quantity: { gt: 0 },
       },
+      skip:10,
+      orderBy: {
+        product_id: "desc",
+      },
       select: {
         product_id: true,
         model: true,
