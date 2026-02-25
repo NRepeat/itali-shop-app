@@ -14,6 +14,7 @@ import {
 import { syncProducts } from "@/service/sync/products/syncProducts";
 import { updateExistingProductLinks } from "@/service/sync/products/update-existing-product-links";
 import { updateProductHandles } from "@/service/sync/products/update-product-handles";
+import { updateProductTitles } from "@/service/sync/products/update-product-titles";
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
@@ -99,6 +100,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         limit,
         offset,
         dryRun,
+      );
+      logs = result.logs;
+    } else if (body.action === "fix-titles") {
+      const limit = body.limit ? Number(body.limit) : undefined;
+      const offset = body.offset ? Number(body.offset) : 0;
+      const result = await updateProductTitles(
+        session.accessToken!,
+        session.shop,
+        limit,
+        offset,
       );
       logs = result.logs;
     } else if (body.action === "sync-customers") {
@@ -363,6 +374,8 @@ export default function Index() {
   const [updateLinksOffset, setUpdateLinksOffset] = useState("0");
   const [fixHandlesLimit, setFixHandlesLimit] = useState("100");
   const [fixHandlesOffset, setFixHandlesOffset] = useState("0");
+  const [fixTitlesLimit, setFixTitlesLimit] = useState("100");
+  const [fixTitlesOffset, setFixTitlesOffset] = useState("0");
   const [customerLimit, setCustomerLimit] = useState("5");
   const [orderLimit, setOrderLimit] = useState("5");
   const isLoading = fetcher.state !== "idle";
@@ -618,6 +631,30 @@ export default function Index() {
             {isLoading && fetcher.json?.action === "fix-handles" && !fetcher.json?.limit
               ? "Fixing all..."
               : `Fix ALL Handles`}
+          </s-button>
+        </div>
+      </s-section>
+
+      <s-section heading="Fix Product Titles (Remove Brand)">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Re-computes product titles by removing brand name and model SKU
+        </div>
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end", flexWrap: "wrap" as const }}>
+          <s-text-field label="Limit" type="number" value={fixTitlesLimit} min="1"
+            onInput={(e: any) => setFixTitlesLimit(e.target.value)}
+            help-text="Number of products to process" />
+          <s-text-field label="Offset" type="number" value={fixTitlesOffset} min="0"
+            onInput={(e: any) => setFixTitlesOffset(e.target.value)}
+            help-text="Skip first N products" />
+          <s-button variant="primary"
+            onClick={() => handleAction("fix-titles", fixTitlesLimit, fixTitlesOffset)}
+            disabled={isLoading || undefined}>
+            {isLoading && fetcher.json?.action === "fix-titles" && fetcher.json?.limit ? "Fixing..." : `Fix ${fixTitlesLimit} Titles`}
+          </s-button>
+          <s-button variant="primary" tone="critical"
+            onClick={() => handleAction("fix-titles")}
+            disabled={isLoading || undefined}>
+            {isLoading && fetcher.json?.action === "fix-titles" && !fetcher.json?.limit ? "Fixing all..." : "Fix ALL Titles"}
           </s-button>
         </div>
       </s-section>
