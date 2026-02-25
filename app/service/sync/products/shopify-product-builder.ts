@@ -118,7 +118,7 @@ export const buildProductOptions = async (
 
       const existOptionMetafields = await getMetafields(admin, {
         ownerType: "PRODUCT" as MetafieldOwnerType.Product,
-        first: 1, 
+        first: 1,
         query: optionName?.name,
       });
 
@@ -231,7 +231,7 @@ export const buildProductVariants = async (
         {
           name: "available",
           quantity: 1,
-          locationId: "gid://shopify/Location/78249492642",
+          locationId: process.env.SHOPIFY_LOCATION || "gid://shopify/Location/78249492642",
         },
       ],
       sku: product.model,
@@ -292,7 +292,7 @@ export const buildProductVariants = async (
           continue;
         }
 
-        const type = existOptionMetafields[0].key
+        const type = existOptionMetafields[0].key;
 
         let metaobjectId: string | null = null;
         if (optionDesc.name === "Колір") {
@@ -337,7 +337,7 @@ export const buildProductVariants = async (
           {
             name: "available",
             quantity: variantQuantity === Infinity ? 0 : variantQuantity,
-            locationId: "gid://shopify/Location/78249492642",
+            locationId: process.env.SHOPIFY_LOCATION || "gid://shopify/Location/78249492642",
           },
         ],
         sku: product.model,
@@ -442,7 +442,7 @@ export const buildMetafields = async (
     });
     if (!existOptionMetafields || !existOptionMetafields[0]) continue;
 
-    const type = existOptionMetafields[0].key
+    const type = existOptionMetafields[0].key;
     const mmm: string[] = [];
 
     for (const v of mappedFilters[key].values) {
