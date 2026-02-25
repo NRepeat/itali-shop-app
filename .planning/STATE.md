@@ -32,6 +32,7 @@
 - **Parallel Handle Updates**: updateProductHandlesParallel splits all products into N batches and runs concurrently via Promise.all; dashboard button "Fix ALL Handles (10 parallel)" (quick-9).
 - **Color Variant Stripping**: buildNewHandle strips all colorMapping values + variants (synij, bilyi, chornyi) before inserting canonical color, preventing synij+sinij duplicates (quick-10).
 - **Parallel Title Updates**: updateProductTitlesParallel splits all products into N batches and runs concurrently via Promise.all; dashboard button "Fix ALL Titles (10 parallel)" mirrors the handles parallel pattern (quick-11).
+- **Cyrillic EA7 and H'estia Aliases**: brandAliasMap extended with Cyrillic ЕА7 variants (U+0415 U+0410 7) for EA7 brands and three H'estia Venezia variants (no "di", straight + curly apostrophe) so cleanTitle strips brand noise from Cyrillic-script titles (quick-12).
 
 ### Todos & Blockers
 None.
@@ -50,7 +51,8 @@ None.
 | 9 | run fix-handles in 10 parallel batches | 2026-02-25 | a8d4210 | [9-run-fix-handles-in-10-parallel-batches](./quick/9-run-fix-handles-in-10-parallel-batches/) |
 | 10 | strip color slug variants from handle before canonical color insertion | 2026-02-25 | a4b15f4 | [10-strip-color-slug-variants-from-handle-be](./quick/10-strip-color-slug-variants-from-handle-be/) |
 | 11 | add parallel 10-batch fix product titles | 2026-02-25 | eeb72fe | [11-add-parallel-10-batch-fix-product-titles](./quick/11-add-parallel-10-batch-fix-product-titles/) |
+| 12 | fix cleanTitle — add Cyrillic EA7 and H'estia di Venezia aliases | 2026-02-25 | f69914b | [12-fix-cleantitle-add-cyrillic-ea7-aliases-](./quick/12-fix-cleantitle-add-cyrillic-ea7-aliases-/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Completed quick task 11: add parallel 10-batch fix product titles
+- **Last Action**: 2026-02-25 - Completed quick task 12: fix cleanTitle — add Cyrillic EA7 and H'estia di Venezia aliases
 - **Next Step**: Audit milestone or start new milestone.
