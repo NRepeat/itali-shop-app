@@ -67,7 +67,7 @@ export function cleanTitle(
 
   if (/\d/.test(model)) {
     const escapedModel = model.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    t = t.replace(new RegExp(`(^|\\s)${escapedModel}(?=\\s|$)`, "g"), " ");
+    t = t.replace(new RegExp(`(^|\\s)${escapedModel}(?=\\s|$)`, "gi"), " ");
   }
 
   return t.replace(/\s+/g, " ").trim();
