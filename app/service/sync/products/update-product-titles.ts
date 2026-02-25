@@ -49,6 +49,7 @@ export async function updateProductTitles(
     select: {
       product_id: true,
       model: true,
+      sku: true,
       manufacturer_id: true,
     },
     skip: offset,
@@ -77,7 +78,10 @@ export async function updateProductTitles(
           })
         : null;
 
-      const newTitle = cleanTitle(description.name, vendor?.name, product.model);
+      let newTitle = cleanTitle(description.name, vendor?.name, product.model);
+      if (product.sku && product.sku !== product.model && /\d/.test(product.sku)) {
+        newTitle = cleanTitle(newTitle, null, product.sku);
+      }
 
       // Find product in Shopify
       const shopifyResp = await client.request<
