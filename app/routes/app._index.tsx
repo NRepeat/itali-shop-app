@@ -14,7 +14,7 @@ import {
 import { syncProducts } from "@/service/sync/products/syncProducts";
 import { updateExistingProductLinks } from "@/service/sync/products/update-existing-product-links";
 import { updateProductHandles, updateProductHandlesParallel } from "@/service/sync/products/update-product-handles";
-import { updateProductTitles } from "@/service/sync/products/update-product-titles";
+import { updateProductTitles, updateProductTitlesParallel } from "@/service/sync/products/update-product-titles";
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
@@ -119,6 +119,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         session.shop,
         limit,
         offset,
+      );
+      logs = result.logs;
+    } else if (body.action === "fix-titles-parallel") {
+      const batches = body.batches ? Number(body.batches) : 10;
+      const result = await updateProductTitlesParallel(
+        session.accessToken!,
+        session.shop,
+        batches,
       );
       logs = result.logs;
     } else if (body.action === "sync-customers") {
@@ -674,6 +682,16 @@ export default function Index() {
             onClick={() => handleAction("fix-titles")}
             disabled={isLoading || undefined}>
             {isLoading && fetcher.json?.action === "fix-titles" && !fetcher.json?.limit ? "Fixing all..." : "Fix ALL Titles"}
+          </s-button>
+          <s-button
+            variant="primary"
+            tone="critical"
+            onClick={() => fetcher.submit({ action: "fix-titles-parallel", batches: "10" }, { method: "post", encType: "application/json" })}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "fix-titles-parallel"
+              ? "Fixing (10 workers)..."
+              : "Fix ALL Titles (10 parallel)"}
           </s-button>
         </div>
       </s-section>
