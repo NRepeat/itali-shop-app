@@ -316,3 +316,48 @@ export async function updateProductHandles(
 
   return { logs, updated, skipped, errors };
 }
+
+/**
+ * Splits all active products into `batchCount` equal batches and runs
+ * `updateProductHandles` for each batch concurrently.
+ */
+export async function updateProductHandlesParallel(
+  accessToken: string,
+  shopDomain: string,
+  batchCount = 10,
+  dryRun = false,
+): Promise<{ logs: string[]; updated: number; skipped: number; errors: number }> {
+  const total = await externalDB.bc_product.count({ where: { status: true } });
+  const batchSize = Math.ceil(total / batchCount);
+
+  const batches = Array.from({ length: batchCount }, (_, i) => ({
+    offset: i * batchSize,
+    limit: batchSize,
+  }));
+
+  const results = await Promise.all(
+    batches.map(({ offset, limit }) =>
+      updateProductHandles(accessToken, shopDomain, limit, offset, dryRun),
+    ),
+  );
+
+  const allLogs: string[] = [`Running ${batchCount} parallel batches over ${total} products (${batchSize} each)`];
+  let updated = 0;
+  let skipped = 0;
+  let errors = 0;
+
+  for (const [i, result] of results.entries()) {
+    allLogs.push(`\n--- Batch ${i + 1} ---`);
+    allLogs.push(...result.logs);
+    updated += result.updated;
+    skipped += result.skipped;
+    errors += result.errors;
+  }
+
+  allLogs.push(`\n=== Total (${batchCount} parallel batches) ===`);
+  allLogs.push(`${dryRun ? "Would update" : "Updated"}: ${updated}`);
+  allLogs.push(`Skipped: ${skipped}`);
+  allLogs.push(`Errors: ${errors}`);
+
+  return { logs: allLogs, updated, skipped, errors };
+}

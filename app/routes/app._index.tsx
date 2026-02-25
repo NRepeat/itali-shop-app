@@ -13,7 +13,7 @@ import {
 } from "@/service/sync/collection/syncCollections";
 import { syncProducts } from "@/service/sync/products/syncProducts";
 import { updateExistingProductLinks } from "@/service/sync/products/update-existing-product-links";
-import { updateProductHandles } from "@/service/sync/products/update-product-handles";
+import { updateProductHandles, updateProductHandlesParallel } from "@/service/sync/products/update-product-handles";
 import { updateProductTitles } from "@/service/sync/products/update-product-titles";
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
@@ -100,6 +100,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         limit,
         offset,
         dryRun,
+      );
+      logs = result.logs;
+    } else if (body.action === "fix-handles-parallel") {
+      const batches = body.batches ? Number(body.batches) : 10;
+      const result = await updateProductHandlesParallel(
+        session.accessToken!,
+        session.shop,
+        batches,
+        false,
       );
       logs = result.logs;
     } else if (body.action === "fix-titles") {
@@ -631,6 +640,16 @@ export default function Index() {
             {isLoading && fetcher.json?.action === "fix-handles" && !fetcher.json?.limit
               ? "Fixing all..."
               : `Fix ALL Handles`}
+          </s-button>
+          <s-button
+            variant="primary"
+            tone="critical"
+            onClick={() => fetcher.submit({ action: "fix-handles-parallel", batches: "10" }, { method: "post", encType: "application/json" })}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "fix-handles-parallel"
+              ? "Fixing (10 workers)..."
+              : "Fix ALL Handles (10 parallel)"}
           </s-button>
         </div>
       </s-section>
