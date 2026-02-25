@@ -7,7 +7,10 @@ const connection = new Redis(REDIS_CONFIG.port, REDIS_CONFIG.host, {
   ...REDIS_CONFIG.options,
 });
 
-const syncWorker = new Worker("sync-queue", processSyncTask, { connection });
+const syncWorker = new Worker("sync-queue", processSyncTask, {
+  connection,
+  concurrency: 10,
+});
 
 syncWorker.on("completed", (job) => {
   console.log(`Job ${job.id} of type ${job.name} finished.`);

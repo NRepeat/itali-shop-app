@@ -75,6 +75,7 @@ export interface ExternalOrder {
 export const getOrders = async (): Promise<ExternalOrder[]> => {
   const [orders, orderProducts, orderTotals, orderOptions] = await Promise.all([
     externalDB.bc_order.findMany({
+      orderBy: { order_id: "desc" },
       select: {
         order_id: true,
         customer_id: true,

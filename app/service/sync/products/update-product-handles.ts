@@ -29,9 +29,24 @@ const colorMapping: Record<string, string> = {
 
 // Feminine adjective forms of color slugs (for women's product seo_keywords)
 const feminineColorSlugs = [
-  "fioletova", "rozheva", "blakitna", "korichneva", "girchichna",
-  "bordova", "chervona", "zelena", "zhovta", "pomarancheva",
-  "ruda", "sina", "synja", "chorna", "bila", "bronzova", "sira", "m-jatna",
+  "fioletova",
+  "rozheva",
+  "blakitna",
+  "korichneva",
+  "girchichna",
+  "bordova",
+  "chervona",
+  "zelena",
+  "zhovta",
+  "pomarancheva",
+  "ruda",
+  "sina",
+  "synja",
+  "chorna",
+  "bila",
+  "bronzova",
+  "sira",
+  "m-jatna",
 ];
 
 const UPDATE_HANDLE_MUTATION = `
@@ -92,7 +107,11 @@ function removeBrandFromHandle(handle: string, brandSlug: string): string {
  * e.g. "kedy-zhenskie-movie" + colorSlug "chornij" + model "movie"
  * → "kedy-zhenskie-chornij-movie"
  */
-function insertColorBeforeModel(handle: string, colorSlug: string, modelSlug: string): string {
+function insertColorBeforeModel(
+  handle: string,
+  colorSlug: string,
+  modelSlug: string,
+): string {
   const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
   if (lastIndex !== -1) {
     return handle.slice(0, lastIndex) + `-${colorSlug}-${modelSlug}`;
@@ -116,18 +135,26 @@ function buildNewHandle(
 ): string {
   let handle = seoKeyword.replace(/^\//, "").trim();
 
-  if (brandSlug) {
-    handle = removeBrandFromHandle(handle, brandSlug);
-  }
+  // if (brandSlug) {
+  //   handle = removeBrandFromHandle(handle, brandSlug);
+  // }
   // Also remove alias slugs (e.g. "ea7" when brand is "EA7 Emporio Armani")
-  for (const aliasSlug of aliasSlugs) {
-    handle = removeBrandFromHandle(handle, aliasSlug);
-  }
+  // for (const aliasSlug of aliasSlugs) {
+  //   handle = removeBrandFromHandle(handle, aliasSlug);
+  // }
 
   // When inserting a canonical color, strip all known color slugs + variants
   // to prevent duplicates from seo_keyword containing e.g. "synij" (≈ "sinij")
   if (colorSlug) {
-    const colorsToStrip = [...new Set([...Object.values(colorMapping), ...feminineColorSlugs, "synij", "bilyi", "chornyi"])];
+    const colorsToStrip = [
+      ...new Set([
+        ...Object.values(colorMapping),
+        ...feminineColorSlugs,
+        "synij",
+        "bilyi",
+        "chornyi",
+      ]),
+    ];
     for (const cs of colorsToStrip) {
       handle = removeBrandFromHandle(handle, cs);
     }
@@ -136,17 +163,26 @@ function buildNewHandle(
   // Clean up any double hyphens that might appear after removal
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
 
+  // NEW — only inserts parts not already in the handle
   const modelSlug = slugifyBrand(model);
   const parts = [brandSlug, colorSlug].filter((p): p is string => Boolean(p));
   if (parts.length > 0) {
-    const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
-    if (lastIndex !== -1) {
-      handle = handle.slice(0, lastIndex) + `-${parts.join("-")}-${modelSlug}`;
-    }
-    // If model slug not found at end of handle, leave handle untouched
-    // (seo_keyword already encodes brand/color, e.g. "kostyum-ea7-monogram")
-  }
+    const missingParts = parts.filter((p) => {
+      const regex = new RegExp(
+        `(?:^|-)${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=-|$)`,
+      );
+      return !regex.test(handle);
+    });
 
+    if (missingParts.length > 0) {
+      const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
+      if (lastIndex !== -1) {
+        handle =
+          handle.slice(0, lastIndex) +
+          `-${missingParts.join("-")}-${modelSlug}`;
+      }
+    }
+  }
   return handle;
 }
 
@@ -157,14 +193,16 @@ async function getProductColorSlug(productId: number): Promise<string | null> {
 
   if (productOptions.length === 0) return null;
 
-  const productOptionValues = await externalDB.bc_product_option_value.findMany({
-    where: {
-      product_id: productId,
-      product_option_id: {
-        in: productOptions.map((o) => o.product_option_id),
+  const productOptionValues = await externalDB.bc_product_option_value.findMany(
+    {
+      where: {
+        product_id: productId,
+        product_option_id: {
+          in: productOptions.map((o) => o.product_option_id),
+        },
       },
     },
-  });
+  );
 
   if (productOptionValues.length === 0) return null;
 
@@ -185,12 +223,16 @@ async function getProductColorSlug(productId: number): Promise<string | null> {
   );
   if (colorOptionValues.length === 0) return null;
 
-  const colorValueDesc = await externalDB.bc_option_value_description.findFirst({
-    where: {
-      option_value_id: { in: colorOptionValues.map((v) => v.option_value_id) },
-      language_id: 3,
+  const colorValueDesc = await externalDB.bc_option_value_description.findFirst(
+    {
+      where: {
+        option_value_id: {
+          in: colorOptionValues.map((v) => v.option_value_id),
+        },
+        language_id: 3,
+      },
     },
-  });
+  );
 
   if (!colorValueDesc) return null;
 
@@ -203,7 +245,12 @@ export async function updateProductHandles(
   limit?: number,
   offset = 0,
   dryRun = false,
-): Promise<{ logs: string[]; updated: number; skipped: number; errors: number }> {
+): Promise<{
+  logs: string[];
+  updated: number;
+  skipped: number;
+  errors: number;
+}> {
   const logs: string[] = [];
   const log = (msg: string) => {
     console.log(msg);
@@ -229,13 +276,16 @@ export async function updateProductHandles(
 
   for (const [i, product] of products.entries()) {
     try {
-      const ukrainianDescription = await externalDB.bc_product_description.findFirst({
-        where: { product_id: product.product_id, language_id: 3 },
-        select: { seo_keyword: true },
-      });
+      const ukrainianDescription =
+        await externalDB.bc_product_description.findFirst({
+          where: { product_id: product.product_id, language_id: 3 },
+          select: { seo_keyword: true },
+        });
 
       if (!ukrainianDescription?.seo_keyword) {
-        log(`[${i + 1}] Product ${product.product_id}: no seo_keyword, skipping`);
+        log(
+          `[${i + 1}] Product ${product.product_id}: no seo_keyword, skipping`,
+        );
         skipped++;
         continue;
       }
@@ -250,7 +300,7 @@ export async function updateProductHandles(
       const brandName = vendor?.name ?? null;
       const brandSlug = brandName ? slugifyBrand(brandName) : null;
       const aliasSlugs = brandName ? (brandAliasSlugs[brandName] ?? []) : [];
-
+      console.log(aliasSlugs, brandName);
       const colorSlug = await getProductColorSlug(product.product_id);
       const hasRelatedArticles = false; // kept for buildNewHandle signature compat
 
@@ -262,6 +312,7 @@ export async function updateProductHandles(
         hasRelatedArticles,
         aliasSlugs,
       );
+      console.log(newHandle, brandSlug, "------------");
 
       // Find product in Shopify
       const shopifyResp = await client.request<{
@@ -276,13 +327,17 @@ export async function updateProductHandles(
       const shopifyProduct = shopifyResp.products?.nodes?.[0];
 
       if (!shopifyProduct) {
-        log(`[${i + 1}] Product ${product.product_id} (${product.model}): not found in Shopify, skipping`);
+        log(
+          `[${i + 1}] Product ${product.product_id} (${product.model}): not found in Shopify, skipping`,
+        );
         skipped++;
         continue;
       }
 
       if (shopifyProduct.handle === newHandle) {
-        log(`[${i + 1}] Product ${product.product_id} (${product.model}): handle already correct (${newHandle}), skipping`);
+        log(
+          `[${i + 1}] Product ${product.product_id} (${product.model}): handle already correct (${newHandle}), skipping`,
+        );
         skipped++;
         continue;
       }
@@ -313,14 +368,18 @@ export async function updateProductHandles(
 
       const userErrors = updateResp.productUpdate?.userErrors ?? [];
       if (userErrors.length > 0) {
-        log(`[${i + 1}] Error updating ${product.model}: ${JSON.stringify(userErrors)}`);
+        log(
+          `[${i + 1}] Error updating ${product.model}: ${JSON.stringify(userErrors)}`,
+        );
         errors++;
       } else {
         log(`[${i + 1}] ✓ ${product.model} → ${newHandle}`);
         updated++;
       }
     } catch (err: any) {
-      log(`[${i + 1}] Exception for product ${product.product_id}: ${err.message}`);
+      log(
+        `[${i + 1}] Exception for product ${product.product_id}: ${err.message}`,
+      );
       errors++;
     }
   }
@@ -340,9 +399,14 @@ export async function updateProductHandles(
 export async function updateProductHandlesParallel(
   accessToken: string,
   shopDomain: string,
-  batchCount = 10,
+  batchCount = 5,
   dryRun = false,
-): Promise<{ logs: string[]; updated: number; skipped: number; errors: number }> {
+): Promise<{
+  logs: string[];
+  updated: number;
+  skipped: number;
+  errors: number;
+}> {
   const total = await externalDB.bc_product.count({ where: { status: true } });
   const batchSize = Math.ceil(total / batchCount);
 
@@ -357,7 +421,9 @@ export async function updateProductHandlesParallel(
     ),
   );
 
-  const allLogs: string[] = [`Running ${batchCount} parallel batches over ${total} products (${batchSize} each)`];
+  const allLogs: string[] = [
+    `Running ${batchCount} parallel batches over ${total} products (${batchSize} each)`,
+  ];
   let updated = 0;
   let skipped = 0;
   let errors = 0;

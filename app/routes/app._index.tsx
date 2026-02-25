@@ -10,11 +10,18 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   syncCollections,
   syncBrandCollections,
+  stripGenderFromHandle,
 } from "@/service/sync/collection/syncCollections";
 import { syncProducts } from "@/service/sync/products/syncProducts";
 import { updateExistingProductLinks } from "@/service/sync/products/update-existing-product-links";
-import { updateProductHandles, updateProductHandlesParallel } from "@/service/sync/products/update-product-handles";
-import { updateProductTitles, updateProductTitlesParallel } from "@/service/sync/products/update-product-titles";
+import {
+  updateProductHandles,
+  updateProductHandlesParallel,
+} from "@/service/sync/products/update-product-handles";
+import {
+  updateProductTitles,
+  updateProductTitlesParallel,
+} from "@/service/sync/products/update-product-titles";
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
@@ -69,6 +76,43 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const startTime = Date.now();
   try {
     if (body.action === "sync-categories") {
+      const response = await admin.graphql(`
+  {
+    collections(first: 250) {
+      nodes {
+        id
+        handle
+      }
+    }
+  }
+`);
+      const { data } = await response.json();
+      console.log("allCollection:", JSON.stringify(data.collections));
+      const collections = data.collections.nodes;
+      // for (const c of collections) {
+      //   const res = await admin.graphql(
+      //     `mutation collectionUpdate($input: CollectionInput!) {
+      //       collectionUpdate(input: $input) {
+      //         collection {
+      //           id
+      //           handle
+      //         }
+      //         userErrors {
+      //           field
+      //           message
+      //         }
+      //       }
+      //     }`,
+      //     {
+      //       variables: {
+      //         input: { id: c.id, handle: stripGenderFromHandle(c.handle) },
+      //       },
+      //     },
+      //   );
+      //   const { data } = await res.json();
+      //   console.log("collectionUpdate result:", JSON.stringify(data));
+      // }
+
       logs = (await syncCollections(admin)) || [];
     } else if (body.action === "sync-brands") {
       logs = (await syncBrandCollections(admin)) || [];
@@ -79,7 +123,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else if (body.action === "reset-sync-products") {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
-        (await syncProducts(session.shop, session.accessToken!, limit, true)) || [];
+        (await syncProducts(session.shop, session.accessToken!, limit, true)) ||
+        [];
     } else if (body.action === "update-product-links") {
       const limit = body.limit ? Number(body.limit) : undefined;
       const offset = body.offset ? Number(body.offset) : 0;
@@ -87,7 +132,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         session.accessToken!,
         session.shop,
         limit,
-        offset
+        offset,
       );
       logs = result.logs;
     } else if (body.action === "fix-handles") {
@@ -307,7 +352,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       );
       const { data: createData } = await createResponse.json();
-      console.log("discountAutomaticAppCreate result:", JSON.stringify(createData));
+      console.log(
+        "discountAutomaticAppCreate result:",
+        JSON.stringify(createData),
+      );
       logs.push(`Raw response: ${JSON.stringify(createData)}`);
 
       if (createData.discountAutomaticAppCreate.userErrors?.length > 0) {
@@ -368,7 +416,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             logs.push(`ERROR: ${e.field} — ${e.message}`);
           });
         } else {
-          logs.push(`Deleted: ${deleteData.discountAutomaticDelete.deletedAutomaticDiscountId}`);
+          logs.push(
+            `Deleted: ${deleteData.discountAutomaticDelete.deletedAutomaticDiscountId}`,
+          );
         }
       }
     }
@@ -376,6 +426,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     logs.push(`--- Done in ${elapsed}s ---`);
     return { success: true, logs, action: body.action };
   } catch (e: any) {
+    console.error(JSON.stringify(e));
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     logs = e.logs || [e.message];
     logs.push(`--- Failed after ${elapsed}s ---`);
@@ -523,17 +574,29 @@ export default function Index() {
               : `Sync ALL (${stats.remaining})`}
           </s-button>
         </div>
-        <div style={{ marginTop: "16px", borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
+        <div
+          style={{
+            marginTop: "16px",
+            borderTop: "1px solid #e5e7eb",
+            paddingTop: "12px",
+          }}
+        >
           <div style={{ marginBottom: "8px", color: "#666", fontSize: "13px" }}>
-            Reset sync — forces <code>productSet</code> for all products (re-syncs variants, price &amp; inventory even for existing products)
+            Reset sync — forces <code>productSet</code> for all products
+            (re-syncs variants, price &amp; inventory even for existing
+            products)
           </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" as const }}>
+          <div
+            style={{ display: "flex", gap: "8px", flexWrap: "wrap" as const }}
+          >
             <s-button
               tone="critical"
               onClick={() => handleAction("reset-sync-products", productLimit)}
               disabled={isLoading || undefined}
             >
-              {isLoading && fetcher.json?.action === "reset-sync-products" && fetcher.json?.limit
+              {isLoading &&
+              fetcher.json?.action === "reset-sync-products" &&
+              fetcher.json?.limit
                 ? "Resetting..."
                 : `Reset Sync ${productLimit || "N"} Products`}
             </s-button>
@@ -542,7 +605,9 @@ export default function Index() {
               onClick={() => handleAction("reset-sync-products")}
               disabled={isLoading || undefined}
             >
-              {isLoading && fetcher.json?.action === "reset-sync-products" && !fetcher.json?.limit
+              {isLoading &&
+              fetcher.json?.action === "reset-sync-products" &&
+              !fetcher.json?.limit
                 ? "Resetting all..."
                 : `Reset Sync ALL`}
             </s-button>
@@ -552,7 +617,8 @@ export default function Index() {
 
       <s-section heading="Update Product Links (Metafields)">
         <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
-          Updates metafields (bound-products & recommended_products) for existing products
+          Updates metafields (bound-products & recommended_products) for
+          existing products
         </div>
         <div
           style={{
@@ -580,7 +646,13 @@ export default function Index() {
           ></s-text-field>
           <s-button
             variant="primary"
-            onClick={() => handleAction("update-product-links", updateLinksLimit, updateLinksOffset)}
+            onClick={() =>
+              handleAction(
+                "update-product-links",
+                updateLinksLimit,
+                updateLinksOffset,
+              )
+            }
             disabled={isLoading || undefined}
           >
             {isLoading && fetcher.json?.action === "update-product-links"
@@ -604,7 +676,8 @@ export default function Index() {
 
       <s-section heading="Fix Product Handles (Remove Brand)">
         <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
-          Removes brand slug from product handles (e.g. krosivky-ash-movie → krosivky-movie)
+          Removes brand slug from product handles (e.g. krosivky-ash-movie →
+          krosivky-movie)
         </div>
         <div
           style={{
@@ -632,10 +705,14 @@ export default function Index() {
           ></s-text-field>
           <s-button
             variant="primary"
-            onClick={() => handleAction("fix-handles", fixHandlesLimit, fixHandlesOffset)}
+            onClick={() =>
+              handleAction("fix-handles", fixHandlesLimit, fixHandlesOffset)
+            }
             disabled={isLoading || undefined}
           >
-            {isLoading && fetcher.json?.action === "fix-handles" && fetcher.json?.limit
+            {isLoading &&
+            fetcher.json?.action === "fix-handles" &&
+            fetcher.json?.limit
               ? "Fixing..."
               : `Fix ${fixHandlesLimit} Products`}
           </s-button>
@@ -645,14 +722,21 @@ export default function Index() {
             onClick={() => handleAction("fix-handles")}
             disabled={isLoading || undefined}
           >
-            {isLoading && fetcher.json?.action === "fix-handles" && !fetcher.json?.limit
+            {isLoading &&
+            fetcher.json?.action === "fix-handles" &&
+            !fetcher.json?.limit
               ? "Fixing all..."
               : `Fix ALL Handles`}
           </s-button>
           <s-button
             variant="primary"
             tone="critical"
-            onClick={() => fetcher.submit({ action: "fix-handles-parallel", batches: "10" }, { method: "post", encType: "application/json" })}
+            onClick={() =>
+              fetcher.submit(
+                { action: "fix-handles-parallel", batches: "10" },
+                { method: "post", encType: "application/json" },
+              )
+            }
             disabled={isLoading || undefined}
           >
             {isLoading && fetcher.json?.action === "fix-handles-parallel"
@@ -666,27 +750,64 @@ export default function Index() {
         <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
           Re-computes product titles by removing brand name and model SKU
         </div>
-        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end", flexWrap: "wrap" as const }}>
-          <s-text-field label="Limit" type="number" value={fixTitlesLimit} min="1"
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "flex-end",
+            flexWrap: "wrap" as const,
+          }}
+        >
+          <s-text-field
+            label="Limit"
+            type="number"
+            value={fixTitlesLimit}
+            min="1"
             onInput={(e: any) => setFixTitlesLimit(e.target.value)}
-            help-text="Number of products to process" />
-          <s-text-field label="Offset" type="number" value={fixTitlesOffset} min="0"
+            help-text="Number of products to process"
+          />
+          <s-text-field
+            label="Offset"
+            type="number"
+            value={fixTitlesOffset}
+            min="0"
             onInput={(e: any) => setFixTitlesOffset(e.target.value)}
-            help-text="Skip first N products" />
-          <s-button variant="primary"
-            onClick={() => handleAction("fix-titles", fixTitlesLimit, fixTitlesOffset)}
-            disabled={isLoading || undefined}>
-            {isLoading && fetcher.json?.action === "fix-titles" && fetcher.json?.limit ? "Fixing..." : `Fix ${fixTitlesLimit} Titles`}
-          </s-button>
-          <s-button variant="primary" tone="critical"
-            onClick={() => handleAction("fix-titles")}
-            disabled={isLoading || undefined}>
-            {isLoading && fetcher.json?.action === "fix-titles" && !fetcher.json?.limit ? "Fixing all..." : "Fix ALL Titles"}
+            help-text="Skip first N products"
+          />
+          <s-button
+            variant="primary"
+            onClick={() =>
+              handleAction("fix-titles", fixTitlesLimit, fixTitlesOffset)
+            }
+            disabled={isLoading || undefined}
+          >
+            {isLoading &&
+            fetcher.json?.action === "fix-titles" &&
+            fetcher.json?.limit
+              ? "Fixing..."
+              : `Fix ${fixTitlesLimit} Titles`}
           </s-button>
           <s-button
             variant="primary"
             tone="critical"
-            onClick={() => fetcher.submit({ action: "fix-titles-parallel", batches: "10" }, { method: "post", encType: "application/json" })}
+            onClick={() => handleAction("fix-titles")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading &&
+            fetcher.json?.action === "fix-titles" &&
+            !fetcher.json?.limit
+              ? "Fixing all..."
+              : "Fix ALL Titles"}
+          </s-button>
+          <s-button
+            variant="primary"
+            tone="critical"
+            onClick={() =>
+              fetcher.submit(
+                { action: "fix-titles-parallel", batches: "10" },
+                { method: "post", encType: "application/json" },
+              )
+            }
             disabled={isLoading || undefined}
           >
             {isLoading && fetcher.json?.action === "fix-titles-parallel"

@@ -12,7 +12,10 @@ import {
   getCollections,
   ExistingCollection,
 } from "@/service/italy/collections/getCollections";
-import { getBrands, ExistingBrand } from "@/service/italy/collections/getBrands";
+import {
+  getBrands,
+  ExistingBrand,
+} from "@/service/italy/collections/getBrands";
 
 // --- GraphQL Мутації та Запити (Текст) ---
 
@@ -116,10 +119,20 @@ const groupCollectionsByCategoryId = (collections: ExistingCollection[]) => {
   }
   return grouped;
 };
+const GENDER_SLUGS = ["zhinochi", "cholovichi", "dityachi", "uniseks"];
 
+export function stripGenderFromHandle(handle: string): string {
+  return handle
+    .split("-")
+    .filter((part) => !GENDER_SLUGS.includes(part))
+    .join("-");
+}
 export const syncCollections = async (admin: AdminApiContext) => {
   const logs: string[] = [];
-  const log = (msg: string) => { console.log(msg); logs.push(msg); };
+  const log = (msg: string) => {
+    console.log(msg);
+    logs.push(msg);
+  };
   try {
     const allExistingCollections = await getCollections();
     if (!allExistingCollections) {
@@ -136,7 +149,10 @@ export const syncCollections = async (admin: AdminApiContext) => {
         log(`Creating category collection: ${ukr.name} (id: ${categoryId})`);
         const baseInput: CollectionInput = {
           title: ukr.name,
-          handle: ukr.seo_keyword || undefined,
+          // handle: ukr.seo_keyword
+          //   ? stripGenderFromHandle(ukr.seo_keyword)
+          //   : undefined,
+          handle: ukr.seo_keyword ? ukr.seo_keyword : undefined,
           descriptionHtml: decodeHtml(ukr.description),
           ruleSet: {
             appliedDisjunctively: true,
@@ -158,7 +174,9 @@ export const syncCollections = async (admin: AdminApiContext) => {
         });
 
         if (!createResponse.ok) {
-          log(`Error creating collection ${categoryId}: ${createResponse.statusText}`);
+          log(
+            `Error creating collection ${categoryId}: ${createResponse.statusText}`,
+          );
           continue;
         }
 
@@ -166,7 +184,9 @@ export const syncCollections = async (admin: AdminApiContext) => {
           await createResponse.json();
 
         if (creationResult.data?.collectionCreate?.userErrors?.length) {
-          log(`Error creating collection ${categoryId}: ${JSON.stringify(creationResult.data.collectionCreate.userErrors)}`);
+          log(
+            `Error creating collection ${categoryId}: ${JSON.stringify(creationResult.data.collectionCreate.userErrors)}`,
+          );
           continue;
         }
 
@@ -186,7 +206,9 @@ export const syncCollections = async (admin: AdminApiContext) => {
         );
 
         if (!digestResponse.ok) {
-          log(`Error fetching digests for ${categoryId}: ${digestResponse.statusText}`);
+          log(
+            `Error fetching digests for ${categoryId}: ${digestResponse.statusText}`,
+          );
           continue;
         }
 
@@ -213,9 +235,10 @@ export const syncCollections = async (admin: AdminApiContext) => {
           const digestEntry = digests.find((d) => d.key === shopifyKey);
           const sourceValue = rus[sourceField];
           if (digestEntry && typeof sourceValue === "string" && sourceValue) {
-            const decoded = (shopifyKey === "body_html" || shopifyKey === "meta_description")
-              ? decodeHtml(sourceValue)
-              : sourceValue;
+            const decoded =
+              shopifyKey === "body_html" || shopifyKey === "meta_description"
+                ? decodeHtml(sourceValue)
+                : sourceValue;
             translationsToRegister.push({
               locale: "ru",
               key: shopifyKey,
@@ -237,7 +260,9 @@ export const syncCollections = async (admin: AdminApiContext) => {
           );
 
           if (!registerResponse.ok) {
-            log(`Error registering translation for ${categoryId}: ${registerResponse.statusText}`);
+            log(
+              `Error registering translation for ${categoryId}: ${registerResponse.statusText}`,
+            );
             continue;
           }
 
@@ -245,9 +270,13 @@ export const syncCollections = async (admin: AdminApiContext) => {
             await registerResponse.json();
 
           if (registerResult.data?.translationsRegister?.userErrors?.length) {
-            log(`Translation error for collection ${categoryId}: ${JSON.stringify(registerResult.data.translationsRegister.userErrors)}`);
+            log(
+              `Translation error for collection ${categoryId}: ${JSON.stringify(registerResult.data.translationsRegister.userErrors)}`,
+            );
           } else {
-            log(`Translation for collection ${categoryId} (ru) registered successfully`);
+            log(
+              `Translation for collection ${categoryId} (ru) registered successfully`,
+            );
           }
         }
       }
@@ -256,13 +285,19 @@ export const syncCollections = async (admin: AdminApiContext) => {
     return logs;
   } catch (err: any) {
     logs.push(`Error: ${err.message}`);
-    throw Object.assign(new Error(`Помилка синхронізації колекцій: ${err.message}`), { logs });
+    throw Object.assign(
+      new Error(`Помилка синхронізації колекцій: ${err.message}`),
+      { logs },
+    );
   }
 };
 
 export const syncBrandCollections = async (admin: AdminApiContext) => {
   const logs: string[] = [];
-  const log = (msg: string) => { console.log(msg); logs.push(msg); };
+  const log = (msg: string) => {
+    console.log(msg);
+    logs.push(msg);
+  };
   try {
     const brands = await getBrands();
     if (!brands.length) {
@@ -304,7 +339,9 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
       });
 
       if (!createResponse.ok) {
-        log(`[${i + 1}/${brands.length}] Error creating brand collection ${brand.name}: ${createResponse.statusText}`);
+        log(
+          `[${i + 1}/${brands.length}] Error creating brand collection ${brand.name}: ${createResponse.statusText}`,
+        );
         continue;
       }
 
@@ -312,13 +349,17 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
         await createResponse.json();
 
       if (creationResult.data?.collectionCreate?.userErrors?.length) {
-        log(`[${i + 1}/${brands.length}] Error creating brand collection ${brand.name}: ${JSON.stringify(creationResult.data.collectionCreate.userErrors)}`);
+        log(
+          `[${i + 1}/${brands.length}] Error creating brand collection ${brand.name}: ${JSON.stringify(creationResult.data.collectionCreate.userErrors)}`,
+        );
         continue;
       }
 
       const shopifyCollectionId =
         creationResult.data!.collectionCreate!.collection!.id;
-      log(`[${i + 1}/${brands.length}] Brand collection "${brand.name}" created with ID: ${shopifyCollectionId}`);
+      log(
+        `[${i + 1}/${brands.length}] Brand collection "${brand.name}" created with ID: ${shopifyCollectionId}`,
+      );
 
       if (rus) {
         const digestResponse = await admin.graphql(
@@ -327,7 +368,9 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
         );
 
         if (!digestResponse.ok) {
-          log(`Error fetching digests for brand ${brand.name}: ${digestResponse.statusText}`);
+          log(
+            `Error fetching digests for brand ${brand.name}: ${digestResponse.statusText}`,
+          );
           continue;
         }
 
@@ -340,9 +383,17 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
 
         const fieldMap: { shopifyKey: string; value: string | undefined }[] = [
           { shopifyKey: "title", value: rus.name },
-          { shopifyKey: "body_html", value: rus.description ? decodeHtml(rus.description) : undefined },
+          {
+            shopifyKey: "body_html",
+            value: rus.description ? decodeHtml(rus.description) : undefined,
+          },
           { shopifyKey: "meta_title", value: rus.meta_title },
-          { shopifyKey: "meta_description", value: rus.meta_description ? decodeHtml(rus.meta_description) : undefined },
+          {
+            shopifyKey: "meta_description",
+            value: rus.meta_description
+              ? decodeHtml(rus.meta_description)
+              : undefined,
+          },
         ];
 
         for (const { shopifyKey, value } of fieldMap) {
@@ -369,7 +420,9 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
           );
 
           if (!registerResponse.ok) {
-            log(`Error registering translation for brand ${brand.name}: ${registerResponse.statusText}`);
+            log(
+              `Error registering translation for brand ${brand.name}: ${registerResponse.statusText}`,
+            );
             continue;
           }
 
@@ -377,9 +430,13 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
             await registerResponse.json();
 
           if (registerResult.data?.translationsRegister?.userErrors?.length) {
-            log(`Translation error for brand ${brand.name}: ${JSON.stringify(registerResult.data.translationsRegister.userErrors)}`);
+            log(
+              `Translation error for brand ${brand.name}: ${JSON.stringify(registerResult.data.translationsRegister.userErrors)}`,
+            );
           } else {
-            log(`Translation for brand "${brand.name}" (ru) registered successfully`);
+            log(
+              `Translation for brand "${brand.name}" (ru) registered successfully`,
+            );
           }
         }
       }
@@ -388,6 +445,9 @@ export const syncBrandCollections = async (admin: AdminApiContext) => {
     return logs;
   } catch (err: any) {
     logs.push(`Error: ${err.message}`);
-    throw Object.assign(new Error(`Помилка синхронізації бренд-колекцій: ${err.message}`), { logs });
+    throw Object.assign(
+      new Error(`Помилка синхронізації бренд-колекцій: ${err.message}`),
+      { logs },
+    );
   }
 };

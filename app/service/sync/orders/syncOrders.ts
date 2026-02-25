@@ -2,7 +2,24 @@ import { prisma } from "@shared/lib/prisma/prisma.server";
 import { getOrders } from "@/service/italy/orders/getOrders";
 import { client } from "../client/shopify";
 
-const API_VERSION = "2025-10";
+const WORKERS = 1; // Dev store: max 5 orders/min regardless of API
+const DELAY_BETWEEN_ORDERS_MS = 12_000; // ~5 orders/min to stay under limit
+
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+const ORDER_CREATE_MUTATION = `
+  mutation orderCreate($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
+    orderCreate(order: $order, options: $options) {
+      userErrors {
+        field
+        message
+      }
+      order {
+        id
+      }
+    }
+  }
+`;
 
 const GET_PRODUCT_VARIANTS_QUERY = `
   query getProductVariants($id: ID!) {
@@ -20,28 +37,46 @@ const GET_PRODUCT_VARIANTS_QUERY = `
   }
 `;
 
-function mapFinancialStatus(orderStatusId: number): string {
+const GET_VARIANT_BY_SKU_QUERY = `
+  query getVariantBySku($query: String!) {
+    productVariants(first: 5, query: $query) {
+      nodes {
+        id
+        sku
+        product {
+          id
+        }
+        selectedOptions {
+          name
+          value
+        }
+      }
+    }
+  }
+`;
+
+function mapFinancialStatus(orderStatusId: number): "PAID" | "PENDING" | "REFUNDED" | "VOIDED" {
   switch (orderStatusId) {
-    case 1:  // Ожидание
-      return "pending";
-    case 8:  // Возврат
-    case 11: // Возмещенный
-    case 13: // Полный возврат
-      return "refunded";
-    case 9:  // Отмена и аннулирование
-    case 16: // Анулированный
-      return "voided";
-    default: // 2 Подтвержден, 3 Отправлен, 5 Выполнен, 7 Отказ, 10 Обмен, 12, 14, 15
-      return "paid";
+    case 1:
+      return "PENDING";
+    case 8:
+    case 11:
+    case 13:
+      return "REFUNDED";
+    case 9:
+    case 16:
+      return "VOIDED";
+    default:
+      return "PAID";
   }
 }
 
-function mapFulfillmentStatus(orderStatusId: number): string | null {
-  if (orderStatusId === 3 || orderStatusId === 5) return "fulfilled";
+function mapFulfillmentStatus(orderStatusId: number): "FULFILLED" | null {
+  if (orderStatusId === 3 || orderStatusId === 5) return "FULFILLED";
   return null;
 }
 
-function mapOrderTags(orderStatusId: number, baseTag: string): string {
+function mapOrderTags(orderStatusId: number, baseTag: string): string[] {
   const statusTags: Record<number, string> = {
     1:  "status-pending",
     2:  "status-confirmed",
@@ -58,13 +93,42 @@ function mapOrderTags(orderStatusId: number, baseTag: string): string {
     15: "status-processed",
     16: "status-annulled",
   };
+  const tags = [baseTag];
   const statusTag = statusTags[orderStatusId];
-  return statusTag ? `${baseTag},${statusTag}` : baseTag;
+  if (statusTag) tags.push(statusTag);
+  return tags;
 }
 
-function extractShopifyNumericId(gid: string): string {
-  const parts = gid.split("/");
-  return parts[parts.length - 1];
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 7,
+  delayMs = 60_000,
+): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const msg = error.message || "";
+      const isThrottled =
+        msg.includes("Throttled") ||
+        msg.includes("throttled") ||
+        msg.includes("rate limit") ||
+        msg.includes("429") ||
+        msg.includes("try again") ||
+        error.extensions?.code === "THROTTLED";
+
+      if (isThrottled && attempt < retries) {
+        const wait = delayMs * Math.min(2 ** attempt, 4);
+        console.log(
+          `Rate limited, waiting ${Math.round(wait / 1000)}s (attempt ${attempt + 1}/${retries})`,
+        );
+        await sleep(wait);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Max retries exceeded");
 }
 
 export const syncOrders = async (
@@ -91,8 +155,9 @@ export const syncOrders = async (
     log(`${newOrders.length} orders not yet synced`);
 
     const ordersToSync = limit ? newOrders.slice(0, limit) : newOrders;
+    const total = ordersToSync.length;
     log(
-      `Syncing ${ordersToSync.length} orders${limit ? ` (limited to ${limit})` : ""}`,
+      `Syncing ${total} orders${limit ? ` (limited to ${limit})` : ""}`,
     );
 
     // Pre-load customer and product maps
@@ -101,30 +166,61 @@ export const syncOrders = async (
       customerMaps.map((m) => [m.localCustomerId, m.shopifyCustomerId]),
     );
 
-    const productMaps = await prisma.productMap.findMany();
-    const productMapByLocal = new Map(
-      productMaps.map((m) => [m.localProductId, m.shopifyProductId]),
-    );
+    // Cache: SKU -> variant data from Shopify
+    const skuCache = new Map<
+      string,
+      { variantId: string; productGid: string } | null
+    >();
 
-    // Cache for Shopify product variants (productGid -> variants[])
+    // Cache: productGid -> all variants
     const variantCache = new Map<
       string,
       Array<{ id: string; selectedOptions: Array<{ name: string; value: string }> }>
     >();
 
-    async function getVariantsForProduct(
-      shopifyProductGid: string,
-    ) {
+    async function findVariantBySku(sku: string) {
+      if (skuCache.has(sku)) {
+        return skuCache.get(sku)!;
+      }
+      try {
+        const result = await withRetry(() =>
+          client.request<any, any>({
+            query: GET_VARIANT_BY_SKU_QUERY,
+            variables: { query: `sku:${sku}` },
+            accessToken,
+            shopDomain: domain,
+          }),
+        );
+        const variant = result?.productVariants?.nodes?.[0];
+        if (variant) {
+          const data = {
+            variantId: variant.id,
+            productGid: variant.product.id,
+          };
+          skuCache.set(sku, data);
+          return data;
+        }
+        skuCache.set(sku, null);
+        return null;
+      } catch {
+        skuCache.set(sku, null);
+        return null;
+      }
+    }
+
+    async function getVariantsForProduct(shopifyProductGid: string) {
       if (variantCache.has(shopifyProductGid)) {
         return variantCache.get(shopifyProductGid)!;
       }
       try {
-        const result = await client.request<any, any>({
-          query: GET_PRODUCT_VARIANTS_QUERY,
-          variables: { id: shopifyProductGid },
-          accessToken,
-          shopDomain: domain,
-        });
+        const result = await withRetry(() =>
+          client.request<any, any>({
+            query: GET_PRODUCT_VARIANTS_QUERY,
+            variables: { id: shopifyProductGid },
+            accessToken,
+            shopDomain: domain,
+          }),
+        );
         const variants = result?.product?.variants?.nodes || [];
         variantCache.set(shopifyProductGid, variants);
         return variants;
@@ -134,210 +230,266 @@ export const syncOrders = async (
       }
     }
 
-    for (const [i, order] of ordersToSync.entries()) {
-      try {
-        log(
-          `[${i + 1}/${ordersToSync.length}] Creating order #${order.order_id} for ${order.firstname} ${order.lastname}`,
-        );
+    async function createOrderInShopify(
+      order: (typeof ordersToSync)[number],
+    ): Promise<string> {
+      const shopifyCustomerGid = customerMapByLocal.get(order.customer_id);
+      const currency = order.currency_code || "UAH";
 
-        const shopifyCustomerGid = customerMapByLocal.get(order.customer_id);
-
-        // Build line items with variant matching
-        const lineItems: Record<string, any>[] = [];
-        for (const p of order.products) {
-          const item: Record<string, any> = {
-            title: p.name,
-            quantity: p.quantity,
-            price: Number(p.price).toFixed(2),
-          };
-
-          const shopifyProductGid = productMapByLocal.get(p.product_id);
-          if (shopifyProductGid) {
-            const variants = await getVariantsForProduct(shopifyProductGid);
-
-            // Get order options for this specific order_product
-            const productOptions = order.options.filter(
-              (o) => o.order_product_id === p.order_product_id,
-            );
-
-            let matchedVariant: { id: string } | undefined;
-
-            if (productOptions.length === 0) {
-              // No options — single variant product, use first variant
-              matchedVariant = variants[0];
-            } else {
-              // Match variant by comparing selectedOptions with order options
-              matchedVariant = variants.find((v) => {
-                // Every order option must match a selectedOption on the variant
-                return productOptions.every((orderOpt) =>
-                  v.selectedOptions.some(
-                    (so) =>
-                      so.name === orderOpt.name && so.value === orderOpt.value,
-                  ),
-                );
-              });
-            }
-
-            if (matchedVariant) {
-              item.variant_id = Number(
-                extractShopifyNumericId(matchedVariant.id),
-              );
-            }
-          }
-
-          lineItems.push(item);
-        }
-
-        if (lineItems.length === 0) {
-          log(
-            `[${i + 1}/${ordersToSync.length}] Skipping: no line items`,
-          );
-          continue;
-        }
-
-        const fulfillmentStatus = mapFulfillmentStatus(order.order_status_id);
-        const financialStatus = mapFinancialStatus(order.order_status_id);
-        const tags = mapOrderTags(order.order_status_id, "imported");
-
-        const noteAttributes: Array<{ name: string; value: string }> = [];
-        if (order.payment_method) {
-          noteAttributes.push({ name: "payment_method", value: order.payment_method });
-        }
-
-        const orderPayload: Record<string, any> = {
-          order: {
-            line_items: lineItems,
-            financial_status: financialStatus,
-            currency: order.currency_code || "UAH",
-            created_at: order.date_added.toISOString(),
-            tags,
-            note: order.comment || undefined,
-            note_attributes: noteAttributes.length > 0 ? noteAttributes : undefined,
-            shipping_address: {
-              first_name: order.shipping_firstname,
-              last_name: order.shipping_lastname,
-              company: order.shipping_company || undefined,
-              address1: order.shipping_address_1,
-              address2: order.shipping_address_2 || undefined,
-              city: order.shipping_city,
-              zip: order.shipping_postcode,
-              country: order.shipping_country || "Ukraine",
-              province: order.shipping_zone || undefined,
-            },
-            billing_address: {
-              first_name: order.payment_firstname,
-              last_name: order.payment_lastname,
-              company: order.payment_company || undefined,
-              address1: order.payment_address_1,
-              address2: order.payment_address_2 || undefined,
-              city: order.payment_city,
-              zip: order.payment_postcode,
-              country: order.payment_country || "Ukraine",
-              province: order.payment_zone || undefined,
+      // Build line items — find variants in Shopify by SKU (model)
+      const lineItems: Record<string, any>[] = [];
+      for (const p of order.products) {
+        const item: Record<string, any> = {
+          title: p.name,
+          quantity: p.quantity,
+          priceSet: {
+            shopMoney: {
+              amount: Number(p.price),
+              currencyCode: currency,
             },
           },
         };
 
-        if (fulfillmentStatus) {
-          orderPayload.order.fulfillment_status = fulfillmentStatus;
-        }
-
-        if (shopifyCustomerGid) {
-          orderPayload.order.customer = {
-            id: Number(extractShopifyNumericId(shopifyCustomerGid)),
-          };
-        } else {
-          if (order.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) {
-            orderPayload.order.email = order.email;
-          }
-          if (order.telephone) {
-            const phone = order.telephone.trim().replace(/\s+/g, "");
-            orderPayload.order.phone = phone.startsWith("+") ? phone : `+${phone}`;
-          }
-        }
-
-        // Add shipping cost from totals if present
-        const shippingTotal = order.totals.find((t) => t.code === "shipping");
-        if (shippingTotal && Number(shippingTotal.value) > 0) {
-          orderPayload.order.shipping_lines = [
-            {
-              title: shippingTotal.title || "Shipping",
-              price: Number(shippingTotal.value).toFixed(2),
-            },
-          ];
-        }
-
-        let responseData: any;
-        let response: Response | undefined;
-        const maxRetries = 3;
-
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-          response = await fetch(
-            `https://${domain}/admin/api/${API_VERSION}/orders.json`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Shopify-Access-Token": accessToken,
-              },
-              body: JSON.stringify(orderPayload),
-            },
-          );
-
-          responseData = await response.json();
-
-          if (response.ok) break;
-
-          const errorMsg = responseData?.errors
-            ? JSON.stringify(responseData.errors)
-            : response.statusText;
-
-          if (response.status === 429 || errorMsg.includes("rate limit")) {
-            const waitSec = 60 * (attempt + 1);
-            log(
-              `[${i + 1}/${ordersToSync.length}] Rate limited, waiting ${waitSec}s (attempt ${attempt + 1}/${maxRetries})...`,
+        // Look up product in Shopify by model (SKU)
+        const sku = p.model;
+        if (sku) {
+          const found = await findVariantBySku(sku);
+          if (found) {
+            const productOptions = order.options.filter(
+              (o) => o.order_product_id === p.order_product_id,
             );
-            await new Promise((r) => setTimeout(r, waitSec * 1000));
-            continue;
+
+            if (productOptions.length === 0) {
+              // No options — use the variant found by SKU directly
+              item.variantId = found.variantId;
+            } else {
+              // Has options — fetch all variants for the product and match
+              const variants = await getVariantsForProduct(found.productGid);
+              const matchedVariant = variants.find((v) =>
+                productOptions.every((orderOpt) =>
+                  v.selectedOptions.some(
+                    (so) =>
+                      so.name === orderOpt.name && so.value === orderOpt.value,
+                  ),
+                ),
+              );
+
+              if (matchedVariant) {
+                item.variantId = matchedVariant.id;
+              } else {
+                // Fallback to SKU variant if no option match
+                item.variantId = found.variantId;
+              }
+            }
           }
-
-          log(`[${i + 1}/${ordersToSync.length}] Error: ${errorMsg}`);
-          break;
         }
 
-        if (!response?.ok) {
-          continue;
-        }
+        lineItems.push(item);
+      }
 
-        const shopifyOrderId = String(responseData.order?.id);
-        if (!shopifyOrderId || shopifyOrderId === "undefined") {
-          log(
-            `[${i + 1}/${ordersToSync.length}] Error: No order ID returned`,
-          );
-          continue;
-        }
+      if (lineItems.length === 0) {
+        throw new Error("No line items");
+      }
 
-        await prisma.orderMap.upsert({
-          where: { localOrderId: order.order_id },
-          update: { shopifyOrderId },
-          create: {
-            localOrderId: order.order_id,
-            shopifyOrderId,
+      const financialStatus = mapFinancialStatus(order.order_status_id);
+      const fulfillmentStatus = mapFulfillmentStatus(order.order_status_id);
+      const tags = mapOrderTags(order.order_status_id, "imported");
+
+      // Build GraphQL OrderCreateOrderInput
+      const orderInput: Record<string, any> = {
+        currency,
+        lineItems,
+        financialStatus,
+        tags,
+        note: order.comment || undefined,
+        shippingAddress: {
+          firstName: order.shipping_firstname,
+          lastName: order.shipping_lastname,
+          company: order.shipping_company || undefined,
+          address1: order.shipping_address_1,
+          address2: order.shipping_address_2 || undefined,
+          city: order.shipping_city,
+          zip: order.shipping_postcode,
+          countryCode: "UA",
+          provinceCode: order.shipping_zone || undefined,
+        },
+        billingAddress: {
+          firstName: order.payment_firstname,
+          lastName: order.payment_lastname,
+          company: order.payment_company || undefined,
+          address1: order.payment_address_1,
+          address2: order.payment_address_2 || undefined,
+          city: order.payment_city,
+          zip: order.payment_postcode,
+          countryCode: "UA",
+          provinceCode: order.payment_zone || undefined,
+        },
+      };
+
+      if (fulfillmentStatus) {
+        orderInput.fulfillmentStatus = fulfillmentStatus;
+      }
+
+      // Customer — use toAssociate for existing, toUpsert for new
+      if (shopifyCustomerGid) {
+        orderInput.customer = {
+          toAssociate: { id: shopifyCustomerGid },
+        };
+      } else {
+        const customerUpsert: Record<string, any> = {};
+        if (order.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) {
+          customerUpsert.email = order.email;
+        }
+        if (order.telephone) {
+          const phone = order.telephone.trim().replace(/\s+/g, "");
+          customerUpsert.phone = phone.startsWith("+") ? phone : `+${phone}`;
+        }
+        if (Object.keys(customerUpsert).length > 0) {
+          orderInput.customer = { toUpsert: customerUpsert };
+        }
+      }
+
+      // Custom attributes (payment method + original order date)
+      const customAttributes: Array<{ key: string; value: string }> = [
+        { key: "original_order_date", value: order.date_added.toISOString() },
+      ];
+      if (order.payment_method) {
+        customAttributes.push({ key: "payment_method", value: order.payment_method });
+      }
+      orderInput.customAttributes = customAttributes;
+
+      // Shipping lines with priceSet
+      const shippingTotal = order.totals.find((t) => t.code === "shipping");
+      if (shippingTotal && Number(shippingTotal.value) > 0) {
+        orderInput.shippingLines = [
+          {
+            title: shippingTotal.title || "Shipping",
+            priceSet: {
+              shopMoney: {
+                amount: Number(shippingTotal.value),
+                currencyCode: currency,
+              },
+            },
           },
-        });
+        ];
+      }
+
+      // Transaction for paid orders
+      if (financialStatus === "PAID") {
+        let totalAmount = lineItems.reduce(
+          (sum, li) => sum + Number(li.priceSet.shopMoney.amount) * li.quantity,
+          0,
+        );
+        if (shippingTotal) {
+          totalAmount += Number(shippingTotal.value);
+        }
+
+        orderInput.transactions = [
+          {
+            kind: "SALE",
+            status: "SUCCESS",
+            processedAt: order.date_added.toISOString(),
+            amountSet: {
+              shopMoney: {
+                amount: totalAmount,
+                currencyCode: currency,
+              },
+            },
+          },
+        ];
+      }
+
+      const result = await client.request<any, any>({
+        query: ORDER_CREATE_MUTATION,
+        variables: {
+          order: orderInput,
+          options: {
+            inventoryBehaviour: "BYPASS",
+            sendReceipt: false,
+            sendFulfillmentReceipt: false,
+          },
+        },
+        accessToken,
+        shopDomain: domain,
+      });
+
+      const userErrors = result?.orderCreate?.userErrors;
+      if (userErrors && userErrors.length > 0) {
+        throw new Error(
+          userErrors.map((e: any) => `${e.field}: ${e.message}`).join(", "),
+        );
+      }
+
+      const shopifyOrderGid = result?.orderCreate?.order?.id;
+      if (!shopifyOrderGid) {
+        throw new Error("No order ID returned");
+      }
+
+      await prisma.orderMap.upsert({
+        where: { localOrderId: order.order_id },
+        update: { shopifyOrderId: shopifyOrderGid },
+        create: {
+          localOrderId: order.order_id,
+          shopifyOrderId: shopifyOrderGid,
+        },
+      });
+
+      return shopifyOrderGid;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+    let skippedCount = 0;
+    const startTime = Date.now();
+
+    for (const [index, order] of ordersToSync.entries()) {
+      try {
+        log(
+          `[${index + 1}/${total}] Creating order #${order.order_id} for ${order.firstname} ${order.lastname}`,
+        );
+
+        const shopifyOrderId = await withRetry(() =>
+          createOrderInShopify(order),
+        );
+
+        successCount++;
+
+        const elapsed = Date.now() - startTime;
+        const processed = successCount + errorCount + skippedCount;
+        const avgMs = elapsed / processed;
+        const remaining = total - processed;
+        const etaMin = Math.round((remaining * avgMs) / 60_000);
 
         log(
-          `[${i + 1}/${ordersToSync.length}] Created: Shopify order ${shopifyOrderId}`,
+          `[${index + 1}/${total}] ✓ Created: ${shopifyOrderId} | Progress: ${processed}/${total} | ETA: ~${etaMin}min`,
         );
       } catch (e: any) {
-        log(
-          `[${i + 1}/${ordersToSync.length}] Error: ${e.message}`,
-        );
+        if (e.message === "No line items") {
+          skippedCount++;
+          log(`[${index + 1}/${total}] Skipped: no line items`);
+        } else {
+          errorCount++;
+          log(`[${index + 1}/${total}] ✗ Error: ${e.message}`);
+        }
+      }
+
+      // Delay between orders to avoid rate limit
+      if (index < ordersToSync.length - 1) {
+        await sleep(DELAY_BETWEEN_ORDERS_MS);
       }
     }
 
-    log(`Order sync completed`);
-    return logs;
+    const totalElapsed = Math.round((Date.now() - startTime) / 60_000);
+
+    log(`\n=== Sync Summary ===`);
+    log(`Total processed: ${total}`);
+    log(`Success: ${successCount}`);
+    log(`Errors: ${errorCount}`);
+    log(`Skipped: ${skippedCount}`);
+    log(`Time elapsed: ${totalElapsed} minutes`);
+    log(`====================\n`);
+
+    return { logs, successCount, errorCount, skippedCount };
   } catch (e: any) {
     logs.push(`Error: ${e.message}`);
     throw Object.assign(new Error(`Error syncing orders: ${e.message}`), {

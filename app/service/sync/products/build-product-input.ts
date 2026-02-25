@@ -51,13 +51,11 @@ export function cleanTitle(
   model: string,
 ): string {
   let t = title;
-
+  console.log(title,brandName,model,"-----------")
   if (brandName) {
     const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     t = t.replace(new RegExp(escaped, "gi"), "");
-  }
 
-  if (brandName) {
     const aliases = brandAliasMap[brandName] ?? [];
     for (const alias of aliases) {
       const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -67,12 +65,13 @@ export function cleanTitle(
 
   if (/\d/.test(model)) {
     const escapedModel = model.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    t = t.replace(new RegExp(`(^|\\s)${escapedModel}(?=\\s|$)`, "gi"), " ");
+    // Фикс: убираем слово целиком без артефактов
+    t = t.replace(new RegExp(`(?:^|\\s)${escapedModel}(?=\\s|$)`, "gi"), "");
   }
-
-  return t.replace(/\s+/g, " ").trim();
+  const clean = t.replace(/\s+/g, " ").trim();
+  console.log(clean,"-----------")
+  return clean
 }
-
 /**
  * Builds a clean product handle:
  * - Removes brand slug from seo_keyword

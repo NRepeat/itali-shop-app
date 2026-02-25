@@ -1,5 +1,5 @@
-import { productSyncQueue, orderSyncQueue, customerSyncQueue } from './queues';
-import { Queue } from 'bullmq';
+import { productSyncQueue, orderSyncQueue, customerSyncQueue } from "./queues";
+import { Queue } from "bullmq";
 
 // Define a type for the known webhook topics and their corresponding queues
 type WebhookTopicQueueMap = {
@@ -9,21 +9,21 @@ type WebhookTopicQueueMap = {
 // Map Shopify webhook topics to the respective BullMQ queues
 const webhookTopicToQueueMap: WebhookTopicQueueMap = {
   // Product topics
-  'products/create': productSyncQueue,
-  'products/update': productSyncQueue,
-  'products/delete': productSyncQueue,
+  products_create: productSyncQueue,
+  products_update: productSyncQueue,
+  products_delete: productSyncQueue,
 
-  // Order topics
-  'orders/create': orderSyncQueue,
-  'orders/updated': orderSyncQueue,
-  'orders/cancelled': orderSyncQueue,
-  'orders/fulfilled': orderSyncQueue,
-  'orders/paid': orderSyncQueue,
+  // _ Order topics
+  orders_create: orderSyncQueue,
+  orders_updated: orderSyncQueue,
+  orders_cancelled: orderSyncQueue,
+  orders_fulfilled: orderSyncQueue,
+  orders_paid: orderSyncQueue,
 
-  // Customer topics
-  'customers/create': customerSyncQueue,
-  'customers/update': customerSyncQueue,
-  'customers/delete': customerSyncQueue,
+  // _ Customer topics
+  customers_create: customerSyncQueue,
+  customers_update: customerSyncQueue,
+  customers_delete: customerSyncQueue,
 
   // Add other mappings as needed
 };
@@ -34,5 +34,12 @@ const webhookTopicToQueueMap: WebhookTopicQueueMap = {
  * @returns The BullMQ Queue instance or undefined if no mapping is found.
  */
 export function getSyncQueue(topic: string): Queue | undefined {
-  return webhookTopicToQueueMap[topic];
+  console.log(`Getting sync queue for topic: ${topic}`);
+  const existTopic = webhookTopicToQueueMap[topic.toLowerCase()];
+
+  if (existTopic) {
+    return webhookTopicToQueueMap[topic.toLowerCase()];
+  } else {
+    return undefined;
+  }
 }

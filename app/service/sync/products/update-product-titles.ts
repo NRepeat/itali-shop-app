@@ -33,7 +33,12 @@ export async function updateProductTitles(
   shopDomain: string,
   limit?: number,
   offset = 0,
-): Promise<{ logs: string[]; updated: number; skipped: number; errors: number }> {
+): Promise<{
+  logs: string[];
+  updated: number;
+  skipped: number;
+  errors: number;
+}> {
   const logs: string[] = [];
   const log = (msg: string) => {
     console.log(msg);
@@ -45,7 +50,7 @@ export async function updateProductTitles(
   let errors = 0;
 
   const products = await externalDB.bc_product.findMany({
-    where: { status: true },
+    where: { status: true, manufacturer_id: 131, model: "3DPT10біла" },
     select: {
       product_id: true,
       model: true,
@@ -66,7 +71,9 @@ export async function updateProductTitles(
       });
 
       if (!description?.name) {
-        log(`[${i + 1}] Product ${product.product_id}: no description name, skipping`);
+        log(
+          `[${i + 1}] Product ${product.product_id}: no description name, skipping`,
+        );
         skipped++;
         continue;
       }
@@ -79,7 +86,11 @@ export async function updateProductTitles(
         : null;
 
       let newTitle = cleanTitle(description.name, vendor?.name, product.model);
-      if (product.sku && product.sku !== product.model && /\d/.test(product.sku)) {
+      if (
+        product.sku &&
+        product.sku !== product.model &&
+        /\d/.test(product.sku)
+      ) {
         newTitle = cleanTitle(newTitle, null, product.sku);
       }
 
@@ -97,13 +108,18 @@ export async function updateProductTitles(
       const shopifyProduct = shopifyResp.products?.nodes?.[0];
 
       if (!shopifyProduct) {
-        log(`[${i + 1}] Product ${product.product_id} (${product.model}): not found in Shopify, skipping`);
+        log(
+          `[${i + 1}] Product ${product.product_id} (${product.model}): not found in Shopify, skipping`,
+        );
         skipped++;
         continue;
       }
+      console.log("newTitle",newTitle,shopifyProduct)
 
       if (shopifyProduct.title === newTitle) {
-        log(`[${i + 1}] Product ${product.product_id} (${product.model}): title already correct, skipping`);
+        log(
+          `[${i + 1}] Product ${product.product_id} (${product.model}): title already correct, skipping`,
+        );
         skipped++;
         continue;
       }
@@ -130,14 +146,18 @@ export async function updateProductTitles(
 
       const userErrors = updateResp.productUpdate?.userErrors ?? [];
       if (userErrors.length > 0) {
-        log(`[${i + 1}] Error updating ${product.model}: ${JSON.stringify(userErrors)}`);
+        log(
+          `[${i + 1}] Error updating ${product.model}: ${JSON.stringify(userErrors)}`,
+        );
         errors++;
       } else {
         log(`[${i + 1}] ✓ ${product.model} → "${newTitle}"`);
         updated++;
       }
     } catch (err: any) {
-      log(`[${i + 1}] Exception for product ${product.product_id}: ${err.message}`);
+      log(
+        `[${i + 1}] Exception for product ${product.product_id}: ${err.message}`,
+      );
       errors++;
     }
   }
@@ -158,7 +178,12 @@ export async function updateProductTitlesParallel(
   accessToken: string,
   shopDomain: string,
   batchCount = 10,
-): Promise<{ logs: string[]; updated: number; skipped: number; errors: number }> {
+): Promise<{
+  logs: string[];
+  updated: number;
+  skipped: number;
+  errors: number;
+}> {
   const total = await externalDB.bc_product.count({ where: { status: true } });
   const batchSize = Math.ceil(total / batchCount);
 
@@ -173,7 +198,9 @@ export async function updateProductTitlesParallel(
     ),
   );
 
-  const allLogs: string[] = [`Running ${batchCount} parallel batches over ${total} products (${batchSize} each)`];
+  const allLogs: string[] = [
+    `Running ${batchCount} parallel batches over ${total} products (${batchSize} each)`,
+  ];
   let updated = 0;
   let skipped = 0;
   let errors = 0;
