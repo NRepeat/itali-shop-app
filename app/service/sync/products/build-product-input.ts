@@ -31,8 +31,13 @@ function slugifyBrand(name: string): string {
 }
 
 const brandAliasMap: Record<string, string[]> = {
-  "EA7 Emporio Armani": ["EA7"],
-  "Emporio Armani": ["EA7"],
+  "EA7 Emporio Armani": ["EA7", "\u0415\u04107", "\u0415\u04107 Emporio Armani"],
+  "Emporio Armani": ["EA7", "\u0415\u04107"],
+  "H'estia di Venezia": [
+    "H'estia Venezia",
+    "H\u2019estia Venezia",
+    "H\u2019estia di Venezia",
+  ],
 };
 
 /**
