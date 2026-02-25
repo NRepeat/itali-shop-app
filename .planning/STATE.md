@@ -26,6 +26,7 @@
 - **CAPABILITY_VIOLATION Strip-and-Retry**: productSet retries once with option-linked metafields removed when all userErrors are CAPABILITY_VIOLATION; mixed errors return null immediately (quick-3).
 - **brandAliasMap for EA7**: cleanTitle strips both full manufacturer name and short alias (e.g. "EA7") via a static alias map, allowing "EA7 Emporio Armani" to remove both strings (quick-5).
 - **Color-for-all Handles**: color slug insertion in buildHandle/buildNewHandle is unconditional; bc_product_related_article guard removed from updateProductHandles loop (quick-5).
+- **Brand Slug Re-insertion**: buildHandle/buildNewHandle strip brand from seo_keyword then re-insert brand slug before model alongside color; handle format is now {category}-{brand}-{color}-{model} (quick-6).
 
 ### Todos & Blockers
 None.
@@ -38,7 +39,8 @@ None.
 | 2 | make Shopify source of truth in ensureMetaobject | 2026-02-23 | 78c6f8d | [2-make-shopify-source-of-truth-in-ensureme](./quick/2-make-shopify-source-of-truth-in-ensureme/) |
 | 3 | fix CAPABILITY_VIOLATION by stripping option-linked metafields | 2026-02-23 | d68788b | [3-fix-capability-violation-by-stripping-op](./quick/3-fix-capability-violation-by-stripping-op/) |
 | 5 | fix EA7 title filtering and handle structure | 2026-02-25 | 68a4cc9 | [5-fix-ea7-title-filtering-and-handle-struc](./quick/5-fix-ea7-title-filtering-and-handle-struc/) |
+| 6 | add manufacturer slug to product handles | 2026-02-25 | b608c2a | [6-add-manufacturer-slug-to-product-handles](./quick/6-add-manufacturer-slug-to-product-handles/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Completed quick task 5: fix EA7 title filtering and handle structure
+- **Last Action**: 2026-02-25 - Completed quick task 6: add manufacturer slug to product handles
 - **Next Step**: Audit milestone or start new milestone.
