@@ -109,8 +109,9 @@ function buildNewHandle(
   // Clean up any double hyphens that might appear after removal
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
 
-  // Color insertion disabled — add when needed
-  // if (hasRelatedArticles && colorSlug) { ... }
+  if (colorSlug && !handle.includes(colorSlug)) {
+    handle = insertColorBeforeModel(handle, colorSlug, slugifyBrand(model));
+  }
 
   return handle;
 }
@@ -214,17 +215,8 @@ export async function updateProductHandles(
 
       const brandSlug = vendor?.name ? slugifyBrand(vendor.name) : null;
 
-      // Check if product has related articles (color variants)
-      const relatedArticles = await externalDB.bc_product_related_article.findMany({
-        where: { article_id: product.product_id },
-        select: { product_id: true },
-      });
-      const hasRelatedArticles = relatedArticles.length > 0;
-
-      let colorSlug: string | null = null;
-      if (hasRelatedArticles) {
-        colorSlug = await getProductColorSlug(product.product_id);
-      }
+      const colorSlug = await getProductColorSlug(product.product_id);
+      const hasRelatedArticles = false; // kept for buildNewHandle signature compat
 
       const newHandle = buildNewHandle(
         ukrainianDescription.seo_keyword,
