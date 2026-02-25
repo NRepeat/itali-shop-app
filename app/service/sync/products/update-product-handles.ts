@@ -27,6 +27,13 @@ const colorMapping: Record<string, string> = {
   Пітон: "piton",
 };
 
+// Feminine adjective forms of color slugs (for women's product seo_keywords)
+const feminineColorSlugs = [
+  "fioletova", "rozheva", "blakitna", "korichneva", "girchichna",
+  "bordova", "chervona", "zelena", "zhovta", "pomarancheva",
+  "ruda", "sina", "synja", "chorna", "bila", "bronzova", "sira", "m-jatna",
+];
+
 const UPDATE_HANDLE_MUTATION = `
   mutation productUpdate($input: ProductInput!) {
     productUpdate(input: $input) {
@@ -120,7 +127,7 @@ function buildNewHandle(
   // When inserting a canonical color, strip all known color slugs + variants
   // to prevent duplicates from seo_keyword containing e.g. "synij" (≈ "sinij")
   if (colorSlug) {
-    const colorsToStrip = [...new Set([...Object.values(colorMapping), "synij", "bilyi", "chornyi"])];
+    const colorsToStrip = [...new Set([...Object.values(colorMapping), ...feminineColorSlugs, "synij", "bilyi", "chornyi"])];
     for (const cs of colorsToStrip) {
       handle = removeBrandFromHandle(handle, cs);
     }
