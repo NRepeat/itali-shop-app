@@ -92,13 +92,15 @@ export function buildHandle(
 
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
 
-  if (colorSlug && !handle.includes(colorSlug)) {
-    const modelSlug = slugifyBrand(model);
+  const modelSlug = slugifyBrand(model);
+  const brandSlugForInsert = brandName ? slugifyBrand(brandName) : null;
+  const parts = [brandSlugForInsert, colorSlug].filter((p): p is string => Boolean(p));
+  if (parts.length > 0) {
     const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
     if (lastIndex !== -1) {
-      handle = handle.slice(0, lastIndex) + `-${colorSlug}-${modelSlug}`;
+      handle = handle.slice(0, lastIndex) + `-${parts.join("-")}-${modelSlug}`;
     } else {
-      handle = `${handle}-${colorSlug}`;
+      handle = `${handle}-${parts.join("-")}`;
     }
   }
 
