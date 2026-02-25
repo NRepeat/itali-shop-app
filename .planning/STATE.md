@@ -34,6 +34,7 @@
 - **Parallel Title Updates**: updateProductTitlesParallel splits all products into N batches and runs concurrently via Promise.all; dashboard button "Fix ALL Titles (10 parallel)" mirrors the handles parallel pattern (quick-11).
 - **Cyrillic EA7 and H'estia Aliases**: brandAliasMap extended with Cyrillic ЕА7 variants (U+0415 U+0410 7) for EA7 brands and three H'estia Venezia variants (no "di", straight + curly apostrophe) so cleanTitle strips brand noise from Cyrillic-script titles (quick-12).
 - **Case-Insensitive Model Strip + SKU Double-Pass**: cleanTitle model regex uses "gi" flag (case-insensitive) to match uppercase article numbers stored as lowercase model; updateProductTitles adds a second cleanTitle pass using bc_product.sku when sku differs from model and contains digits (quick-13).
+- **Feminine Color Slug Stripping**: buildNewHandle now strips both masculine (colorMapping values) and feminine adjective forms of Ukrainian color slugs before inserting canonical color, preventing duplicates like `fioletova-...-fioletovij` from women's seo_keywords (quick-14).
 
 ### Todos & Blockers
 None.
@@ -54,7 +55,8 @@ None.
 | 11 | add parallel 10-batch fix product titles | 2026-02-25 | eeb72fe | [11-add-parallel-10-batch-fix-product-titles](./quick/11-add-parallel-10-batch-fix-product-titles/) |
 | 12 | fix cleanTitle — add Cyrillic EA7 and H'estia di Venezia aliases | 2026-02-25 | f69914b | [12-fix-cleantitle-add-cyrillic-ea7-aliases-](./quick/12-fix-cleantitle-add-cyrillic-ea7-aliases-/) |
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
+| 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Executed quick task 13: fix cleanTitle model SKU stripping (case-insensitive + sku double-pass)
+- **Last Action**: 2026-02-25 - Executed quick task 14: fix handle duplicate colors — add feminine Ukrainian color slug variants
 - **Next Step**: Ready for next task.
