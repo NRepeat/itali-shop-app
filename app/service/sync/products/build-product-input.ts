@@ -30,6 +30,11 @@ function slugifyBrand(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+const brandAliasMap: Record<string, string[]> = {
+  "EA7 Emporio Armani": ["EA7"],
+  "Emporio Armani": ["EA7"],
+};
+
 /**
  * Removes vendor name and (if numeric) SKU from the product title.
  * "Кросівки жіночі Fru.it 6214"  → "Кросівки жіночі"   (numeric SKU removed)
@@ -45,6 +50,14 @@ export function cleanTitle(
   if (brandName) {
     const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     t = t.replace(new RegExp(escaped, "gi"), "");
+  }
+
+  if (brandName) {
+    const aliases = brandAliasMap[brandName] ?? [];
+    for (const alias of aliases) {
+      const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      t = t.replace(new RegExp(escapedAlias, "gi"), "");
+    }
   }
 
   if (/\d/.test(model)) {
@@ -79,8 +92,15 @@ export function buildHandle(
 
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
 
-  // Color insertion disabled — add when needed
-  // if (hasRelatedArticles && colorSlug && !handle.includes(colorSlug)) { ... }
+  if (colorSlug && !handle.includes(colorSlug)) {
+    const modelSlug = slugifyBrand(model);
+    const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
+    if (lastIndex !== -1) {
+      handle = handle.slice(0, lastIndex) + `-${colorSlug}-${modelSlug}`;
+    } else {
+      handle = `${handle}-${colorSlug}`;
+    }
+  }
 
   return handle;
 }
