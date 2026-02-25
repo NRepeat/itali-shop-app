@@ -109,8 +109,15 @@ function buildNewHandle(
   // Clean up any double hyphens that might appear after removal
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
 
-  if (colorSlug && !handle.includes(colorSlug)) {
-    handle = insertColorBeforeModel(handle, colorSlug, slugifyBrand(model));
+  const modelSlug = slugifyBrand(model);
+  const parts = [brandSlug, colorSlug].filter((p): p is string => Boolean(p));
+  if (parts.length > 0) {
+    const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
+    if (lastIndex !== -1) {
+      handle = handle.slice(0, lastIndex) + `-${parts.join("-")}-${modelSlug}`;
+    } else {
+      handle = `${handle}-${parts.join("-")}`;
+    }
   }
 
   return handle;
@@ -252,7 +259,7 @@ export async function updateProductHandles(
 
       log(
         `[${i + 1}] Product ${product.product_id} (${product.model}): "${shopifyProduct.handle}" → "${newHandle}"` +
-          (brandSlug ? ` (brand: ${brandSlug} removed)` : "") +
+          (brandSlug ? ` (brand: ${brandSlug} inserted)` : "") +
           (dryRun ? " [DRY RUN]" : ""),
       );
 
