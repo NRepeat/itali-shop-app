@@ -31,6 +31,7 @@
 - **Brand Alias Deduplication**: buildHandle/buildNewHandle strip alias slugs (e.g. "ea7") from handle before inserting full brand slug, preventing ea7-ea7-emporio-armani duplicates (quick-8).
 - **Parallel Handle Updates**: updateProductHandlesParallel splits all products into N batches and runs concurrently via Promise.all; dashboard button "Fix ALL Handles (10 parallel)" (quick-9).
 - **Color Variant Stripping**: buildNewHandle strips all colorMapping values + variants (synij, bilyi, chornyi) before inserting canonical color, preventing synij+sinij duplicates (quick-10).
+- **Parallel Title Updates**: updateProductTitlesParallel splits all products into N batches and runs concurrently via Promise.all; dashboard button "Fix ALL Titles (10 parallel)" mirrors the handles parallel pattern (quick-11).
 
 ### Todos & Blockers
 None.
@@ -48,7 +49,8 @@ None.
 | 8 | fix duplicate brand in handle when alias already in seo_keyword | 2026-02-25 | 54c20df | [8-fix-duplicate-brand-in-handle-when-alias](./quick/8-fix-duplicate-brand-in-handle-when-alias/) |
 | 9 | run fix-handles in 10 parallel batches | 2026-02-25 | a8d4210 | [9-run-fix-handles-in-10-parallel-batches](./quick/9-run-fix-handles-in-10-parallel-batches/) |
 | 10 | strip color slug variants from handle before canonical color insertion | 2026-02-25 | a4b15f4 | [10-strip-color-slug-variants-from-handle-be](./quick/10-strip-color-slug-variants-from-handle-be/) |
+| 11 | add parallel 10-batch fix product titles | 2026-02-25 | eeb72fe | [11-add-parallel-10-batch-fix-product-titles](./quick/11-add-parallel-10-batch-fix-product-titles/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Completed quick task 10: strip color slug variants from handle before canonical color insertion
+- **Last Action**: 2026-02-25 - Completed quick task 11: add parallel 10-batch fix product titles
 - **Next Step**: Audit milestone or start new milestone.
