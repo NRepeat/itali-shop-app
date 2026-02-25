@@ -28,6 +28,7 @@
 - **Color-for-all Handles**: color slug insertion in buildHandle/buildNewHandle is unconditional; bc_product_related_article guard removed from updateProductHandles loop (quick-5).
 - **Brand Slug Re-insertion**: buildHandle/buildNewHandle strip brand from seo_keyword then re-insert brand slug before model alongside color; handle format is now {category}-{brand}-{color}-{model} (quick-6).
 - **Handle Insertion Guard**: brand+color insertion only fires when model slug IS found at end of handle; if model not in handle seo_keyword is left untouched to prevent appending (quick-7).
+- **Brand Alias Deduplication**: buildHandle/buildNewHandle strip alias slugs (e.g. "ea7") from handle before inserting full brand slug, preventing ea7-ea7-emporio-armani duplicates (quick-8).
 
 ### Todos & Blockers
 None.
@@ -42,7 +43,8 @@ None.
 | 5 | fix EA7 title filtering and handle structure | 2026-02-25 | 68a4cc9 | [5-fix-ea7-title-filtering-and-handle-struc](./quick/5-fix-ea7-title-filtering-and-handle-struc/) |
 | 6 | add manufacturer slug to product handles | 2026-02-25 | b608c2a | [6-add-manufacturer-slug-to-product-handles](./quick/6-add-manufacturer-slug-to-product-handles/) |
 | 7 | fix handle insertion fallback when model slug not in handle | 2026-02-25 | 174ffb5 | [7-fix-handle-insertion-fallback-when-model](./quick/7-fix-handle-insertion-fallback-when-model/) |
+| 8 | fix duplicate brand in handle when alias already in seo_keyword | 2026-02-25 | 54c20df | [8-fix-duplicate-brand-in-handle-when-alias](./quick/8-fix-duplicate-brand-in-handle-when-alias/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Completed quick task 7: fix handle insertion fallback when model slug not in handle
+- **Last Action**: 2026-02-25 - Completed quick task 8: fix duplicate brand in handle when alias already in seo_keyword
 - **Next Step**: Audit milestone or start new milestone.
