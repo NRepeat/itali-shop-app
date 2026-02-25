@@ -30,6 +30,7 @@
 - **Handle Insertion Guard**: brand+color insertion only fires when model slug IS found at end of handle; if model not in handle seo_keyword is left untouched to prevent appending (quick-7).
 - **Brand Alias Deduplication**: buildHandle/buildNewHandle strip alias slugs (e.g. "ea7") from handle before inserting full brand slug, preventing ea7-ea7-emporio-armani duplicates (quick-8).
 - **Parallel Handle Updates**: updateProductHandlesParallel splits all products into N batches and runs concurrently via Promise.all; dashboard button "Fix ALL Handles (10 parallel)" (quick-9).
+- **Color Variant Stripping**: buildNewHandle strips all colorMapping values + variants (synij, bilyi, chornyi) before inserting canonical color, preventing synij+sinij duplicates (quick-10).
 
 ### Todos & Blockers
 None.
@@ -46,7 +47,8 @@ None.
 | 7 | fix handle insertion fallback when model slug not in handle | 2026-02-25 | 174ffb5 | [7-fix-handle-insertion-fallback-when-model](./quick/7-fix-handle-insertion-fallback-when-model/) |
 | 8 | fix duplicate brand in handle when alias already in seo_keyword | 2026-02-25 | 54c20df | [8-fix-duplicate-brand-in-handle-when-alias](./quick/8-fix-duplicate-brand-in-handle-when-alias/) |
 | 9 | run fix-handles in 10 parallel batches | 2026-02-25 | a8d4210 | [9-run-fix-handles-in-10-parallel-batches](./quick/9-run-fix-handles-in-10-parallel-batches/) |
+| 10 | strip color slug variants from handle before canonical color insertion | 2026-02-25 | a4b15f4 | [10-strip-color-slug-variants-from-handle-be](./quick/10-strip-color-slug-variants-from-handle-be/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Completed quick task 9: run fix-handles in 10 parallel batches
+- **Last Action**: 2026-02-25 - Completed quick task 10: strip color slug variants from handle before canonical color insertion
 - **Next Step**: Audit milestone or start new milestone.
