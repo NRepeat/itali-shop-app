@@ -115,9 +115,9 @@ function buildNewHandle(
     const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
     if (lastIndex !== -1) {
       handle = handle.slice(0, lastIndex) + `-${parts.join("-")}-${modelSlug}`;
-    } else {
-      handle = `${handle}-${parts.join("-")}`;
     }
+    // If model slug not found at end of handle, leave handle untouched
+    // (seo_keyword already encodes brand/color, e.g. "kostyum-ea7-monogram")
   }
 
   return handle;
