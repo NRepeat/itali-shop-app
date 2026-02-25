@@ -117,6 +117,15 @@ function buildNewHandle(
     handle = removeBrandFromHandle(handle, aliasSlug);
   }
 
+  // When inserting a canonical color, strip all known color slugs + variants
+  // to prevent duplicates from seo_keyword containing e.g. "synij" (≈ "sinij")
+  if (colorSlug) {
+    const colorsToStrip = [...new Set([...Object.values(colorMapping), "synij", "bilyi", "chornyi"])];
+    for (const cs of colorsToStrip) {
+      handle = removeBrandFromHandle(handle, cs);
+    }
+  }
+
   // Clean up any double hyphens that might appear after removal
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
 
