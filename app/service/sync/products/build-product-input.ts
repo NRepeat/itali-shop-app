@@ -88,6 +88,12 @@ export function buildHandle(
       const escaped = brandSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       handle = handle.replace(new RegExp(`(?:^|-)${escaped}(?=-|$)`, "g"), "");
     }
+    // Also remove alias slugs (e.g. "ea7" when brand is "EA7 Emporio Armani")
+    for (const alias of brandAliasMap[brandName] ?? []) {
+      const aliasSlug = slugifyBrand(alias);
+      const escaped = aliasSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      handle = handle.replace(new RegExp(`(?:^|-)${escaped}(?=-|$)`, "g"), "");
+    }
   }
 
   handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");

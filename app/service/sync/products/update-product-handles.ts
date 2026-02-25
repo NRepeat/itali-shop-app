@@ -62,6 +62,12 @@ function slugifyBrand(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+// Alias slugs to remove from handles before reinsertion (keyed by original brand name)
+const brandAliasSlugs: Record<string, string[]> = {
+  "EA7 Emporio Armani": ["ea7"],
+  "Emporio Armani": ["ea7"],
+};
+
 /**
  * Removes brand slug from handle segments.
  * e.g. "kedy-zhenskie-ash-movie" + brandSlug "ash" → "kedy-zhenskie-movie"
@@ -99,11 +105,16 @@ function buildNewHandle(
   model: string,
   colorSlug: string | null,
   hasRelatedArticles: boolean,
+  aliasSlugs: string[] = [],
 ): string {
   let handle = seoKeyword.replace(/^\//, "").trim();
 
   if (brandSlug) {
     handle = removeBrandFromHandle(handle, brandSlug);
+  }
+  // Also remove alias slugs (e.g. "ea7" when brand is "EA7 Emporio Armani")
+  for (const aliasSlug of aliasSlugs) {
+    handle = removeBrandFromHandle(handle, aliasSlug);
   }
 
   // Clean up any double hyphens that might appear after removal
@@ -220,7 +231,9 @@ export async function updateProductHandles(
           })
         : null;
 
-      const brandSlug = vendor?.name ? slugifyBrand(vendor.name) : null;
+      const brandName = vendor?.name ?? null;
+      const brandSlug = brandName ? slugifyBrand(brandName) : null;
+      const aliasSlugs = brandName ? (brandAliasSlugs[brandName] ?? []) : [];
 
       const colorSlug = await getProductColorSlug(product.product_id);
       const hasRelatedArticles = false; // kept for buildNewHandle signature compat
@@ -231,6 +244,7 @@ export async function updateProductHandles(
         product.model,
         colorSlug,
         hasRelatedArticles,
+        aliasSlugs,
       );
 
       // Find product in Shopify
