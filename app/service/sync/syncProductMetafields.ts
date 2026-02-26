@@ -1,13 +1,14 @@
 import {
   CreateMetaobjectDefinitionMutationVariables,
-  CreateMetaobjectMutationVariables,
   InputMaybe,
   MetafieldDefinitionInput,
   MetafieldOwnerType,
-  MetaobjectStatus,
   MetaobjectStorefrontAccess,
   MetafieldCustomerAccountAccessInput,
   MetafieldStorefrontAccessInput,
+  TranslatableResourceQuery,
+  TranslationInput,
+  TranslationsRegisterMutation,
 } from "app/types"; // Ensure all types are correctly imported
 import { getOcFilterMap, getocFilterOptionValues } from "../maps/metafields";
 import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
@@ -16,7 +17,36 @@ import { prisma } from "app/shared/lib/prisma/prisma.server";
 import { dataArray } from "app/data/categoriesIds";
 import { createMetaobjectDefinition } from "../shopify/metaobjects/createMetaobjectDefinition";
 import { createMetafieldDefinition } from "../shopify/metafields/createProductMetafield";
-import { createMetaobject } from "../shopify/metaobjects/createMetaobject";
+import { upsertMetaobject } from "../shopify/metaobjects/upsertMetaobject";
+import { getMetaobjectDefinitionByType } from "../shopify/metaobjects/getMetaobjectDefinitionByType";
+
+const GET_TRANSLATABLE_RESOURCE_QUERY = `
+  #graphql
+  query translatableResource($id: ID!) {
+    translatableResource(resourceId: $id) {
+      translatableContent {
+        key
+        digest
+        value
+      }
+    }
+  }
+`;
+
+const TRANSLATIONS_REGISTER_MUTATION = `
+  mutation translationsRegister($resourceId: ID!, $translations: [TranslationInput!]!) {
+    translationsRegister(resourceId: $resourceId, translations: $translations) {
+      translations {
+        locale
+        key
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
 
 interface LocalMetaobjectDefinition {
   metaobjecDefinitionId: string;
@@ -94,15 +124,23 @@ export const syncProductMetafields = async (admin: AdminApiContext) => {
           admin,
         );
 
+        // If creation failed (e.g. "Type has already been taken"), fetch the existing definition
+        if (!shopifyDefinitionResult) {
+          console.log(
+            `[Definition] Create failed for type "${type}", fetching existing from Shopify...`,
+          );
+          shopifyDefinitionResult = await getMetaobjectDefinitionByType(type, admin);
+        }
+
         if (!shopifyDefinitionResult) {
           console.error(
-            `Failed to create metafield definition for type: ${type}. Skipping metaobjects creation.`,
+            `Failed to get definition for type: ${type}. Skipping metaobjects.`,
           );
           continue;
         }
 
         console.log(
-          `[Definition Created] Successfully created definition: ${shopifyDefinitionResult.name}`,
+          `[Definition] Using definition: ${shopifyDefinitionResult.name}`,
         );
 
         localDefinition = await prisma.metaobjectDefinition.upsert({
@@ -122,31 +160,37 @@ export const syncProductMetafields = async (admin: AdminApiContext) => {
       const filterOptions = await getocFilterOptionValues(
         metafield[1].filter_id,
       );
+
+      // Build handle → Russian label map for translation step
+      const handleToRusLabel = new Map<string, string>();
+      Array.from(filterOptions[0]).forEach((f: string, i: number) => {
+        const safeHandle = f.replace(/,/g, "-").toLowerCase();
+        const rusLabel = filterOptions[2]?.[i];
+        if (rusLabel) {
+          handleToRusLabel.set(safeHandle, rusLabel);
+        }
+      });
+
       const metaobjectsReq = Array.from(filterOptions[0]).map(
         (f: string, i: number) => {
           const safeHandle = f.replace(/,/g, "-").toLowerCase();
-          const metaobjecCreationPayload: CreateMetaobjectMutationVariables = {
-            metaobject: {
+          const label = filterOptions[1][i]
+            ? filterOptions[1][i]
+                .replace("-", ",")
+                .toLowerCase()
+                .replace(/(^.)/, (match) => match.toUpperCase())
+            : "";
+          return upsertMetaobject(
+            {
               type: shopifyDefinitionResult!.type,
               handle: safeHandle,
-              capabilities: {
-                publishable: { status: "ACTIVE" as MetaobjectStatus },
-              },
               fields: [
                 { key: "slug", value: f },
-                {
-                  key: "label",
-                  value: filterOptions
-                    ? filterOptions[1][i]
-                        .replace("-", ",")
-                        .toLowerCase()
-                        .replace(/(^.)/, (match) => match.toUpperCase())
-                    : "",
-                },
+                { key: "label", value: label },
               ],
             },
-          };
-          return createMetaobject(metaobjecCreationPayload, admin);
+            admin,
+          );
         },
       );
 
@@ -172,6 +216,56 @@ export const syncProductMetafields = async (admin: AdminApiContext) => {
         console.log(
           `[Metaobjects Saved] Saved/skipped ${uniqueMetaobjects.length} metaobjects for ${type}.`,
         );
+      }
+
+      // 5. REGISTER RUSSIAN TRANSLATIONS for each created metaobject
+      if (uniqueMetaobjects.length > 0) {
+        const translateRequests = uniqueMetaobjects.map(async (m) => {
+          const rusLabel = handleToRusLabel.get(m!.handle);
+          if (!rusLabel) return;
+
+          const digestRes = await admin.graphql(GET_TRANSLATABLE_RESOURCE_QUERY, {
+            variables: { id: m!.id },
+          });
+          if (!digestRes.ok) {
+            console.error(`[Translation] Failed to fetch digests for metaobject "${m!.handle}": ${digestRes.statusText}`);
+            return;
+          }
+
+          const digestData: { data?: TranslatableResourceQuery } = await digestRes.json();
+          const digests = digestData.data?.translatableResource?.translatableContent || [];
+          const labelDigest = digests.find((d) => d.key === "label");
+          if (!labelDigest) return;
+
+          const translations: TranslationInput[] = [
+            {
+              locale: "ru",
+              key: "label",
+              value: rusLabel,
+              translatableContentDigest: labelDigest.digest!,
+            },
+          ];
+
+          const registerRes = await admin.graphql(TRANSLATIONS_REGISTER_MUTATION, {
+            variables: { resourceId: m!.id, translations },
+          });
+          if (!registerRes.ok) {
+            console.error(`[Translation] Failed to register translation for "${m!.handle}": ${registerRes.statusText}`);
+            return;
+          }
+
+          const registerData: { data?: TranslationsRegisterMutation } = await registerRes.json();
+          if (registerData.data?.translationsRegister?.userErrors?.length) {
+            console.error(
+              `[Translation] Error for "${m!.handle}":`,
+              registerData.data.translationsRegister.userErrors,
+            );
+          } else {
+            console.log(`[Translation] Registered ru label for metaobject "${m!.handle}"`);
+          }
+        });
+
+        await Promise.all(translateRequests);
       }
 
       // --- Prepare Product Metafield Definition Payload ---

@@ -39,35 +39,40 @@ export const getocFilterOptionValues = async (optionId: number) => {
       },
     });
 
-    // 2. Получаем все описания (names) за один запрос
+    // 2. Получаем все описания (names) за один запрос — Ukrainian (3) + Russian (1)
     const valueIds = ocValues.map((v) => v.value_id);
-    const ocValuesDescriptions =
-      await externalDB.bc_ocfilter_option_value_description.findMany({
-        where: {
-          value_id: { in: valueIds },
-          language_id: 3, // Ваш целевой язык
-        },
-        select: {
-          value_id: true,
-          name: true,
-        },
-      });
+    const [ocValuesDescriptions, ocValuesDescriptionsRus] = await Promise.all([
+      externalDB.bc_ocfilter_option_value_description.findMany({
+        where: { value_id: { in: valueIds }, language_id: 3 },
+        select: { value_id: true, name: true },
+      }),
+      externalDB.bc_ocfilter_option_value_description.findMany({
+        where: { value_id: { in: valueIds }, language_id: 1 },
+        select: { value_id: true, name: true },
+      }),
+    ]);
 
     // Создаем Map для быстрого доступа к имени по value_id
     const descriptionMap = new Map<bigint, string>();
     for (const desc of ocValuesDescriptions) {
       descriptionMap.set(desc.value_id, desc.name);
     }
+    const descriptionMapRus = new Map<bigint, string>();
+    for (const desc of ocValuesDescriptionsRus) {
+      descriptionMapRus.set(desc.value_id, desc.name);
+    }
 
-    // 3. Собираем пары Название/Слаг и разворачиваем их в два массива
+    // 3. Собираем пары Название/Слаг и разворачиваем их в массивы
     const names: string[] = [];
     const slugs: string[] = [];
+    const rusNames: string[] = [];
 
     for (const value of ocValues) {
       const name = descriptionMap.get(value.value_id);
       if (name && value.keyword) {
         names.push(name);
         slugs.push(value.keyword);
+        rusNames.push(descriptionMapRus.get(value.value_id) || "");
       }
     }
 
@@ -81,18 +86,18 @@ export const getocFilterOptionValues = async (optionId: number) => {
       console.log(
         `[Swap] Первый слаг "${firstSlug}" является латиницей. Массивы поменяны местами.`,
       );
-      // Если условие истинно, меняем местами names и slugs
-      return [slugs, names];
+      // [0]=slugs, [1]=ukrNames, [2]=rusNames
+      return [slugs, names, rusNames];
     } else {
       console.log(
         `[No Swap] Первый слаг "${firstSlug}" не является латиницей. Массивы оставлены в исходном порядке.`,
       );
-      // Иначе возвращаем в исходном порядке
-      return [names, slugs];
+      // [0]=ukrNames, [1]=slugs, [2]=rusNames
+      return [names, slugs, rusNames];
     }
   } catch (error) {
     console.error("Error in getocFilterOptionValues:", error);
-    return [[], []];
+    return [[], [], []];
   }
 };
 export const getFilterOptionDescriptionNames = async (optionId: number) => {

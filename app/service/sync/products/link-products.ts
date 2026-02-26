@@ -1,138 +1,117 @@
-import { externalDB } from "@shared/lib/prisma/prisma.server";
+import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { client } from "@shared/lib/shopify/client/client";
-import { bc_product as Product } from "~/prisma/generated/external_client/client";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 
-export const linkProducts = async (product:Product,accessToken:string,shopDomain:string) => {
-try{
-  // Find product in Shopify by SKU (not using local mapping)
-  const currentProductShopifyId = await findShopifyProductBySku(
-    product.model,
-    accessToken,
-    shopDomain,
-  );
-
-  console.log("currentProductShopifyId", currentProductShopifyId);
-
-  if(!currentProductShopifyId){
-    console.error(`Product ${product.model} not found in Shopify`);
-    return;
-  }
-
-  const query = `
-    mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-      metafieldsSet(metafields: $metafields) {
-        metafields {
-          key
-          namespace
-          value
-          createdAt
-          updatedAt
-        }
-        userErrors {
-          field
-          message
-          code
-        }
+const METAFIELDS_SET_MUTATION = `
+  mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+    metafieldsSet(metafields: $metafields) {
+      metafields {
+        key
+        namespace
+        value
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        field
+        message
+        code
       }
     }
-    `
-  const boundProducts = await externalDB.bc_product_related_article.findMany({
-    where: { article_id: product.product_id },
-  })
+  }
+`;
 
-  if(boundProducts.length > 0){
-    // Find related products in Shopify by SKU
+async function setMetafield(
+  key: string,
+  ownerId: string,
+  value: string[],
+  accessToken: string,
+  shopDomain: string,
+): Promise<void> {
+  const variables = {
+    metafields: [{
+      key,
+      namespace: "custom",
+      ownerId,
+      type: "list.product_reference",
+      value: JSON.stringify(value),
+    }],
+  };
+  const response: any = await client.request({
+    query: METAFIELDS_SET_MUTATION,
+    variables,
+    accessToken,
+    shopDomain,
+  });
+  const userErrors = response?.metafieldsSet?.userErrors ?? [];
+  if (userErrors.length > 0) {
+    const ownerGone = userErrors.some((e: any) => e.message === "Owner does not exist.");
+    if (ownerGone) {
+      throw new Error(`OWNER_NOT_FOUND:${ownerId}`);
+    }
+    throw new Error(userErrors.map((e: any) => e.message).join(", "));
+  }
+}
+
+export const linkProducts = async (
+  product: { product_id: number; shopifyProductId: string },
+  accessToken: string,
+  shopDomain: string,
+) => {
+  const currentProductShopifyId = product.shopifyProductId;
+
+  try {
+    // --- Bound products (bc_product_related_article) ---
+    const boundArticles = await externalDB.bc_product_related_article.findMany({
+      where: { article_id: product.product_id },
+    });
+
     const shopifyRelatedIds: string[] = [];
-
-    for (const relatedProduct of boundProducts) {
-      const relatedProductData = await externalDB.bc_product.findUnique({
-        where: { product_id: relatedProduct.product_id },
-        select: {
-          product_id: true,
-          model: true,
-          // Exclude date_available to avoid "Value out of range" error
-        },
+    for (const article of boundArticles) {
+      const relatedProduct = await externalDB.bc_product.findUnique({
+        where: { product_id: article.product_id },
+        select: { model: true },
       });
-
-      if (relatedProductData) {
-        const shopifyId = await findShopifyProductBySku(
-          relatedProductData.model,
-          accessToken,
-          shopDomain,
-        );
-
+      if (relatedProduct) {
+        const shopifyId = await findShopifyProductBySku(relatedProduct.model, accessToken, shopDomain);
         if (shopifyId && shopifyId !== currentProductShopifyId) {
           shopifyRelatedIds.push(shopifyId);
         }
       }
     }
 
-    if(shopifyRelatedIds.length > 0){
-      const variables = {
-        "metafields": [{
-          "key": "bound-products",
-          "namespace": "custom",
-          "ownerId": currentProductShopifyId,
-          "type": "list.product_reference",
-          "value": JSON.stringify(shopifyRelatedIds)
-        }]
-      }
-      console.log("Shopify bound products:", JSON.stringify(variables));
-      const response = await client.request({query:query,variables,accessToken,shopDomain})
-      console.log("Bound products updated:", JSON.stringify(response));
-    }
-  }
-  const relatedProducts = await externalDB
-    .bc_product_related.findMany({
+    // Always set (even empty) to clear stale links
+    console.log(`[${product.product_id}] Setting bound-products: ${shopifyRelatedIds.length} links`);
+    await setMetafield("bound-products", currentProductShopifyId, shopifyRelatedIds, accessToken, shopDomain);
+
+    // --- Related products (bc_product_related) ---
+    const relatedRows = await externalDB.bc_product_related.findMany({
       where: { product_id: product.product_id },
     });
 
-  if(relatedProducts.length > 0){
-    // Find recommended products in Shopify by SKU
     const shopifyRecommendedIds: string[] = [];
-
-    for (const relatedProduct of relatedProducts) {
-      const relatedProductData = await externalDB.bc_product.findUnique({
-        where: { product_id: relatedProduct.related_id },
-        select: {
-          product_id: true,
-          model: true,
-          // Exclude date_available to avoid "Value out of range" error
-        },
+    for (const row of relatedRows) {
+      const relatedProduct = await externalDB.bc_product.findUnique({
+        where: { product_id: row.related_id },
+        select: { model: true },
       });
-
-      if (relatedProductData) {
-        const shopifyId = await findShopifyProductBySku(
-          relatedProductData.model,
-          accessToken,
-          shopDomain,
-        );
-
+      if (relatedProduct) {
+        const shopifyId = await findShopifyProductBySku(relatedProduct.model, accessToken, shopDomain);
         if (shopifyId) {
           shopifyRecommendedIds.push(shopifyId);
         }
       }
     }
 
-    if(shopifyRecommendedIds.length > 0){
-      const variablesR = {
-        "metafields": [{
-          "key": "recommended_products",
-          "namespace": "custom",
-          "ownerId": currentProductShopifyId,
-          "type": "list.product_reference",
-          "value": JSON.stringify(shopifyRecommendedIds)
-        }]
-      }
-      console.log("Shopify recommended products:", JSON.stringify(variablesR));
-      const response = await client.request({query:query,variables:variablesR,accessToken,shopDomain})
-      console.log("Recommended products updated:", JSON.stringify(response));
+    // Always set (even empty) to clear stale links
+    console.log(`[${product.product_id}] Setting recommended_products: ${shopifyRecommendedIds.length} links`);
+    await setMetafield("recommended_products", currentProductShopifyId, shopifyRecommendedIds, accessToken, shopDomain);
+  } catch (error: any) {
+    if (error.message?.startsWith("OWNER_NOT_FOUND:")) {
+      // Product no longer exists in Shopify — clean up the stale productMap entry
+      console.warn(`[${product.product_id}] Product ${currentProductShopifyId} not found in Shopify, removing from ProductMap`);
+      await prisma.productMap.delete({ where: { localProductId: product.product_id } });
     }
+    throw error; // re-throw so the worker counts it as an error
   }
-
-}
-catch(error){
-  console.error("Error linking products", error);
-}
-}
+};

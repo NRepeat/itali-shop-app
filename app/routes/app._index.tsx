@@ -10,6 +10,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   syncCollections,
   syncBrandCollections,
+  translateExistingCollections,
   stripGenderFromHandle,
 } from "@/service/sync/collection/syncCollections";
 import { syncProducts } from "@/service/sync/products/syncProducts";
@@ -25,6 +26,7 @@ import {
 import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
+import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -114,6 +116,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // }
 
       logs = (await syncCollections(admin)) || [];
+    } else if (body.action === "translate-collections") {
+      logs = (await translateExistingCollections(admin)) || [];
     } else if (body.action === "sync-brands") {
       logs = (await syncBrandCollections(admin)) || [];
     } else if (body.action === "sync-products") {
@@ -178,6 +182,80 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
         (await syncCustomers(session.shop, session.accessToken!, limit)) || [];
+    } else if (body.action === "debug-product-links") {
+      const productId = Number(body.productId);
+      logs.push(`=== Debug product links for local ID: ${productId} ===`);
+
+      // 1. Check productMap, fall back to SKU lookup
+      let shopifyProductId: string | null = null;
+      const map = await prisma.productMap.findFirst({ where: { localProductId: productId } });
+      if (map) {
+        shopifyProductId = map.shopifyProductId;
+        logs.push(`✓ ProductMap: ${shopifyProductId}`);
+      } else {
+        const product = await externalDB.bc_product.findUnique({
+          where: { product_id: productId },
+          select: { model: true },
+        });
+        if (product) {
+          shopifyProductId = await findShopifyProductBySku(product.model, session.accessToken!, session.shop);
+          if (shopifyProductId) {
+            logs.push(`✓ Found in Shopify via SKU (${product.model}): ${shopifyProductId}`);
+            logs.push(`  ⚠ Not in ProductMap — will be backfilled on next link update run`);
+          } else {
+            logs.push(`✗ model=${product.model} — not found in Shopify`);
+          }
+        } else {
+          logs.push(`✗ Not found in external DB`);
+        }
+      }
+
+      if (shopifyProductId) {
+
+        // 2. Bound products (bc_product_related_article)
+        const boundArticles = await externalDB.bc_product_related_article.findMany({
+          where: { article_id: productId },
+        });
+        logs.push(`\nBound articles in DB: ${boundArticles.length}`);
+        for (const article of boundArticles) {
+          const rel = await externalDB.bc_product.findUnique({
+            where: { product_id: article.product_id },
+            select: { product_id: true, model: true },
+          });
+          if (!rel) {
+            logs.push(`  [${article.product_id}] ✗ Not found in external DB`);
+            continue;
+          }
+          const shopifyId = await findShopifyProductBySku(rel.model, session.accessToken!, session.shop);
+          if (shopifyId) {
+            logs.push(`  [${rel.product_id}] model=${rel.model} → ✓ ${shopifyId}`);
+          } else {
+            logs.push(`  [${rel.product_id}] model=${rel.model} → ✗ NOT in Shopify`);
+          }
+        }
+
+        // 3. Related products (bc_product_related)
+        const relatedRows = await externalDB.bc_product_related.findMany({
+          where: { product_id: productId },
+        });
+        logs.push(`\nRelated products in DB: ${relatedRows.length}`);
+        for (const row of relatedRows) {
+          const rel = await externalDB.bc_product.findUnique({
+            where: { product_id: row.related_id },
+            select: { product_id: true, model: true },
+          });
+          if (!rel) {
+            logs.push(`  [${row.related_id}] ✗ Not found in external DB`);
+            continue;
+          }
+          const shopifyId = await findShopifyProductBySku(rel.model, session.accessToken!, session.shop);
+          if (shopifyId) {
+            logs.push(`  [${row.related_id}] model=${rel.model} → ✓ ${shopifyId}`);
+          } else {
+            logs.push(`  [${row.related_id}] model=${rel.model} → ✗ NOT in Shopify`);
+          }
+        }
+      }
     } else if (body.action === "sync-orders") {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
@@ -437,6 +515,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Index() {
   const stats = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const [debugProductId, setDebugProductId] = useState("6729");
   const [productLimit, setProductLimit] = useState("5");
   const [updateLinksLimit, setUpdateLinksLimit] = useState("100");
   const [updateLinksOffset, setUpdateLinksOffset] = useState("0");
@@ -612,6 +691,32 @@ export default function Index() {
                 : `Reset Sync ALL`}
             </s-button>
           </div>
+        </div>
+      </s-section>
+
+      <s-section heading="Debug Product Links">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Dry-run: shows what bound/related links would be set for a single product
+        </div>
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end", flexWrap: "wrap" as const }}>
+          <s-text-field
+            label="Local Product ID"
+            type="number"
+            value={debugProductId}
+            min="1"
+            onInput={(e: any) => setDebugProductId(e.target.value)}
+            help-text="e.g. 6729"
+          ></s-text-field>
+          <s-button
+            variant="primary"
+            onClick={() => fetcher.submit(
+              { action: "debug-product-links", productId: debugProductId },
+              { method: "post", encType: "application/json" },
+            )}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "debug-product-links" ? "Checking..." : "Debug Links"}
+          </s-button>
         </div>
       </s-section>
 
@@ -969,6 +1074,14 @@ export default function Index() {
             {isLoading && fetcher.json?.action === "sync-categories"
               ? "Syncing..."
               : `Sync Categories (${stats.totalCategories})`}
+          </s-button>
+          <s-button
+            onClick={() => handleAction("translate-collections")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "translate-collections"
+              ? "Translating..."
+              : "Translate Collections (RU)"}
           </s-button>
           <s-button
             onClick={() => handleAction("sync-brands")}

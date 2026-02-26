@@ -28,18 +28,26 @@ export const createMetaobject = async (
       variables: { metaobject: definition.metaobject },
     });
 
+    if (!res.ok) {
+      throw new Error(
+        `Failed to create metaobject: ${res.status} ${res.statusText}`,
+      );
+    }
+
+    const data = await res.json();
+
     if (
-     res?.data?.metaobjectCreate?.userErrors &&
-      res.data.metaobjectCreate?.userErrors?.length > 0
+      data.data?.metaobjectCreate?.userErrors &&
+      data.data.metaobjectCreate?.userErrors?.length > 0
     ) {
       throw new Error(
-        res.data.metaobjectCreate.userErrors
+        data.data.metaobjectCreate.userErrors
           .map((error: { message: string }) => error.message)
           .join(", "),
       );
     }
 
-    return res.data?.metaobjectCreate?.metaobject;
+    return data.data?.metaobjectCreate?.metaobject;
   } catch (error) {
     console.error(error);
     return null;

@@ -7,7 +7,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  await getSyncQueue(topic).add(topic, { shop, topic, payload });
+  const queue = getSyncQueue(topic);
+  if (queue) {
+    await queue.add(topic, { shop, topic, payload });
+  }
 
 
 
