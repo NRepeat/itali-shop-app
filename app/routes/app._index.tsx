@@ -122,12 +122,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       logs = (await syncBrandCollections(admin)) || [];
     } else if (body.action === "sync-products") {
       const limit = body.limit ? Number(body.limit) : undefined;
+      const since = body.since ? new Date(body.since as string) : undefined;
       logs =
-        (await syncProducts(session.shop, session.accessToken!, limit)) || [];
+        (await syncProducts(session.shop, session.accessToken!, limit, false, since)) || [];
     } else if (body.action === "reset-sync-products") {
       const limit = body.limit ? Number(body.limit) : undefined;
+      const since = body.since ? new Date(body.since as string) : undefined;
       logs =
-        (await syncProducts(session.shop, session.accessToken!, limit, true)) ||
+        (await syncProducts(session.shop, session.accessToken!, limit, true, since)) ||
         [];
     } else if (body.action === "update-product-links") {
       const limit = body.limit ? Number(body.limit) : undefined;
@@ -520,6 +522,7 @@ export default function Index() {
   const [updateLinksLimit, setUpdateLinksLimit] = useState("100");
   const [updateLinksOffset, setUpdateLinksOffset] = useState("0");
   const [fixHandlesLimit, setFixHandlesLimit] = useState("100");
+  const [syncSince, setSyncSince] = useState("2026-02-28");
   const [fixHandlesOffset, setFixHandlesOffset] = useState("0");
   const [fixTitlesLimit, setFixTitlesLimit] = useState("100");
   const [fixTitlesOffset, setFixTitlesOffset] = useState("0");
@@ -527,14 +530,11 @@ export default function Index() {
   const [orderLimit, setOrderLimit] = useState("5");
   const isLoading = fetcher.state !== "idle";
 
-  const handleAction = (action: string, limit?: string, offset?: string) => {
+  const handleAction = (action: string, limit?: string, offset?: string, since?: string) => {
     const payload: Record<string, string> = { action };
-    if (limit) {
-      payload.limit = limit;
-    }
-    if (offset) {
-      payload.offset = offset;
-    }
+    if (limit) payload.limit = limit;
+    if (offset) payload.offset = offset;
+    if (since) payload.since = since;
     fetcher.submit(payload, { method: "post", encType: "application/json" });
   };
 
@@ -622,6 +622,13 @@ export default function Index() {
           }}
         >
           <s-text-field
+            label="Since date"
+            type="date"
+            value={syncSince}
+            onInput={(e: any) => setSyncSince(e.target.value)}
+            help-text="Only sync products modified after this date"
+          ></s-text-field>
+          <s-text-field
             label="Product limit"
             type="number"
             value={productLimit}
@@ -631,26 +638,22 @@ export default function Index() {
           ></s-text-field>
           <s-button
             variant="primary"
-            onClick={() => handleAction("sync-products", productLimit)}
+            onClick={() => handleAction("sync-products", productLimit, undefined, syncSince)}
             disabled={isLoading || undefined}
           >
-            {isLoading &&
-            fetcher.json?.action === "sync-products" &&
-            fetcher.json?.limit
-              ? "Creating products..."
-              : `Sync ${productLimit || "N"} Products`}
+            {isLoading && fetcher.json?.action === "sync-products" && fetcher.json?.limit
+              ? "Syncing..."
+              : `Sync ${productLimit || "N"} since ${syncSince}`}
           </s-button>
           <s-button
             variant="primary"
             tone="critical"
-            onClick={() => handleAction("sync-products")}
+            onClick={() => handleAction("sync-products", undefined, undefined, syncSince)}
             disabled={isLoading || undefined}
           >
-            {isLoading &&
-            fetcher.json?.action === "sync-products" &&
-            !fetcher.json?.limit
-              ? "Creating all..."
-              : `Sync ALL (${stats.remaining})`}
+            {isLoading && fetcher.json?.action === "sync-products" && !fetcher.json?.limit
+              ? "Syncing all..."
+              : `Sync ALL since ${syncSince}`}
           </s-button>
         </div>
         <div

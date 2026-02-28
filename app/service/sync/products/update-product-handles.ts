@@ -320,7 +320,6 @@ export async function updateProductHandles(
         hasRelatedArticles,
         aliasSlugs,
       );
-      console.log(newHandle, brandSlug, "------------");
 
       // Find product in Shopify
       const shopifyResp = await client.request<{

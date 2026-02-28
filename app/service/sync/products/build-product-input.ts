@@ -52,7 +52,6 @@ export function cleanTitle(
   model: string,
 ): string {
   let t = title;
-  console.log(title,brandName,model,"-----------")
   if (brandName) {
     const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     t = t.replace(new RegExp(escaped, "gi"), "");
@@ -70,7 +69,6 @@ export function cleanTitle(
     t = t.replace(new RegExp(`(?:^|\\s)${escapedModel}(?=\\s|$)`, "gi"), "");
   }
   const clean = t.replace(/\s+/g, " ").trim();
-  console.log(clean,"-----------")
   return clean
 }
 /**

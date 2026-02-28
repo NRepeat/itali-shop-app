@@ -230,7 +230,7 @@ export const buildProductVariants = async (
       inventoryQuantities: [
         {
           name: "available",
-          quantity: 1,
+          quantity: product.quantity ?? 0,
           locationId: process.env.SHOPIFY_LOCATION || "gid://shopify/Location/78249492642",
         },
       ],

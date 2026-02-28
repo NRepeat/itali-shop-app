@@ -6,6 +6,7 @@ export const syncProducts = async (
   accessToken: string,
   limit?: number,
   forceProductSet?: boolean,
+  since?: Date,
 ) => {
   const logs: string[] = [];
   const log = (msg: string) => {
@@ -17,7 +18,7 @@ export const syncProducts = async (
       where: {
         status: true,
         quantity: { gt: 0 },
-        date_modified: { gte: new Date("2026-02-25T00:00:00.000Z") },
+        ...(since ? { date_modified: { gte: since } } : {}),
       },
       orderBy: {
         product_id: "desc",
