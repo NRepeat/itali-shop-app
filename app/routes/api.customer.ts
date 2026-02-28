@@ -92,6 +92,7 @@ const CUSTOMER_WITH_ORDERS_QUERY = `
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const email = decodeURIComponent(url.searchParams.get("email") ?? "").trim() || undefined;
+  console.log(email);
 
   if (!email) {
     return Response.json({ error: "email query parameter is required" }, { status: 400 });
@@ -108,6 +109,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!session?.accessToken || !session.shop) {
     return Response.json({ error: "No Shopify session found" }, { status: 503 });
   }
+  console.log(session);
 
   try {
     const data = await client.request<{
