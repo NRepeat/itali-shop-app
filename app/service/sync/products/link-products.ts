@@ -76,6 +76,30 @@ async function setMetafield(
     if (ownerGone) {
       throw new Error(`OWNER_NOT_FOUND:${ownerId}`);
     }
+
+    // Some referenced products may not exist in Shopify yet — strip them and retry once
+    const missingGids = userErrors
+      .map((e: any) => {
+        const m = /Value references non-existent resource (gid:\/\/\S+)\./.exec(e.message ?? "");
+        return m ? m[1] : null;
+      })
+      .filter(Boolean) as string[];
+
+    if (missingGids.length > 0) {
+      const filtered = value.filter((v) => !missingGids.includes(v));
+      console.warn(`[setMetafield] Skipping ${missingGids.length} missing product GID(s) for ${key} on ${ownerId}`);
+      if (filtered.length === 0) return;
+      const retryVars = {
+        metafields: [{ key, namespace: "custom", ownerId, type: "list.product_reference", value: JSON.stringify(filtered) }],
+      };
+      const retryRes: any = await client.request({ query: METAFIELDS_SET_MUTATION, variables: retryVars, accessToken, shopDomain });
+      const retryErrors = retryRes?.metafieldsSet?.userErrors ?? [];
+      if (retryErrors.length > 0) {
+        throw new Error(retryErrors.map((e: any) => e.message).join(", "));
+      }
+      return;
+    }
+
     throw new Error(userErrors.map((e: any) => e.message).join(", "));
   }
 }
