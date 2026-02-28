@@ -13,3 +13,14 @@ export function toE164(phone: string | null | undefined): string | null {
   if (digits.length < 7) return null;
   return `+${digits}`;
 }
+
+/**
+ * Converts to E.164 and validates as a Ukrainian phone number (+380XXXXXXXXX).
+ * Returns null for numbers that don't conform — e.g. "+38 (771)..." which
+ * strips to "+387..." (Bosnia country code) due to missing trunk zero.
+ */
+export function toUkrainianE164(phone: string | null | undefined): string | null {
+  const e164 = toE164(phone);
+  if (!e164) return null;
+  return /^\+380\d{9}$/.test(e164) ? e164 : null;
+}

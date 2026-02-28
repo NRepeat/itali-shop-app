@@ -1,7 +1,7 @@
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { getOrders } from "@/service/italy/orders/getOrders";
 import { client } from "../client/shopify";
-import { toE164 } from "@/shared/phone";
+import { toUkrainianE164 } from "@/shared/phone";
 
 const WORKERS = 1; // Dev store: max 5 orders/min regardless of API
 const DELAY_BETWEEN_ORDERS_MS = 12_000; // ~5 orders/min to stay under limit
@@ -341,7 +341,7 @@ export const syncOrders = async (
         if (order.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) {
           customerUpsert.email = order.email;
         }
-        const phone = toE164(order.telephone);
+        const phone = toUkrainianE164(order.telephone);
         if (phone) {
           customerUpsert.phone = phone;
         }
@@ -420,7 +420,7 @@ export const syncOrders = async (
           JSON.stringify(e.field).includes("phone"),
         );
         if (isPhoneError) {
-          console.error(`Phone error for order #${order.order_id}: raw="${order.telephone}" e164="${toE164(order.telephone)}"`);
+          console.error(`Phone error for order #${order.order_id}: raw="${order.telephone}" e164="${toUkrainianE164(order.telephone)}"`);
         }
         throw new Error(
           userErrors.map((e: any) => `${e.field}: ${e.message}`).join(", "),
