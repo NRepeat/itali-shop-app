@@ -9,7 +9,7 @@ import {
   FileSetInput,
 } from "@/types";
 // MetafieldInput kept for buildProductUpdateInput
-import { sanitizeHandle } from "@/shared/handle";
+import { buildNewHandle } from "./update-product-handles";
 
 const dedupeKeywords = (keywords: string): string =>
   [...new Set(keywords.split(",").map((k) => k.trim()).filter(Boolean))].join(", ");
@@ -66,17 +66,11 @@ export function cleanTitle(
 
   if (/\d/.test(model)) {
     const escapedModel = model.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Фикс: убираем слово целиком без артефактов
     t = t.replace(new RegExp(`(?:^|\\s)${escapedModel}(?=\\s|$)`, "gi"), "");
   }
-  const clean = t.replace(/\s+/g, " ").trim();
-  return clean
+  return t.replace(/\s+/g, " ").trim();
 }
-/**
- * Builds a clean product handle:
- * - Removes brand slug from seo_keyword
- * - If product has related articles (color variants), ensures colorSlug is present
- */
+
 export function buildHandle(
   seoKeyword: string,
   brandName: string | null | undefined,
@@ -84,37 +78,11 @@ export function buildHandle(
   colorSlug: string | null | undefined,
   hasRelatedArticles: boolean,
 ): string {
-  let handle = sanitizeHandle(seoKeyword.replace(/^\//, "").trim());
-
-  if (brandName) {
-    const brandSlug = slugifyBrand(brandName);
-    if (brandSlug) {
-      const escaped = brandSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      handle = handle.replace(new RegExp(`(?:^|-)${escaped}(?=-|$)`, "g"), "");
-    }
-    // Also remove alias slugs (e.g. "ea7" when brand is "EA7 Emporio Armani")
-    for (const alias of brandAliasMap[brandName] ?? []) {
-      const aliasSlug = slugifyBrand(alias);
-      const escaped = aliasSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      handle = handle.replace(new RegExp(`(?:^|-)${escaped}(?=-|$)`, "g"), "");
-    }
-  }
-
-  handle = handle.replace(/-+/g, "-").replace(/^-|-$/g, "");
-
-  const modelSlug = slugifyBrand(model);
-  const brandSlugForInsert = brandName ? slugifyBrand(brandName) : null;
-  const parts = [brandSlugForInsert, colorSlug].filter((p): p is string => Boolean(p));
-  if (parts.length > 0) {
-    const lastIndex = handle.lastIndexOf(`-${modelSlug}`);
-    if (lastIndex !== -1) {
-      handle = handle.slice(0, lastIndex) + `-${parts.join("-")}-${modelSlug}`;
-    }
-    // If model slug not found at end of handle, leave handle untouched
-    // (seo_keyword already encodes brand/color, e.g. "kostyum-ea7-monogram")
-  }
-
-  return handle;
+  const brandSlug = brandName ? slugifyBrand(brandName) : null;
+  const aliasSlugs = brandName
+    ? (brandAliasMap[brandName] ?? []).map(slugifyBrand)
+    : [];
+  return buildNewHandle(seoKeyword, brandSlug, model, colorSlug ?? null, hasRelatedArticles, aliasSlugs);
 }
 
 export const buildProductInput = (

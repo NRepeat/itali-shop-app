@@ -127,7 +127,7 @@ function insertColorBeforeModel(
  * 2. If has related articles → ensure color slug is in handle
  * 3. Ensure SKU (model) is appended at the end
  */
-function buildNewHandle(
+export function buildNewHandle(
   seoKeyword: string,
   brandSlug: string | null,
   model: string,
