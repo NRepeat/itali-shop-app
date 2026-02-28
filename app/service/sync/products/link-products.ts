@@ -1,4 +1,4 @@
-import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
+import { externalDB } from "@shared/lib/prisma/prisma.server";
 import { client } from "@shared/lib/shopify/client/client";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 
@@ -80,7 +80,6 @@ export const linkProducts = async (
       }
     }
 
-    // Always set (even empty) to clear stale links
     console.log(`[${product.product_id}] Setting bound-products: ${shopifyRelatedIds.length} links`);
     await setMetafield("bound-products", currentProductShopifyId, shopifyRelatedIds, accessToken, shopDomain);
 
@@ -103,15 +102,12 @@ export const linkProducts = async (
       }
     }
 
-    // Always set (even empty) to clear stale links
     console.log(`[${product.product_id}] Setting recommended_products: ${shopifyRecommendedIds.length} links`);
     await setMetafield("recommended_products", currentProductShopifyId, shopifyRecommendedIds, accessToken, shopDomain);
   } catch (error: any) {
     if (error.message?.startsWith("OWNER_NOT_FOUND:")) {
-      // Product no longer exists in Shopify — clean up the stale productMap entry
-      console.warn(`[${product.product_id}] Product ${currentProductShopifyId} not found in Shopify, removing from ProductMap`);
-      await prisma.productMap.delete({ where: { localProductId: product.product_id } });
+      console.warn(`[${product.product_id}] Product ${currentProductShopifyId} not found in Shopify`);
     }
-    throw error; // re-throw so the worker counts it as an error
+    throw error;
   }
 };

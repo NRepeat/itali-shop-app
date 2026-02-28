@@ -1,11 +1,11 @@
-import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
+import { externalDB } from "@shared/lib/prisma/prisma.server";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import { linkProducts } from "./link-products";
 
 /**
  * Updates metafields (bound-products and recommended_products) for all active products.
- * For each product: tries ProductMap first (fast), falls back to Shopify SKU lookup,
- * and backfills ProductMap when found via SKU lookup.
+ * Fetches product IDs from the external DB, resolves Shopify IDs via SKU lookup,
+ * then writes the correct metafield values (replacing any existing ones).
  */
 
 const WORKERS = 10;
@@ -57,11 +57,7 @@ export const updateExistingProductLinks = async (
     });
 
     const products = await externalDB.bc_product.findMany({
-      where: {
-        status: true,
-        quantity: { gt: 0 },
-        date_modified: { gte: new Date("2026-02-25T00:00:00.000Z") },
-      },
+      where: { status: true, quantity: { gt: 0 } },
       select: { product_id: true, model: true },
       skip: offset,
       ...(limit && { take: limit }),
@@ -86,39 +82,18 @@ export const updateExistingProductLinks = async (
 
         const product = products[index];
         try {
-          // Try ProductMap first (fast path)
-          let map = await prisma.productMap.findFirst({
-            where: { localProductId: product.product_id },
-            select: { shopifyProductId: true },
-          });
+          const shopifyProductId = await findShopifyProductBySku(
+            product.model,
+            accessToken,
+            shopDomain,
+          );
 
-          // Fall back to Shopify SKU lookup for products missing from ProductMap
-          if (!map) {
-            const shopifyId = await findShopifyProductBySku(
-              product.model,
-              accessToken,
-              shopDomain,
-            );
-            if (!shopifyId) {
-              log(
-                `[${index + 1}/${total}] SKIP ${product.product_id} (${product.model}) — not in Shopify`,
-              );
-              skippedCount++;
-              continue;
-            }
-            // Backfill ProductMap so future runs are fast
-            await prisma.productMap.upsert({
-              where: { localProductId: product.product_id },
-              update: { shopifyProductId: shopifyId },
-              create: {
-                localProductId: product.product_id,
-                shopifyProductId: shopifyId,
-              },
-            });
-            map = { shopifyProductId: shopifyId };
+          if (!shopifyProductId) {
             log(
-              `[${index + 1}/${total}] Backfilled ProductMap for ${product.product_id} → ${shopifyId}`,
+              `[${index + 1}/${total}] SKIP ${product.product_id} (${product.model}) — not in Shopify`,
             );
+            skippedCount++;
+            continue;
           }
 
           log(
@@ -126,10 +101,7 @@ export const updateExistingProductLinks = async (
           );
           await withRetry(() =>
             linkProducts(
-              {
-                product_id: product.product_id,
-                shopifyProductId: map!.shopifyProductId,
-              },
+              { product_id: product.product_id, shopifyProductId },
               accessToken,
               shopDomain,
             ),
