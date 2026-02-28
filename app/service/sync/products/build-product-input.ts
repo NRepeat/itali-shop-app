@@ -30,6 +30,27 @@ function slugifyBrand(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Sanitizes a raw seo_keyword handle:
+ * - Removes Unicode apostrophes/quotes (ʼ U+02BC, ' U+2019, ` U+0060, etc.) silently
+ *   so "vʼyetnamky" → "vyetnamky" (not "v-yetnamky")
+ * - Normalizes NFD and strips combining diacritical marks
+ * - Removes any remaining non-ASCII / non-URL-safe characters
+ * - Collapses multiple hyphens
+ */
+function sanitizeHandle(handle: string): string {
+  return handle
+    // Remove Unicode apostrophe-like characters without inserting a separator
+    .replace(/[\u02BC\u2019\u2018\u0060\u00B4\u02B9\u02BB\u02BD\u02BE\u02BF]/g, "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    // Keep only lowercase letters, digits, and hyphens
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 const brandAliasMap: Record<string, string[]> = {
   "EA7 Emporio Armani": ["EA7", "\u0415\u04107", "\u0415\u04107 Emporio Armani"],
   "Emporio Armani": ["EA7", "\u0415\u04107"],
@@ -84,7 +105,7 @@ export function buildHandle(
   colorSlug: string | null | undefined,
   hasRelatedArticles: boolean,
 ): string {
-  let handle = seoKeyword.replace(/^\//, "").trim();
+  let handle = sanitizeHandle(seoKeyword.replace(/^\//, "").trim());
 
   if (brandName) {
     const brandSlug = slugifyBrand(brandName);
