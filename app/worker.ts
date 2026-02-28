@@ -7,17 +7,17 @@ const connection = new Redis(REDIS_CONFIG.port, REDIS_CONFIG.host, {
   ...REDIS_CONFIG.options,
 });
 
-const syncWorker = new Worker("sync-queue", processSyncTask, {
+const productWorker = new Worker("productSyncQueue", processSyncTask, {
   connection,
   concurrency: 10,
 });
 
-syncWorker.on("completed", (job) => {
-  console.log(`Job ${job.id} of type ${job.name} finished.`);
+productWorker.on("completed", (job) => {
+  console.log(`Job ${job.id} (${job.name}) completed.`);
 });
 
-syncWorker.on("failed", (job, err) => {
-  console.error(`Job ${job?.id} failed with error: ${err.message}`);
+productWorker.on("failed", (job, err) => {
+  console.error(`Job ${job?.id} failed: ${err.message}`);
 });
 
-console.log("Worker Service is running and listening for sync-queue jobs...");
+console.log("Worker Service is running and listening for productSyncQueue jobs...");

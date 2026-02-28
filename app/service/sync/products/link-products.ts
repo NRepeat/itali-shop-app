@@ -1,4 +1,4 @@
-import { externalDB } from "@shared/lib/prisma/prisma.server";
+import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { client } from "@shared/lib/shopify/client/client";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 
@@ -20,6 +20,33 @@ const METAFIELDS_SET_MUTATION = `
     }
   }
 `;
+
+/** Resolve external product_id → Shopify GID. ProductMap first, SKU fallback. */
+async function resolveShopifyId(
+  localProductId: number,
+  accessToken: string,
+  shopDomain: string,
+): Promise<string | null> {
+  const map = await prisma.productMap.findUnique({ where: { localProductId } });
+  if (map) return map.shopifyProductId;
+
+  // Fallback: look up by SKU and populate ProductMap for future runs
+  const externalProduct = await externalDB.bc_product.findUnique({
+    where: { product_id: localProductId },
+    select: { model: true },
+  });
+  if (!externalProduct) return null;
+
+  const shopifyId = await findShopifyProductBySku(externalProduct.model, accessToken, shopDomain);
+  if (shopifyId) {
+    await prisma.productMap.upsert({
+      where: { localProductId },
+      update: { shopifyProductId: shopifyId },
+      create: { localProductId, shopifyProductId: shopifyId },
+    });
+  }
+  return shopifyId;
+}
 
 async function setMetafield(
   key: string,
@@ -68,15 +95,9 @@ export const linkProducts = async (
 
     const shopifyRelatedIds: string[] = [];
     for (const article of boundArticles) {
-      const relatedProduct = await externalDB.bc_product.findUnique({
-        where: { product_id: article.product_id },
-        select: { model: true },
-      });
-      if (relatedProduct) {
-        const shopifyId = await findShopifyProductBySku(relatedProduct.model, accessToken, shopDomain);
-        if (shopifyId && shopifyId !== currentProductShopifyId) {
-          shopifyRelatedIds.push(shopifyId);
-        }
+      const shopifyId = await resolveShopifyId(article.product_id, accessToken, shopDomain);
+      if (shopifyId && shopifyId !== currentProductShopifyId) {
+        shopifyRelatedIds.push(shopifyId);
       }
     }
 
@@ -90,15 +111,9 @@ export const linkProducts = async (
 
     const shopifyRecommendedIds: string[] = [];
     for (const row of relatedRows) {
-      const relatedProduct = await externalDB.bc_product.findUnique({
-        where: { product_id: row.related_id },
-        select: { model: true },
-      });
-      if (relatedProduct) {
-        const shopifyId = await findShopifyProductBySku(relatedProduct.model, accessToken, shopDomain);
-        if (shopifyId) {
-          shopifyRecommendedIds.push(shopifyId);
-        }
+      const shopifyId = await resolveShopifyId(row.related_id, accessToken, shopDomain);
+      if (shopifyId) {
+        shopifyRecommendedIds.push(shopifyId);
       }
     }
 

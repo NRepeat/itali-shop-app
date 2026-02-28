@@ -1,4 +1,4 @@
-import { externalDB } from "@shared/lib/prisma/prisma.server";
+import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import { linkProducts } from "./link-products";
 
@@ -82,15 +82,28 @@ export const updateExistingProductLinks = async (
 
         const product = products[index];
         try {
-          const shopifyProductId = await findShopifyProductBySku(
-            product.model,
-            accessToken,
-            shopDomain,
-          );
+            let productMap = await prisma.productMap.findUnique({
+            where: { localProductId: product.product_id },
+          });
+
+          if (!productMap) {
+            // Fallback: find by SKU in Shopify and populate ProductMap
+            const foundId = await findShopifyProductBySku(product.model, accessToken, shopDomain);
+            if (foundId) {
+              productMap = await prisma.productMap.upsert({
+                where: { localProductId: product.product_id },
+                update: { shopifyProductId: foundId },
+                create: { localProductId: product.product_id, shopifyProductId: foundId },
+              });
+              log(`[${index + 1}/${total}] ProductMap populated via SKU fallback: ${product.product_id} → ${foundId}`);
+            }
+          }
+
+          const shopifyProductId = productMap?.shopifyProductId ?? null;
 
           if (!shopifyProductId) {
             log(
-              `[${index + 1}/${total}] SKIP ${product.product_id} (${product.model}) — not in Shopify`,
+              `[${index + 1}/${total}] SKIP ${product.product_id} (${product.model}) — not found in Shopify`,
             );
             skippedCount++;
             continue;
