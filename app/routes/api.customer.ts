@@ -91,7 +91,7 @@ const CUSTOMER_WITH_ORDERS_QUERY = `
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  const email = url.searchParams.get("email")?.trim();
+  const email = decodeURIComponent(url.searchParams.get("email") ?? "").trim() || undefined;
 
   if (!email) {
     return Response.json({ error: "email query parameter is required" }, { status: 400 });
