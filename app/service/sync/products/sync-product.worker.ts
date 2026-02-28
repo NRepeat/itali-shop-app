@@ -426,6 +426,16 @@ export const processSyncTask = async (job: Job) => {
       console.log(`[Create] Creating new product for ${product.product_id}`);
     }
 
+    // Metafields connected to options cannot be set via the metafields input
+    const linkedMetafieldKeys = new Set(
+      (sProductOptions as any[])
+        .map((opt) => opt.linkedMetafield?.key)
+        .filter(Boolean),
+    );
+    const filteredMetafields = productMetafieldsmetObjects.filter(
+      (mf) => !linkedMetafieldKeys.has(mf.key),
+    );
+
     const input = buildProductInput(
       ukrainianDescription,
       sProductOptions,
@@ -433,7 +443,7 @@ export const processSyncTask = async (job: Job) => {
       files,
       vendor,
       tags,
-      productMetafieldsmetObjects,
+      filteredMetafields,
       shopifyCategoryGid,
       discountPercentage,
       product.sort_order,
