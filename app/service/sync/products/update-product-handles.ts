@@ -1,5 +1,6 @@
 import { externalDB } from "@shared/lib/prisma/prisma.server";
 import { client } from "../../sync/client/shopify";
+import { sanitizeHandle } from "@/shared/handle";
 
 const colorMapping: Record<string, string> = {
   Блакитний: "blakitnij",
@@ -134,7 +135,7 @@ function buildNewHandle(
   hasRelatedArticles: boolean,
   aliasSlugs: string[] = [],
 ): string {
-  let handle = seoKeyword.replace(/^\//, "").trim();
+  let handle = sanitizeHandle(seoKeyword.replace(/^\//, "").trim());
 
   // if (brandSlug) {
   //   handle = removeBrandFromHandle(handle, brandSlug);

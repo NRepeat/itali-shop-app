@@ -8,6 +8,7 @@ import {
   ProductVariantSetInput,
   FileSetInput,
 } from "@/types";
+import { sanitizeHandle } from "@/shared/handle";
 
 const dedupeKeywords = (keywords: string): string =>
   [...new Set(keywords.split(",").map((k) => k.trim()).filter(Boolean))].join(", ");
@@ -27,27 +28,6 @@ function slugifyBrand(name: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/**
- * Sanitizes a raw seo_keyword handle:
- * - Removes Unicode apostrophes/quotes (ʼ U+02BC, ' U+2019, ` U+0060, etc.) silently
- *   so "vʼyetnamky" → "vyetnamky" (not "v-yetnamky")
- * - Normalizes NFD and strips combining diacritical marks
- * - Removes any remaining non-ASCII / non-URL-safe characters
- * - Collapses multiple hyphens
- */
-function sanitizeHandle(handle: string): string {
-  return handle
-    // Remove Unicode apostrophe-like characters without inserting a separator
-    .replace(/[\u02BC\u2019\u2018\u0060\u00B4\u02B9\u02BB\u02BD\u02BE\u02BF]/g, "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    // Keep only lowercase letters, digits, and hyphens
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
 
