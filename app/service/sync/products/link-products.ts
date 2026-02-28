@@ -39,11 +39,16 @@ async function resolveShopifyId(
 
   const shopifyId = await findShopifyProductBySku(externalProduct.model, accessToken, shopDomain);
   if (shopifyId) {
-    await prisma.productMap.upsert({
-      where: { localProductId },
-      update: { shopifyProductId: shopifyId },
-      create: { localProductId, shopifyProductId: shopifyId },
-    });
+    try {
+      await prisma.productMap.upsert({
+        where: { localProductId },
+        update: { shopifyProductId: shopifyId },
+        create: { localProductId, shopifyProductId: shopifyId },
+      });
+    } catch (e: any) {
+      // P2002: shopifyProductId already mapped to another localProductId — safe to ignore
+      if (e?.code !== "P2002") throw e;
+    }
   }
   return shopifyId;
 }
