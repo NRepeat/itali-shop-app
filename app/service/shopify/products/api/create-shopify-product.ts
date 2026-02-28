@@ -31,7 +31,7 @@ const CREATE_PRODUCTS_QUERY = `
 `;
 
 const CAPABILITY_VIOLATION_REGEX =
-  /Metafield Namespace: (\S+),\s*Metafield Key: (\S+)/;
+  /Metafield Namespace: ([^,\s]+),\s*Metafield Key: ([^,\s]+)/;
 
 export const createProductAsynchronous = async (
   domain: string,
