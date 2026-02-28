@@ -7,7 +7,8 @@ import {
   buildFiles,
   buildMetafields,
 } from "./shopify-product-builder";
-import { buildProductInput, buildProductUpdateInput, buildHandle } from "./build-product-input";
+import { buildProductInput, buildHandle } from "./build-product-input";
+import { setProductMetafields } from "./set-product-metafields";
 import { linkProducts } from "./link-products";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
 import { updateShopifyProduct } from "@/service/shopify/products/api/update-shopify-product";
@@ -443,10 +444,7 @@ export const processSyncTask = async (job: Job) => {
       files,
       vendor,
       tags,
-      filteredMetafields,
       shopifyCategoryGid,
-      discountPercentage,
-      product.sort_order,
       productType,
       existingProductId ?? undefined,
       colorSlugForHandle,
@@ -468,6 +466,10 @@ export const processSyncTask = async (job: Job) => {
           shopifyProductId: shopifYproduct.id,
         },
       });
+
+      // Set znizka, sort_order and filter metafields separately
+      const discount = discountPercentage ? Number(discountPercentage) : 0;
+      await setProductMetafields(shopifYproduct.id, accessToken, shop, discount, product.sort_order, filteredMetafields);
 
       // Link related products via metafields
       console.log(`[LinkProducts] Linking related products for ${shopifYproduct.id}`);

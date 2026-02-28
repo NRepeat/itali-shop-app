@@ -8,6 +8,7 @@ import {
   ProductVariantSetInput,
   FileSetInput,
 } from "@/types";
+// MetafieldInput kept for buildProductUpdateInput
 import { sanitizeHandle } from "@/shared/handle";
 
 const dedupeKeywords = (keywords: string): string =>
@@ -123,10 +124,7 @@ export const buildProductInput = (
   files: FileSetInput[],
   vendor: { name: string } | null,
   tags: string[],
-  productMetafieldsmetObjects: MetafieldInput[],
   category: string,
-  discountPercentage: string | undefined,
-  sortOrder: number,
   productType?: string,
   existingProductId?: string,
   colorSlug?: string | null,
@@ -134,7 +132,6 @@ export const buildProductInput = (
   model?: string,
 ): ProductSetInput => {
   const cleanedDescription = decodeHtmlEntities(ukrainianDescription.description);
-  const discount = discountPercentage ? Number(discountPercentage) : 0;
   const resolvedModel = model ?? ukrainianDescription.seo_keyword.split("-").pop() ?? "";
   const handle = buildHandle(
     ukrainianDescription.seo_keyword,
@@ -144,7 +141,7 @@ export const buildProductInput = (
     hasRelatedArticles ?? false,
   );
   const title = cleanTitle(ukrainianDescription.name, vendor?.name, resolvedModel);
-  const input: ProductSetInput = {
+  return {
     ...(existingProductId && { id: existingProductId }),
     title,
     descriptionHtml: cleanedDescription,
@@ -157,33 +154,11 @@ export const buildProductInput = (
     productType: productType || undefined,
     vendor: vendor?.name,
     tags: tags,
-    metafields: [
-      {
-        key: "meta-keyword",
-        value: dedupeKeywords(ukrainianDescription.meta_keyword || ""),
-        namespace: "custom",
-        type: "single_line_text_field",
-      },
-      {
-        key: "znizka",
-        value: discount.toString(),
-        namespace: "custom",
-        type: "number_integer",
-      },
-      {
-        key: "sort_order",
-        value: sortOrder.toString(),
-        namespace: "custom",
-        type: "number_integer",
-      },
-      ...productMetafieldsmetObjects,
-    ],
     seo: {
       description: decodeHtmlEntities(ukrainianDescription.meta_description),
       title: ukrainianDescription.meta_title,
     },
   };
-  return input;
 };
 
 export const buildProductUpdateInput = (
