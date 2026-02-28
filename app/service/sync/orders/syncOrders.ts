@@ -1,6 +1,7 @@
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { getOrders } from "@/service/italy/orders/getOrders";
 import { client } from "../client/shopify";
+import { toE164 } from "@/shared/phone";
 
 const WORKERS = 1; // Dev store: max 5 orders/min regardless of API
 const DELAY_BETWEEN_ORDERS_MS = 12_000; // ~5 orders/min to stay under limit
@@ -340,9 +341,9 @@ export const syncOrders = async (
         if (order.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) {
           customerUpsert.email = order.email;
         }
-        if (order.telephone) {
-          const phone = order.telephone.trim().replace(/\s+/g, "");
-          customerUpsert.phone = phone.startsWith("+") ? phone : `+${phone}`;
+        const phone = toE164(order.telephone);
+        if (phone) {
+          customerUpsert.phone = phone;
         }
         if (Object.keys(customerUpsert).length > 0) {
           orderInput.customer = { toUpsert: customerUpsert };

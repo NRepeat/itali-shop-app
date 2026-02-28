@@ -5,6 +5,7 @@ import {
   ExternalAddress,
 } from "@/service/italy/customers/getCustomers";
 import { client } from "../client/shopify";
+import { toE164 } from "@/shared/phone";
 
 const CUSTOMER_CREATE_MUTATION = `
   mutation customerCreate($input: CustomerInput!) {
@@ -95,9 +96,9 @@ async function createCustomerInShopify(
     email: customer.email,
   };
 
-  if (customer.telephone) {
-    const digits = customer.telephone.replace(/\D/g, "");
-    input.phone = customer.telephone.startsWith("+") ? `+${digits}` : `+${digits}`;
+  const phone = toE164(customer.telephone);
+  if (phone) {
+    input.phone = phone;
   }
 
   if (addresses.length > 0) {
