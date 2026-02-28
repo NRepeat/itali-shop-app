@@ -416,6 +416,12 @@ export const syncOrders = async (
 
       const userErrors = result?.orderCreate?.userErrors;
       if (userErrors && userErrors.length > 0) {
+        const isPhoneError = userErrors.some((e: any) =>
+          JSON.stringify(e.field).includes("phone"),
+        );
+        if (isPhoneError) {
+          console.error(`Phone error for order #${order.order_id}: raw="${order.telephone}" e164="${toE164(order.telephone)}"`);
+        }
         throw new Error(
           userErrors.map((e: any) => `${e.field}: ${e.message}`).join(", "),
         );
