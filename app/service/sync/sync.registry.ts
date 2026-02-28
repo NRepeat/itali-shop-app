@@ -1,4 +1,5 @@
 import { productSyncQueue, orderSyncQueue, customerSyncQueue } from "./queues";
+import { collectionSyncQueue } from "@shared/lib/queue/collection-sync.queue";
 import { Queue } from "bullmq";
 
 // Define a type for the known webhook topics and their corresponding queues
@@ -24,6 +25,11 @@ const webhookTopicToQueueMap: WebhookTopicQueueMap = {
   customers_create: customerSyncQueue,
   customers_update: customerSyncQueue,
   customers_delete: customerSyncQueue,
+
+  // Collection topics
+  collections_create: collectionSyncQueue,
+  collections_update: collectionSyncQueue,
+  collections_delete: collectionSyncQueue,
 
   // Add other mappings as needed
 };

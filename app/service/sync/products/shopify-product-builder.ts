@@ -22,7 +22,7 @@ const lookupMetaobject = async (
   type: string,
 ): Promise<string | null> => {
   if (!handle) return null;
-  const local = await prisma.metaobject.findUnique({ where: { handle } });
+  const local = await prisma.metaobject.findUnique({ where: { handle_type: { handle, type } } });
   let metaobjectId;
   if (!local) {
     const query = `query ShopName($handle: String!, $type: String!) {

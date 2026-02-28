@@ -8,9 +8,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  const queue = await getSyncQueue(topic);
+  const queue = getSyncQueue(topic);
   if (queue) {
-    queue?.add(topic, { shop, topic, payload });
+    await queue.add(topic, {
+      action: "update",
+      shop,
+      collectionId: (payload as any).id,
+    });
   }
   revalidateNextJs({
     type: "collection",

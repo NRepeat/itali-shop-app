@@ -24,30 +24,19 @@ export const createMetaobject = async (
   admin: AdminApiContext,
 ) => {
   try {
-    const res = await admin.graphql(query, {
+    const { data } = await (admin.graphql as any)(query, {
       variables: { metaobject: definition.metaobject },
     });
 
-    if (!res.ok) {
+    if (data?.metaobjectCreate?.userErrors?.length > 0) {
       throw new Error(
-        `Failed to create metaobject: ${res.status} ${res.statusText}`,
-      );
-    }
-
-    const data = await res.json();
-
-    if (
-      data.data?.metaobjectCreate?.userErrors &&
-      data.data.metaobjectCreate?.userErrors?.length > 0
-    ) {
-      throw new Error(
-        data.data.metaobjectCreate.userErrors
+        data.metaobjectCreate.userErrors
           .map((error: { message: string }) => error.message)
           .join(", "),
       );
     }
 
-    return data.data?.metaobjectCreate?.metaobject;
+    return data?.metaobjectCreate?.metaobject;
   } catch (error) {
     console.error(error);
     return null;

@@ -96,9 +96,8 @@ async function createCustomerInShopify(
   };
 
   if (customer.telephone) {
-    input.phone = customer.telephone.startsWith("+")
-      ? customer.telephone
-      : `+${customer.telephone}`;
+    const digits = customer.telephone.replace(/\D/g, "");
+    input.phone = customer.telephone.startsWith("+") ? `+${digits}` : `+${digits}`;
   }
 
   if (addresses.length > 0) {

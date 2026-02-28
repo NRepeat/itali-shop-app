@@ -8,7 +8,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  await getSyncQueue(topic).add(topic, { shop, topic, payload });
+  await getSyncQueue(topic)?.add(topic, {
+    action: "delete",
+    shop,
+    collectionId: (payload as any).id,
+  });
 
   // console.log(`Added collection ${collectionData.id} delete to sync queue`);
 

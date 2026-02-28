@@ -27,7 +27,9 @@ async function withRetry<T>(
 
       if (isThrottled && attempt < retries) {
         const wait = delayMs * 2 ** attempt;
-        console.log(`Throttled, retrying in ${wait}ms (attempt ${attempt + 1}/${retries})`);
+        console.log(
+          `Throttled, retrying in ${wait}ms (attempt ${attempt + 1}/${retries})`,
+        );
         await sleep(wait);
         continue;
       }
@@ -55,14 +57,20 @@ export const updateExistingProductLinks = async (
     });
 
     const products = await externalDB.bc_product.findMany({
-      where: { status: true, quantity: { gt: 0 } },
+      where: {
+        status: true,
+        quantity: { gt: 0 },
+        date_modified: { gte: new Date("2026-02-25T00:00:00.000Z") },
+      },
       select: { product_id: true, model: true },
       skip: offset,
       ...(limit && { take: limit }),
     });
 
     log(`Total active products in external DB: ${totalCount}`);
-    log(`Processing ${products.length} products${limit ? ` (limited to ${limit})` : " (ALL)"} (offset: ${offset})`);
+    log(
+      `Processing ${products.length} products${limit ? ` (limited to ${limit})` : " (ALL)"} (offset: ${offset})`,
+    );
 
     let successCount = 0;
     let errorCount = 0;
@@ -86,9 +94,15 @@ export const updateExistingProductLinks = async (
 
           // Fall back to Shopify SKU lookup for products missing from ProductMap
           if (!map) {
-            const shopifyId = await findShopifyProductBySku(product.model, accessToken, shopDomain);
+            const shopifyId = await findShopifyProductBySku(
+              product.model,
+              accessToken,
+              shopDomain,
+            );
             if (!shopifyId) {
-              log(`[${index + 1}/${total}] SKIP ${product.product_id} (${product.model}) — not in Shopify`);
+              log(
+                `[${index + 1}/${total}] SKIP ${product.product_id} (${product.model}) — not in Shopify`,
+              );
               skippedCount++;
               continue;
             }
@@ -96,21 +110,37 @@ export const updateExistingProductLinks = async (
             await prisma.productMap.upsert({
               where: { localProductId: product.product_id },
               update: { shopifyProductId: shopifyId },
-              create: { localProductId: product.product_id, shopifyProductId: shopifyId },
+              create: {
+                localProductId: product.product_id,
+                shopifyProductId: shopifyId,
+              },
             });
             map = { shopifyProductId: shopifyId };
-            log(`[${index + 1}/${total}] Backfilled ProductMap for ${product.product_id} → ${shopifyId}`);
+            log(
+              `[${index + 1}/${total}] Backfilled ProductMap for ${product.product_id} → ${shopifyId}`,
+            );
           }
 
-          log(`[${index + 1}/${total}] Updating links for product ${product.product_id}`);
+          log(
+            `[${index + 1}/${total}] Updating links for product ${product.product_id}`,
+          );
           await withRetry(() =>
-            linkProducts({ product_id: product.product_id, shopifyProductId: map!.shopifyProductId }, accessToken, shopDomain),
+            linkProducts(
+              {
+                product_id: product.product_id,
+                shopifyProductId: map!.shopifyProductId,
+              },
+              accessToken,
+              shopDomain,
+            ),
           );
           successCount++;
           log(`[${index + 1}/${total}] ✓ ${product.product_id}`);
         } catch (error: any) {
           errorCount++;
-          log(`[${index + 1}/${total}] ✗ Error ${product.product_id}: ${error.message}`);
+          log(
+            `[${index + 1}/${total}] ✗ Error ${product.product_id}: ${error.message}`,
+          );
         }
       }
     };

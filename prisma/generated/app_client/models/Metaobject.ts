@@ -204,14 +204,15 @@ export type MetaobjectOrderByWithRelationInput = {
 export type MetaobjectWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   metaobjectId?: string
-  handle?: string
+  handle_type?: Prisma.MetaobjectHandleTypeCompoundUniqueInput
   AND?: Prisma.MetaobjectWhereInput | Prisma.MetaobjectWhereInput[]
   OR?: Prisma.MetaobjectWhereInput[]
   NOT?: Prisma.MetaobjectWhereInput | Prisma.MetaobjectWhereInput[]
+  handle?: Prisma.StringFilter<"Metaobject"> | string
   type?: Prisma.StringFilter<"Metaobject"> | string
   createdAt?: Prisma.DateTimeFilter<"Metaobject"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Metaobject"> | Date | string
-}, "id" | "metaobjectId" | "handle">
+}, "id" | "metaobjectId" | "handle_type">
 
 export type MetaobjectOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -298,6 +299,11 @@ export type MetaobjectUncheckedUpdateManyInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type MetaobjectHandleTypeCompoundUniqueInput = {
+  handle: string
+  type: string
 }
 
 export type MetaobjectCountOrderByAggregateInput = {

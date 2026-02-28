@@ -9,7 +9,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const queue = getSyncQueue(topic);
   if (queue) {
-    await queue.add(topic, { shop, topic, payload });
+    await queue.add(topic, {
+      action: "create",
+      shop,
+      collectionId: (payload as any).id,
+    });
   }
 
 

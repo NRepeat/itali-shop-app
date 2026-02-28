@@ -124,6 +124,7 @@ function insertColorBeforeModel(
  * Build the new handle for a product:
  * 1. Remove brand slug from seo_keyword
  * 2. If has related articles → ensure color slug is in handle
+ * 3. Ensure SKU (model) is appended at the end
  */
 function buildNewHandle(
   seoKeyword: string,
@@ -183,6 +184,12 @@ function buildNewHandle(
       }
     }
   }
+
+  // Ensure SKU (model) is at the end of the handle
+  if (!handle.endsWith(`-${modelSlug}`)) {
+    handle = `${handle}-${modelSlug}`;
+  }
+
   return handle;
 }
 

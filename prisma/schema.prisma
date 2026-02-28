@@ -57,12 +57,14 @@ model Collection {
   updatedAt   DateTime @default(now())
 }
 model Metaobject {
-  id          String   @id @default(cuid())
+  id           String   @id @default(cuid())
   metaobjectId String   @unique
-  handle      String   @unique
-  type        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  handle       String
+  type         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  @@unique([handle, type])
 }
 
 model ProductMap {

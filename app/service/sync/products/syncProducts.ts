@@ -17,6 +17,7 @@ export const syncProducts = async (
       where: {
         status: true,
         quantity: { gt: 0 },
+        date_modified: { gte: new Date("2026-02-25T00:00:00.000Z") },
       },
       orderBy: {
         product_id: "desc",
@@ -68,23 +69,24 @@ export const syncProducts = async (
       `Creating ${productsToCreate.length} products${limit ? ` (limited to ${limit})` : ""}`,
     );
 
-    for (const [i, product] of productsToCreate.entries()) {
-      try {
-        log(
-          `[${i + 1}/${productsToCreate.length}] Creating product: ${product.model || product.product_id}`,
-        );
-        const fakeJob = {
-          data: { product, domain, shop: domain, accessToken, forceProductSet },
-        };
-        await processSyncTask(fakeJob as any);
-        log(
-          `[${i + 1}/${productsToCreate.length}] Product ${product.model || product.product_id} created successfully`,
-        );
-      } catch (e: any) {
-        log(
-          `[${i + 1}/${productsToCreate.length}] Error creating product ${product.model || product.product_id}: ${e.message}`,
-        );
-      }
+    const CONCURRENCY = 5;
+    for (let i = 0; i < productsToCreate.length; i += CONCURRENCY) {
+      const batch = productsToCreate.slice(i, i + CONCURRENCY);
+      await Promise.all(
+        batch.map(async (product, batchIdx) => {
+          const idx = i + batchIdx + 1;
+          try {
+            log(`[${idx}/${productsToCreate.length}] Creating product: ${product.model || product.product_id}`);
+            const fakeJob = {
+              data: { product, domain, shop: domain, accessToken, forceProductSet },
+            };
+            await processSyncTask(fakeJob as any);
+            log(`[${idx}/${productsToCreate.length}] Product ${product.model || product.product_id} created successfully`);
+          } catch (e: any) {
+            log(`[${idx}/${productsToCreate.length}] Error creating product ${product.model || product.product_id}: ${e.message}`);
+          }
+        }),
+      );
     }
 
     log(`Sync completed successfully`);

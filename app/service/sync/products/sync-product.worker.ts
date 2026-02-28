@@ -420,57 +420,34 @@ export const processSyncTask = async (job: Job) => {
 
     let shopifYproduct: { id: string } | null | undefined;
 
-    if (existingProductId && !forceProductSet) {
-      console.log(`[Update] Updating existing product ${existingProductId}`);
-      const updateInput = buildProductUpdateInput(
-        existingProductId,
-        ukrainianDescription,
-        vendor,
-        tags,
-        productMetafieldsmetObjects,
-        shopifyCategoryGid,
-        discountPercentage,
-        product.sort_order,
-        productType,
-        colorSlugForHandle,
-        hasRelatedArticles,
-        product.model,
-      );
-      // const result = await updateShopifyProduct(domain, { product: updateInput });
-      // shopifYproduct = result?.product ?? null;
-      // if (shopifYproduct) {
-      //   await updateVariantsAndInventory(admin as any, existingProductId, variants);
-      // }
+    if (existingProductId) {
+      console.log(`[Update] Updating existing product via productSet ${existingProductId}`);
     } else {
-      // CREATE path — also used for force-reset (passes existingProductId so productSet updates rather than duplicating)
-      if (forceProductSet && existingProductId) {
-        console.log(`[Reset] Force productSet on existing product ${existingProductId}`);
-      } else {
-        console.log(`[Create] Creating new product for ${product.product_id}`);
-      }
-      const input = buildProductInput(
-        ukrainianDescription,
-        sProductOptions,
-        variants,
-        files,
-        vendor,
-        tags,
-        productMetafieldsmetObjects,
-        shopifyCategoryGid,
-        discountPercentage,
-        product.sort_order,
-        productType,
-        forceProductSet ? existingProductId : undefined,
-        colorSlugForHandle,
-        hasRelatedArticles,
-        product.model,
-      );
-      const productInput: CreateProductAsynchronousMutationVariables = {
-        synchronous: true,
-        productSet: input,
-      };
-      shopifYproduct = await createProductAsynchronous(domain, productInput);
+      console.log(`[Create] Creating new product for ${product.product_id}`);
     }
+
+    const input = buildProductInput(
+      ukrainianDescription,
+      sProductOptions,
+      variants,
+      files,
+      vendor,
+      tags,
+      productMetafieldsmetObjects,
+      shopifyCategoryGid,
+      discountPercentage,
+      product.sort_order,
+      productType,
+      existingProductId ?? undefined,
+      colorSlugForHandle,
+      hasRelatedArticles,
+      product.model,
+    );
+    const productInput: CreateProductAsynchronousMutationVariables = {
+      synchronous: true,
+      productSet: input,
+    };
+    shopifYproduct = await createProductAsynchronous(domain, productInput);
 
     if (shopifYproduct) {
       await prisma.productMap.upsert({
@@ -484,7 +461,7 @@ export const processSyncTask = async (job: Job) => {
 
       // Link related products via metafields
       console.log(`[LinkProducts] Linking related products for ${shopifYproduct.id}`);
-      await linkProducts(product, accessToken, shop);
+      await linkProducts({ product_id: product.product_id, shopifyProductId: shopifYproduct.id }, accessToken, shop);
     }
 
     if (!shopifYproduct) {
