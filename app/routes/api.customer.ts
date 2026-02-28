@@ -118,6 +118,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       accessToken: session.accessToken,
       shopDomain: session.shop,
     });
+    console.log(data);
 
     const customer = data.customerByIdentifier;
 
