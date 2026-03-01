@@ -8,14 +8,14 @@ import {
 export async function processEsputnikOrderTask(
   job: Job<EsputnikOrderJobData>
 ): Promise<void> {
-  const { payload, status, shop } = job.data;
+  const { payload, status, shop, pickupAddress } = job.data;
 
   console.log(
     `Processing eSputnik order job: ${status} for order ${payload.name || payload.id}`
   );
 
   try {
-    const order = await mapShopifyOrderToEsputnik(payload, status, shop);
+    const order = await mapShopifyOrderToEsputnik(payload, status, shop, { pickupAddress });
     await sendOrderToEsputnik(order);
   } catch (error) {
     console.error(`Error processing eSputnik order job:`, error);

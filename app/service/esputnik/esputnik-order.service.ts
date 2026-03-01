@@ -27,6 +27,8 @@ interface EsputnikOrder {
   deliveryMethod?: string;
   paymentMethod?: string;
   deliveryAddress?: string;
+  pickupAddress?: string;    // for READY_FOR_PICKUP template
+  trackingNumber?: string;   // for IN_PROGRESS template
   items: EsputnikOrderItem[];
 }
 
@@ -152,7 +154,8 @@ function formatDeliveryAddress(
 export async function mapShopifyOrderToEsputnik(
   payload: Record<string, any>,
   status: EsputnikOrderStatus,
-  shop: string
+  shop: string,
+  extra?: { pickupAddress?: string; trackingNumber?: string }
 ): Promise<EsputnikOrder> {
   const lineItems: any[] = payload.line_items || [];
 
@@ -234,6 +237,8 @@ export async function mapShopifyOrderToEsputnik(
     ...(formatDeliveryAddress(payload.shipping_address) && {
       deliveryAddress: formatDeliveryAddress(payload.shipping_address),
     }),
+    ...(extra?.pickupAddress && { pickupAddress: extra.pickupAddress }),
+    ...(extra?.trackingNumber && { trackingNumber: extra.trackingNumber }),
     items,
   };
 }

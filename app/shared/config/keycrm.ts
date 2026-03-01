@@ -1,3 +1,5 @@
+import type { EsputnikOrderStatus } from "@shared/lib/queue/esputnik-order.queue";
+
 const apiKey = process.env.KEYCRM_API_KEY;
 const sourceId = process.env.KEYCRM_SOURCE_ID;
 
@@ -29,10 +31,11 @@ export const KEYCRM_CONFIG = {
 
   // keyCRM → eSputnik (status_id → eSputnik event)
   esputnikStatusMap: {
-    3: "INITIALIZED",   // Підтверджено
-    10: "IN_PROGRESS",    // Відправлено
+    3:  "CONFIRMED",    // Підтверджено (was INITIALIZED — changed to avoid double-send with orders/create)
+    10: "IN_PROGRESS",  // Відправлено
     12: "DELIVERED",    // Виконано
     19: "CANCELLED",    // Скасовано
-    15: "CANCELLED",    // Немає в наявності
-  } as Record<number, "IN_PROGRESS" | "DELIVERED" | "CANCELLED" |"INITIALIZED">
+    15: "OUT_OF_STOCK", // Немає в наявності (was CANCELLED — now has distinct email)
+    // READY_FOR_PICKUP: add keyCRM status ID when known from keyCRM admin panel
+  } as Record<number, EsputnikOrderStatus>
 };
