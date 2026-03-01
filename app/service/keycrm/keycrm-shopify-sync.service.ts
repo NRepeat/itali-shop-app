@@ -109,6 +109,27 @@ const ORDER_CANCEL_MUTATION = `
   }
 `;
 
+// # DEPLOYMENT BLOCKER
+// PICKUP_ADDRESS_MAP is intentionally empty. The keyCRM status IDs for "готово до самовивозу"
+// (READY_FOR_PICKUP) are unknown and must be confirmed in the keyCRM admin panel before go-live.
+// Without these entries, READY_FOR_PICKUP events will fire with no pickupAddress, and the
+// "готово до самовивозу" email template's $!data.get('pickupAddress') will render blank.
+//
+// ACTION REQUIRED before deploying to production:
+//   1. Open keyCRM admin panel → Settings → Order Statuses
+//   2. Find the status ID(s) for each "готово до самовивозу" store location
+//   3. Add entries below, one per store, keyed by that status ID:
+//      Example: 25: "пр Соборний 186, м. Запоріжжя (Mio Mio)"
+//
+// Known store addresses to map:
+//   - Mio Mio — пр Соборний 186, м. Запоріжжя
+//   - Mio Mio Best — пр Соборний 189, м. Запоріжжя
+//   - Світлана — пр Соборний 92 (ТР Верже), м. Запоріжжя
+//   - Світлана — пр Соборний 189, м. Запоріжжя
+const PICKUP_ADDRESS_MAP: Record<number, string> = {
+  // Add entries here once keyCRM status IDs are confirmed (see DEPLOYMENT BLOCKER above)
+};
+
 // --- Helpers ---
 
 function graphqlOrderToWebhookPayload(order: any): Record<string, any> {
@@ -371,10 +392,15 @@ export async function handleKeyCrmOrderStatusChange(
 
     const webhookPayload = graphqlOrderToWebhookPayload(orderData.order);
 
+    const pickupAddress = esputnikStatus === "READY_FOR_PICKUP"
+      ? PICKUP_ADDRESS_MAP[statusId]
+      : undefined;
+
     await esputnikOrderQueue.add("esputnik-order-sync", {
       payload: webhookPayload,
       status: esputnikStatus,
       shop,
+      ...(pickupAddress && { pickupAddress }),
     });
 
     console.log(
