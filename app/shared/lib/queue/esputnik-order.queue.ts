@@ -7,15 +7,19 @@ const connection = new Redis(REDIS_CONFIG.port, REDIS_CONFIG.host, {
 });
 
 export type EsputnikOrderStatus =
-  | "INITIALIZED"
-  | "IN_PROGRESS"
-  | "DELIVERED"
-  | "CANCELLED";
+  | "INITIALIZED"      // orders/create → замовлення оформлено
+  | "CONFIRMED"        // keyCRM status 3 → підтверджено (replaces INITIALIZED for this event)
+  | "IN_PROGRESS"      // keyCRM status 10 → відправлено
+  | "DELIVERED"        // keyCRM status 12 → виконано
+  | "READY_FOR_PICKUP" // keyCRM status TBD → готово до самовивозу
+  | "OUT_OF_STOCK"     // keyCRM status 15 → товару немає в наявності
+  | "CANCELLED";       // keyCRM status 19 → скасовано
 
 export interface EsputnikOrderJobData {
   payload: Record<string, any>;
   status: EsputnikOrderStatus;
   shop: string;
+  pickupAddress?: string; // passed through for READY_FOR_PICKUP events
 }
 
 export const esputnikOrderQueue = new Queue<EsputnikOrderJobData>(
