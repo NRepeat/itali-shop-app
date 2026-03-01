@@ -1,0 +1,220 @@
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="telephone=no" name="format-detection">
+    <title>Замовлення оформлено</title>
+    <style>
+      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; } img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; } body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; } .wrapper { max-width: 600px; margin: 0 auto; } .content { padding: 20px; } @media only screen and (max-width: 620px) { .wrapper { width: 100% !important; } .content { padding: 15px !important; } .item-image { width: 80px !important; } .item-details { font-size: 13px !important; } }
+    </style>
+  </head>
+  <body class="body" style="margin:0;padding:0;background-color:#f4f4f4">
+    <table cellspacing="0" width="100%" cellpadding="0" style="background-color:#f4f4f4">
+      <tbody>
+        <tr>
+          <td align="center" style="padding:20px 10px">
+            <table cellpadding="0" cellspacing="0" width="600" class="wrapper" style="overflow:hidden;background-color:#ffffff;border-radius:8px">
+              <tbody>
+                <!-- HEADER -->
+                <tr>
+                  <td style="background-color:#1a1a1a;padding:30px 40px;text-align:center">
+                    <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;letter-spacing:1px">ITALI SHOP</h1>
+                  </td>
+                </tr>
+                <!-- TITLE -->
+                <tr>
+                  <td style="padding:30px 40px 20px;text-align:center">
+                    <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:24px">Дякуємо за замовлення!</h2>
+                    <p style="margin:0;font-size:14px;color:#666666">
+                      Замовлення <strong>$!data.get('externalOrderId')</strong> від $!data.get('date')
+                    </p>
+                  </td>
+                </tr>
+                <!-- DIVIDER -->
+                <tr>
+                  <td style="padding:0 40px">
+                    <table width="100%" cellpadding="0" cellspacing="0"><tbody><tr>
+                      <td style="border-bottom:1px solid #e0e0e0"></td>
+                    </tr></tbody></table>
+                  </td>
+                </tr>
+                <!-- CUSTOMER INFO -->
+                <tr>
+                  <td style="padding:20px 40px">
+                    <p style="margin:0;font-size:16px;color:#1a1a1a">$!data.get('firstName') $!data.get('lastName')</p>
+                    #if($!data.get('email'))
+                    <p style="margin:4px 0 0;font-size:14px;color:#666666">$!data.get('email')</p>
+                    #end
+                    #if($!data.get('phone'))
+                    <p style="margin:4px 0 0;font-size:14px;color:#666666">$!data.get('phone')</p>
+                    #end
+                  </td>
+                </tr>
+                <!-- DIVIDER -->
+                <tr>
+                  <td style="padding:0 40px">
+                    <table width="100%" cellpadding="0" cellspacing="0"><tbody><tr>
+                      <td style="border-bottom:1px solid #e0e0e0"></td>
+                    </tr></tbody></table>
+                  </td>
+                </tr>
+                <!-- ITEMS HEADER -->
+                <tr>
+                  <td style="padding:20px 40px 10px">
+                    <h3 style="letter-spacing:0.5px;margin:0;font-size:16px;color:#1a1a1a;text-transform:uppercase">Товари</h3>
+                  </td>
+                </tr>
+                <!-- ITEMS LOOP -->
+                <tr>
+                  <td style="padding:0 40px">
+                    #foreach($item in $data.get('items'))
+                    <table cellpadding="0" cellspacing="0" width="100%">
+                      <tbody>
+                        <tr>
+                          <td style="padding:12px 0;border-bottom:1px solid #f0f0f0">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                              <tbody>
+                                <tr>
+                                  <td width="100" valign="top" class="item-image" style="padding-right:15px">
+                                    #if($!item.get('imageUrl'))
+                                    <a href="$!item.get('url')" target="_blank">
+                                      <img alt="$!item.get('name')" src="$!item.get('imageUrl')" width="100" style="display:block;border-radius:4px;object-fit:cover">
+                                    </a>
+                                    #else
+                                    <div style="width:100px;height:100px;background-color:#f0f0f0;border-radius:4px"></div>
+                                    #end
+                                  </td>
+                                  <td valign="top" class="item-details" style="font-size:14px;color:#333333">
+                                    <a href="$!item.get('url')" target="_blank" style="text-decoration:none;font-weight:600;font-size:15px;color:#1a1a1a">$!item.get('name')</a>
+                                    <p style="margin:8px 0 0;color:#666666">К-сть: $!item.get('quantity')</p>
+                                    <p style="color:#1a1a1a;margin:4px 0 0;font-weight:600;font-size:16px">$!item.get('cost') $!data.get('currency')</p>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    #end
+                  </td>
+                </tr>
+                <!-- DIVIDER -->
+                <tr>
+                  <td style="padding:10px 40px 0">
+                    <table width="100%" cellpadding="0" cellspacing="0"><tbody><tr>
+                      <td style="border-bottom:1px solid #e0e0e0"></td>
+                    </tr></tbody></table>
+                  </td>
+                </tr>
+                <!-- TOTALS -->
+                <tr>
+                  <td style="padding:20px 40px">
+                    <h3 style="font-size:16px;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Підсумок</h3>
+                    <table cellspacing="0" width="100%" cellpadding="0" style="font-size:14px;color:#333333">
+                      <tbody>
+                        #if($!data.get('discount'))
+                        <tr>
+                          <td style="padding:4px 0;color:#666666">Знижка:</td>
+                          <td style="color:#e44d2e;padding:4px 0;text-align:right">-$!data.get('discount') $!data.get('currency')</td>
+                        </tr>
+                        #end
+                        #if($!data.get('shipping'))
+                        <tr>
+                          <td style="padding:4px 0;color:#666666">Доставка:</td>
+                          <td style="padding:4px 0;text-align:right">$!data.get('shipping') $!data.get('currency')</td>
+                        </tr>
+                        #end
+                        <tr>
+                          <td colspan="2" style="padding:8px 0 0">
+                            <table cellpadding="0" cellspacing="0" width="100%"><tbody><tr>
+                              <td style="border-bottom:1px solid #e0e0e0"></td>
+                            </tr></tbody></table>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#1a1a1a">Всього:</td>
+                          <td style="padding:12px 0 0;text-align:right;font-size:18px;font-weight:700;color:#1a1a1a">$!data.get('totalCost') $!data.get('currency')</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+                <!-- DIVIDER -->
+                <tr>
+                  <td style="padding:0 40px">
+                    <table cellspacing="0" width="100%" cellpadding="0"><tbody><tr>
+                      <td style="border-bottom:1px solid #e0e0e0"></td>
+                    </tr></tbody></table>
+                  </td>
+                </tr>
+                <!-- DELIVERY + PAYMENT (two columns) -->
+                <tr>
+                  <td style="padding:20px 40px">
+                    <table cellpadding="0" cellspacing="0" width="100%">
+                      <tbody>
+                        <tr>
+                          <td valign="top" width="50%" style="padding-right:10px">
+                            <h3 style="color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;font-size:14px">Доставка</h3>
+                            #if($!data.get('deliveryMethod'))
+                            <p style="margin:0 0 4px;font-size:14px;color:#666666">$!data.get('deliveryMethod')</p>
+                            #end
+                            #if($!data.get('deliveryAddress'))
+                            <p style="margin:0;font-size:14px;color:#666666">$!data.get('deliveryAddress')</p>
+                            #end
+                          </td>
+                          <td valign="top" width="50%" style="padding-left:10px">
+                            <h3 style="margin:0 0 8px;font-size:14px;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px">Оплата</h3>
+                            #if($!data.get('paymentMethod'))
+                            <p style="margin:0;font-size:14px;color:#666666">$!data.get('paymentMethod')</p>
+                            #end
+                            <p style="font-weight:600;color:#1a1a1a;margin:4px 0 0;font-size:14px">$!data.get('totalCost') $!data.get('currency')</p>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+                <!-- MANAGER NOTICE -->
+                <tr>
+                  <td style="padding:0 40px 20px;text-align:center;font-size:14px;color:#666666">
+                    Наші менеджери зв'яжуться з вами найближчим часом для підтвердження замовлення
+                  </td>
+                </tr>
+                <!-- FOOTER -->
+                <tr>
+                  <td style="text-align:center;background-color:#1a1a1a;padding:25px 40px">
+                    <p style="margin:0 0 8px;font-size:14px;color:#ffffff">Є питання? Напишіть нам</p>
+                    <a href="mailto:support@italishop.com" style="font-size:13px;text-decoration:underline;color:#cccccc">support@italishop.com</a>
+                    <p style="margin:15px 0 0;font-size:12px;color:#888888">ITALI SHOP © 2026</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- UNSUBSCRIBE (outside main wrapper) -->
+    <table cellspacing="0" cellpadding="0" align="center" class="es-content">
+      <tbody><tr><td align="center" class="esd-stripe">
+        <table align="center" cellpadding="0" cellspacing="0" width="600" bgcolor="#ffffff " class="es-content-body">
+          <tbody><tr><td align="left" class="esd-structure es-p20t es-p20b es-p20r es-p20l">
+            <table cellpadding="0" cellspacing="0" width="100%">
+              <tbody><tr><td width="560" align="center" valign="top" class="esd-container-frame">
+                <table cellpadding="0" cellspacing="0" width="100%">
+                  <tbody><tr><td align="center" class="esd-block-html esdev-disable-select">
+                    <table><tbody><tr>
+                      <td align="center" class="esd-block-text" style="text-align:center">
+                        <p style="color:grey">
+                          <a id="unsubscribe" href="https://esputnik.com/unsubscribe" style="font-size:14px">Unsubscribe</a>
+                        </p>
+                      </td>
+                    </tr></tbody></table>
+                  </td></tr></tbody></table>
+              </td></tr></tbody></table>
+          </td></tr></tbody></table>
+      </td></tr></tbody></table>
+  </body>
+</html>
