@@ -18,14 +18,15 @@
               <tbody>
                 <!-- HEADER -->
                 <tr>
-                  <td style="background-color:#1a1a1a;padding:30px 40px;text-align:center">
-                    <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;letter-spacing:1px">ITALI SHOP</h1>
+                  <td style="background-color:#05125C;padding:30px 40px;text-align:center">
+                    <!-- Replace src with white Mio Mio logo URL from Esputnik Media Library -->
+                    <img src="https://miomio.com.ua/images/logo-white.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
                   </td>
                 </tr>
                 <!-- TITLE -->
                 <tr>
                   <td style="padding:30px 40px 20px;text-align:center">
-                    <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:24px">Замовлення підтверджене</h2>
+                    <h2 style="color:#05125C;margin:0 0 8px;font-size:24px">Замовлення підтверджене</h2>
                     <p style="margin:0;font-size:14px;color:#666666">Ваше замовлення підтверджене. Очікуйте на повідомлення про відправлення посилки</p>
                   </td>
                 </tr>
@@ -40,7 +41,7 @@
                 <!-- CUSTOMER INFO -->
                 <tr>
                   <td style="padding:20px 40px">
-                    <p style="margin:0;font-size:16px;color:#1a1a1a">$!data.get('firstName') $!data.get('lastName')</p>
+                    <p style="margin:0;font-size:16px;color:#05125C">$!data.get('firstName') $!data.get('lastName')</p>
                     #if($!data.get('email'))
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">$!data.get('email')</p>
                     #end
@@ -60,7 +61,7 @@
                 <!-- ITEMS HEADER -->
                 <tr>
                   <td style="padding:20px 40px 10px">
-                    <h3 style="letter-spacing:0.5px;margin:0;font-size:16px;color:#1a1a1a;text-transform:uppercase">Товари</h3>
+                    <h3 style="letter-spacing:0.5px;margin:0;font-size:16px;color:#05125C;text-transform:uppercase">Товари</h3>
                   </td>
                 </tr>
                 <!-- ITEMS LOOP -->
@@ -84,9 +85,9 @@
                                     #end
                                   </td>
                                   <td valign="top" class="item-details" style="font-size:14px;color:#333333">
-                                    <a href="$!item.get('url')" target="_blank" style="text-decoration:none;font-weight:600;font-size:15px;color:#1a1a1a">$!item.get('name')</a>
+                                    <a href="$!item.get('url')" target="_blank" style="text-decoration:none;font-weight:600;font-size:15px;color:#05125C">$!item.get('name')</a>
                                     <p style="margin:8px 0 0;color:#666666">К-сть: $!item.get('quantity')</p>
-                                    <p style="color:#1a1a1a;margin:4px 0 0;font-weight:600;font-size:16px">$!item.get('cost') $!data.get('currency')</p>
+                                    <p style="color:#05125C;margin:4px 0 0;font-weight:600;font-size:16px">$!item.get('cost') $!data.get('currency')</p>
                                   </td>
                                 </tr>
                               </tbody>
@@ -109,7 +110,7 @@
                 <!-- TOTALS -->
                 <tr>
                   <td style="padding:20px 40px">
-                    <h3 style="font-size:16px;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Підсумок</h3>
+                    <h3 style="font-size:16px;color:#05125C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Підсумок</h3>
                     <table cellspacing="0" width="100%" cellpadding="0" style="font-size:14px;color:#333333">
                       <tbody>
                         #if($!data.get('discount'))
@@ -132,8 +133,8 @@
                           </td>
                         </tr>
                         <tr>
-                          <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#1a1a1a">Всього:</td>
-                          <td style="padding:12px 0 0;text-align:right;font-size:18px;font-weight:700;color:#1a1a1a">$!data.get('totalCost') $!data.get('currency')</td>
+                          <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#05125C">Всього:</td>
+                          <td style="padding:12px 0 0;text-align:right;font-size:18px;font-weight:700;color:#05125C">$!data.get('totalCost') $!data.get('currency')</td>
                         </tr>
                       </tbody>
                     </table>
@@ -141,10 +142,10 @@
                 </tr>
                 <!-- FOOTER -->
                 <tr>
-                  <td style="text-align:center;background-color:#1a1a1a;padding:25px 40px">
+                  <td style="text-align:center;background-color:#05125C;padding:25px 40px">
                     <p style="margin:0 0 8px;font-size:14px;color:#ffffff">Є питання? Напишіть нам</p>
-                    <a href="mailto:support@italishop.com" style="font-size:13px;text-decoration:underline;color:#cccccc">support@italishop.com</a>
-                    <p style="margin:15px 0 0;font-size:12px;color:#888888">ITALI SHOP © 2026</p>
+                    <a href="mailto:info@miomio.com.ua" style="font-size:13px;text-decoration:underline;color:#cccccc">info@miomio.com.ua</a>
+                    <p style="margin:15px 0 0;font-size:12px;color:#888888">MIO MIO © 2026</p>
                   </td>
                 </tr>
               </tbody>
