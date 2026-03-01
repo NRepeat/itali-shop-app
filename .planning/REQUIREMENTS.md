@@ -13,7 +13,7 @@
 - [ ] **PROD-03**: Handle Collision Detection — Implement a strategy (e.g., SKU suffix) to resolve handle collisions created by brand stripping.
 
 ### Order Synchronization (ORD)
-- [ ] **ORD-01**: Order Lifecycle Sync — Ensure orders are updated through all status changes (Created, Paid, Fulfilled, Cancelled) in the local system and downstream integrations.
+- [x] **ORD-01**: Order Lifecycle Sync — Ensure orders are updated through all status changes (Created, Paid, Fulfilled, Cancelled) in the local system and downstream integrations.
 - [ ] **ORD-02**: Mapping Reconciliation — Verify and fix order mapping between Shopify, local DB, and KeyCRM.
 
 ### Customer Synchronization (CUST)
@@ -38,7 +38,7 @@
 | PROD-01 | Phase 2 | Pending |
 | PROD-02 | Phase 2 | Pending |
 | PROD-03 | Phase 2 | Pending |
-| ORD-01 | Phase 3 | Pending |
+| ORD-01 | Phase 3 | Complete |
 | ORD-02 | Phase 3 | Pending |
 | CUST-01 | Phase 3 | Pending |
 

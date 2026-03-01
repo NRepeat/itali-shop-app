@@ -5,14 +5,14 @@
 **Current Focus**: Initializing project roadmap and state.
 
 ## Current Position
-**Phase**: All phases complete (3/3)
-**Plan**: N/A
-**Status**: Milestone Complete
-**Progress**: [████████████████████] 100%
+**Phase**: 04-create-sputnik-email-templates-and-update-order-event-flows (Plan 1/N)
+**Plan**: 04-01 complete
+**Status**: In Progress
+**Progress**: [████░░░░░░░░░░░░░░░░] Phase 4 in progress
 
 ## Performance Metrics
 - **Requirements Mapped**: 9/9 (100%)
-- **Phases Defined**: 3
+- **Phases Defined**: 4
 - **Completed Phases**: 3
 
 ## Accumulated Context
@@ -35,6 +35,9 @@
 - **Cyrillic EA7 and H'estia Aliases**: brandAliasMap extended with Cyrillic ЕА7 variants (U+0415 U+0410 7) for EA7 brands and three H'estia Venezia variants (no "di", straight + curly apostrophe) so cleanTitle strips brand noise from Cyrillic-script titles (quick-12).
 - **Case-Insensitive Model Strip + SKU Double-Pass**: cleanTitle model regex uses "gi" flag (case-insensitive) to match uppercase article numbers stored as lowercase model; updateProductTitles adds a second cleanTitle pass using bc_product.sku when sku differs from model and contains digits (quick-13).
 - **Feminine Color Slug Stripping**: buildNewHandle now strips both masculine (colorMapping values) and feminine adjective forms of Ukrainian color slugs before inserting canonical color, preventing duplicates like `fioletova-...-fioletovij` from women's seo_keywords (quick-14).
+- **CONFIRMED vs INITIALIZED for keyCRM status 3**: keyCRM status 3 maps to CONFIRMED (not INITIALIZED) to prevent double-sending the order-created email that orders/create already fires as INITIALIZED (04-01).
+- **OUT_OF_STOCK for keyCRM status 15**: keyCRM status 15 maps to OUT_OF_STOCK (not CANCELLED) so the out-of-stock case can have its own distinct email template (04-01).
+- **EsputnikOrderStatus type import in keycrm.ts**: Using import type for Record annotation instead of inline string union ensures type stays in sync as the union grows (04-01).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -61,5 +64,6 @@ None.
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
 
 ## Session Continuity
-- **Last Action**: 2026-02-25 - Executed quick task 14: fix handle duplicate colors — add feminine Ukrainian color slug variants
-- **Next Step**: Ready for next task.
+- **Last Action**: 2026-03-01 - Executed plan 04-01: Extend Esputnik type system (EsputnikOrderStatus 7 values, keyCRM status map fixes)
+- **Stopped At**: Completed 04-01-PLAN.md
+- **Next Step**: Ready for next plan in phase 04.
