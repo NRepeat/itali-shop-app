@@ -36,6 +36,9 @@
 - **Case-Insensitive Model Strip + SKU Double-Pass**: cleanTitle model regex uses "gi" flag (case-insensitive) to match uppercase article numbers stored as lowercase model; updateProductTitles adds a second cleanTitle pass using bc_product.sku when sku differs from model and contains digits (quick-13).
 - **Feminine Color Slug Stripping**: buildNewHandle now strips both masculine (colorMapping values) and feminine adjective forms of Ukrainian color slugs before inserting canonical color, preventing duplicates like `fioletova-...-fioletovij` from women's seo_keywords (quick-14).
 
+### Roadmap Evolution
+- Phase 4 added: Create Sputnik email templates and update order event flows
+
 ### Todos & Blockers
 None.
 
