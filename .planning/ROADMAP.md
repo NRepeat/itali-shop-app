@@ -57,7 +57,7 @@ Standardize the synchronization flow between Shopify and the internal system to 
 **Goal:** Create 7 Esputnik Velocity email templates for all order lifecycle events, fix the INITIALIZED/CONFIRMED status conflict, and wire orders/create directly to esputnikOrderQueue so every lifecycle stage triggers the correct transactional email.
 **Requirements**: ORD-01
 **Depends on:** Phase 3
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Extend EsputnikOrderStatus type, fix keyCRM status map conflict (INITIALIZED→CONFIRMED), add pickupAddress/trackingNumber to EsputnikOrder interface
