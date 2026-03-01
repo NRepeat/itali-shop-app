@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T12:09:28.038Z"
+last_updated: "2026-03-01T12:14:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State: Unified Sync & Update Logic
@@ -19,14 +19,14 @@ progress:
 
 ## Current Position
 **Phase**: 04-create-sputnik-email-templates-and-update-order-event-flows
-**Plan**: 04-03 complete
-**Status**: In Progress
-**Progress**: [████░░░░░░░░░░░░░░░░] Phase 4 in progress
+**Plan**: 04-04 complete
+**Status**: Complete
+**Progress**: [████████████████████] All 4 phases complete (13/13 plans)
 
 ## Performance Metrics
 - **Requirements Mapped**: 9/9 (100%)
 - **Phases Defined**: 4
-- **Completed Phases**: 3
+- **Completed Phases**: 4
 
 ## Accumulated Context
 
@@ -56,6 +56,9 @@ progress:
 - **Templates 04/06/07 section variants**: Template 04 omits delivery/payment (completed order summary only); template 06 omits totals (no purchase for out-of-stock); template 07 includes totals (order existed before cancellation) (04-03).
 - **Recommendation block size() guard**: #if($data.get('recommendedItems') && $data.get('recommendedItems').size() > 0) guards recommendation section in templates 06 and 07 to handle empty engine response (04-03).
 - **pickupAddress dynamic variable**: Template 05 uses $!data.get('pickupAddress') — store addresses are NOT hardcoded, passed dynamically from app event payload (04-03).
+- **INITIALIZED fires on orders/create (not keyCRM)**: orders/create directly enqueues INITIALIZED, while keyCRM status 3 maps to CONFIRMED, preventing double order-created email (04-04).
+- **PICKUP_ADDRESS_MAP intentionally empty at deploy**: keyCRM status IDs for READY_FOR_PICKUP stores are unknown until confirmed in admin panel; DEPLOYMENT BLOCKER comment documents all 4 store addresses to map (04-04).
+- **Conditional spread for pickupAddress**: ...(pickupAddress && { pickupAddress }) omits the field entirely when map lookup returns undefined (04-04).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -81,6 +84,6 @@ None.
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
 ## Session Continuity
-- **Last Action**: 2026-03-01 - Executed plan 04-03: Created Esputnik Velocity email templates 04-07 (виконано, готово до самовивозу, товару немає, скасовано)
-- **Stopped At**: Completed 04-03-PLAN.md
-- **Next Step**: Ready for plan 04-04 (update order event flows).
+- **Last Action**: 2026-03-01 - Executed plan 04-04: Wired orders/create webhook to Esputnik INITIALIZED queue; added PICKUP_ADDRESS_MAP with DEPLOYMENT BLOCKER comment and pickupAddress passthrough for READY_FOR_PICKUP events
+- **Stopped At**: Completed 04-04-PLAN.md
+- **Next Step**: All 13 plans across 4 phases complete. DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
