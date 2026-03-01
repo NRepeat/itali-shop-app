@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T12:08:39.566Z"
+last_updated: "2026-03-01T12:09:28.038Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State: Unified Sync & Update Logic
@@ -19,7 +19,7 @@ progress:
 
 ## Current Position
 **Phase**: 04-create-sputnik-email-templates-and-update-order-event-flows
-**Plan**: 04-02 complete
+**Plan**: 04-03 complete
 **Status**: In Progress
 **Progress**: [████░░░░░░░░░░░░░░░░] Phase 4 in progress
 
@@ -53,6 +53,9 @@ progress:
 - **EsputnikOrderStatus type import in keycrm.ts**: Using import type for Record annotation instead of inline string union ensures type stays in sync as the union grows (04-01).
 - **Template 02 (confirmed) omits delivery/payment section**: Keeps confirmation email focused; delivery was already shown in template 01 (замовлення оформлено) (04-02).
 - **Template 03 (shipped) uses single-column delivery + #if tracking guard**: Payment context is irrelevant after shipment; tracking number wrapped in #if guard for cases where it is absent (04-02).
+- **Templates 04/06/07 section variants**: Template 04 omits delivery/payment (completed order summary only); template 06 omits totals (no purchase for out-of-stock); template 07 includes totals (order existed before cancellation) (04-03).
+- **Recommendation block size() guard**: #if($data.get('recommendedItems') && $data.get('recommendedItems').size() > 0) guards recommendation section in templates 06 and 07 to handle empty engine response (04-03).
+- **pickupAddress dynamic variable**: Template 05 uses $!data.get('pickupAddress') — store addresses are NOT hardcoded, passed dynamically from app event payload (04-03).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -77,8 +80,7 @@ None.
 | 12 | fix cleanTitle — add Cyrillic EA7 and H'estia di Venezia aliases | 2026-02-25 | f69914b | [12-fix-cleantitle-add-cyrillic-ea7-aliases-](./quick/12-fix-cleantitle-add-cyrillic-ea7-aliases-/) |
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
-
 ## Session Continuity
-- **Last Action**: 2026-03-01 - Executed plan 04-02: Created Esputnik Velocity email templates 01-03 (замовлення оформлено, підтверджено, відправлено)
-- **Stopped At**: Completed 04-02-PLAN.md
-- **Next Step**: Ready for next plan in phase 04.
+- **Last Action**: 2026-03-01 - Executed plan 04-03: Created Esputnik Velocity email templates 04-07 (виконано, готово до самовивозу, товару немає, скасовано)
+- **Stopped At**: Completed 04-03-PLAN.md
+- **Next Step**: Ready for plan 04-04 (update order event flows).
