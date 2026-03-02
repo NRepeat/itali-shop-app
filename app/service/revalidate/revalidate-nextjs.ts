@@ -30,7 +30,7 @@ export async function revalidateNextJs(payload: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "sanity-webhook-signature": signature,
+        "x-sanity-webhook-signature": signature,
       },
       body,
     });

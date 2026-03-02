@@ -44,10 +44,10 @@
                 <tr>
                   <td style="padding:20px 40px">
                     <p style="margin:0;font-size:16px;color:#05125C">$!data.get('firstName') $!data.get('lastName')</p>
-                    #if($!data.get('email'))
+                    #if("$!data.get('email')" != "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">$!data.get('email')</p>
                     #end
-                    #if($!data.get('phone'))
+                    #if("$!data.get('phone')" != "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">$!data.get('phone')</p>
                     #end
                   </td>
@@ -78,7 +78,7 @@
                               <tbody>
                                 <tr>
                                   <td width="100" valign="top" class="item-image" style="padding-right:15px">
-                                    #if($!item.get('imageUrl'))
+                                    #if($item.get('imageUrl'))
                                     <a href="$!item.get('url')" target="_blank">
                                       <img alt="$!item.get('name')" src="$!item.get('imageUrl')" width="100" style="display:block;border-radius:4px;object-fit:cover">
                                     </a>
@@ -115,13 +115,13 @@
                     <h3 style="font-size:16px;color:#05125C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Підсумок</h3>
                     <table cellspacing="0" width="100%" cellpadding="0" style="font-size:14px;color:#333333">
                       <tbody>
-                        #if($!data.get('discount'))
+                        #if("$!data.get('discount')" != "")
                         <tr>
                           <td style="padding:4px 0;color:#666666">Знижка:</td>
                           <td style="color:#e44d2e;padding:4px 0;text-align:right">-$!data.get('discount') $!data.get('currency')</td>
                         </tr>
                         #end
-                        #if($!data.get('shipping'))
+                        #if("$!data.get('shipping')" != "")
                         <tr>
                           <td style="padding:4px 0;color:#666666">Доставка:</td>
                           <td style="padding:4px 0;text-align:right">$!data.get('shipping') $!data.get('currency')</td>
@@ -158,16 +158,16 @@
                         <tr>
                           <td valign="top" width="50%" style="padding-right:10px">
                             <h3 style="color:#05125C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;font-size:14px">Доставка</h3>
-                            #if($!data.get('deliveryMethod'))
+                            #if("$!data.get('deliveryMethod')" != "")
                             <p style="margin:0 0 4px;font-size:14px;color:#666666">$!data.get('deliveryMethod')</p>
                             #end
-                            #if($!data.get('deliveryAddress'))
+                            #if("$!data.get('deliveryAddress')" != "")
                             <p style="margin:0;font-size:14px;color:#666666">$!data.get('deliveryAddress')</p>
                             #end
                           </td>
                           <td valign="top" width="50%" style="padding-left:10px">
                             <h3 style="margin:0 0 8px;font-size:14px;color:#05125C;text-transform:uppercase;letter-spacing:0.5px">Оплата</h3>
-                            #if($!data.get('paymentMethod'))
+                            #if("$!data.get('paymentMethod')" != "")
                             <p style="margin:0;font-size:14px;color:#666666">$!data.get('paymentMethod')</p>
                             #end
                             <p style="font-weight:600;color:#05125C;margin:4px 0 0;font-size:14px">$!data.get('totalCost') $!data.get('currency')</p>

@@ -50,12 +50,12 @@
                     <p style="margin:0;font-size:16px;color:#05125C">
                       $!data.get('firstName') $!data.get('lastName')
                     </p>
-                    #if($!data.get('email'))
+                    #if("$!data.get('email')" != "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">
                       $!data.get('email')
                     </p>
                     #end
-                    #if($!data.get('phone'))
+                    #if("$!data.get('phone')" != "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">
                       $!data.get('phone')
                     </p>
@@ -91,7 +91,7 @@
                               <tbody>
                                 <tr>
                                   <td width="100" valign="top" class="item-image" style="padding-right:15px">
-                                    #if($!item.get('imageUrl'))
+                                    #if($item.get('imageUrl'))
                                     <a href="$!item.get('url')" target="_blank">
                                       <img alt="$!item.get('name')" src="$!item.get('imageUrl')" width="100" style="display:block;border-radius:4px;object-fit:cover">
                                     </a>
@@ -138,7 +138,7 @@
                     </h3>
                     <table cellspacing="0" width="100%" cellpadding="0" style="font-size:14px;color:#333333">
                       <tbody>
-                        #if($!data.get('discount'))
+                        #if("$!data.get('discount')" != "")
                         <tr>
                           <td style="padding:4px 0;color:#666666">
                             Знижка:
@@ -148,7 +148,7 @@
                           </td>
                         </tr>
                         #end
-                        #if($!data.get('shipping'))
+                        #if("$!data.get('shipping')" != "")
                         <tr>
                           <td style="padding:4px 0;color:#666666">
                             Доставка:
