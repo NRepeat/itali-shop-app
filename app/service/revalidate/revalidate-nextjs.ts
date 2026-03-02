@@ -18,18 +18,19 @@ export async function revalidateNextJs(payload: {
 
   const body = JSON.stringify(payload);
   const timestamp = Date.now();
-  const b64 = crypto
+  const hmac = crypto
     .createHmac("sha256", NEXT_REVALIDATE_SECRET.trim())
     .update(`${timestamp}.${body}`)
-    .digest("base64");
-  const signature = `t=${timestamp},v1=${b64}`;
+    .digest();
+  const b64url = hmac.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const signature = `t=${timestamp},v1=${b64url}`;
 
   try {
     const res = await fetch(`${NEXT_APP_URL}/api/revalidate/path`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-sanity-webhook-signature": signature,
+        "sanity-webhook-signature": signature,
       },
       body,
     });
