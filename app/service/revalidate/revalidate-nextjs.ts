@@ -18,12 +18,11 @@ export async function revalidateNextJs(payload: {
 
   const body = JSON.stringify(payload);
   const timestamp = Date.now();
-  const hmac = crypto
+  const b64 = crypto
     .createHmac("sha256", NEXT_REVALIDATE_SECRET.trim())
     .update(`${timestamp}.${body}`)
-    .digest();
-  const b64url = hmac.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const signature = `t=${timestamp},v1=${b64url}`;
+    .digest("base64");
+  const signature = `t=${timestamp},v1=${b64}`;
 
   try {
     const res = await fetch(`${NEXT_APP_URL}/api/revalidate/path`, {
