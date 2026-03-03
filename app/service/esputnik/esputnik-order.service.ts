@@ -245,9 +245,20 @@ export async function mapShopifyOrderToEsputnik(
   };
 }
 
+// CONFIRMED, READY_FOR_PICKUP, OUT_OF_STOCK are custom statuses — must use /event endpoint
+const EVENT_API_STATUSES = new Set(["CONFIRMED", "READY_FOR_PICKUP", "OUT_OF_STOCK"]);
+
 export async function sendOrderToEsputnik(
   order: EsputnikOrder
 ): Promise<void> {
+  if (EVENT_API_STATUSES.has(order.status)) {
+    await sendOrderViaEventApi(order);
+  } else {
+    await sendOrderViaOrdersApi(order);
+  }
+}
+
+async function sendOrderViaOrdersApi(order: EsputnikOrder): Promise<void> {
   const response = await fetch(`${ESPUTNIK_CONFIG.baseUrl}/orders`, {
     method: "POST",
     headers: {
@@ -261,11 +272,62 @@ export async function sendOrderToEsputnik(
 
   if (!response.ok) {
     throw new Error(
-      `eSputnik API error: ${response.status} ${response.statusText} — ${body}`
+      `eSputnik orders API error: ${response.status} ${response.statusText} — ${body}`
     );
   }
 
   console.log(
-    `eSputnik order ${order.externalOrderId} sent successfully (status: ${order.status}) — ${body}`
+    `eSputnik order ${order.externalOrderId} sent via Orders API (status: ${order.status}) — ${body}`
+  );
+}
+
+async function sendOrderViaEventApi(order: EsputnikOrder): Promise<void> {
+  const keyValue = order.email || order.phone;
+  if (!keyValue) {
+    throw new Error(
+      `eSputnik event API requires email or phone for order ${order.externalOrderId}`
+    );
+  }
+
+  const params: { name: string; value: string }[] = [
+    { name: "externalOrderId", value: order.externalOrderId },
+    { name: "totalCost",       value: String(order.totalCost) },
+    { name: "currency",        value: order.currency },
+    { name: "date",            value: order.date },
+  ];
+
+  if (order.firstName)       params.push({ name: "firstName",       value: order.firstName });
+  if (order.lastName)        params.push({ name: "lastName",        value: order.lastName });
+  if (order.phone)           params.push({ name: "phone",           value: order.phone });
+  if (order.shipping)        params.push({ name: "shipping",        value: String(order.shipping) });
+  if (order.discount)        params.push({ name: "discount",        value: String(order.discount) });
+  if (order.deliveryMethod)  params.push({ name: "deliveryMethod",  value: order.deliveryMethod });
+  if (order.paymentMethod)   params.push({ name: "paymentMethod",   value: order.paymentMethod });
+  if (order.deliveryAddress) params.push({ name: "deliveryAddress", value: order.deliveryAddress });
+  if (order.pickupAddress)   params.push({ name: "pickupAddress",   value: order.pickupAddress });
+
+  const response = await fetch(`${ESPUTNIK_CONFIG.baseUrl}/event`, {
+    method: "POST",
+    headers: {
+      Authorization: ESPUTNIK_CONFIG.authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      eventTypeKey: `order${order.status}`,
+      keyValue,
+      params,
+    }),
+  });
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `eSputnik event API error: ${response.status} ${response.statusText} — ${body}`
+    );
+  }
+
+  console.log(
+    `eSputnik order ${order.externalOrderId} sent via Event API (status: ${order.status}) — ${body}`
   );
 }

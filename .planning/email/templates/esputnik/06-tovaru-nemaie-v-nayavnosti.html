@@ -50,12 +50,12 @@
                     <p style="margin:0;font-size:16px;color:#05125C">
                       $!data.get('firstName') $!data.get('lastName')
                     </p>
-                    #if($data.get('email') and $data.get('email')!='')
+                    #if($data.get('email') and $data.get('email')!= "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">
                       $!data.get('email')
                     </p>
                     #end
-                    #if($data.get('phone') and $data.get('phone')!='')
+                    #if($data.get('phone') and $data.get('phone')!= "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">
                       $!data.get('phone')
                     </p>
