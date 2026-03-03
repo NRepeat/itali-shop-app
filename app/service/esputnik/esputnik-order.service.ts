@@ -290,6 +290,7 @@ async function sendOrderViaEventApi(order: EsputnikOrder): Promise<void> {
   }
 
   const params: { name: string; value: string }[] = [
+    { name: "orderId",         value: order.externalOrderId },
     { name: "externalOrderId", value: order.externalOrderId },
     { name: "totalCost",       value: String(order.totalCost) },
     { name: "currency",        value: order.currency },
