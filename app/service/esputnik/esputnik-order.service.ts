@@ -206,9 +206,10 @@ export async function mapShopifyOrderToEsputnik(
     };
   });
 
-  const orderId = String(payload.id);
+  const externalOrderId = String(payload.name || payload.id);
+
   return {
-    externalOrderId: orderId,
+    externalOrderId,
     totalCost: parseFloat(payload.total_price || "0"),
     status,
     date: payload.created_at,

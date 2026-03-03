@@ -10,13 +10,13 @@ const auth = Buffer.from(
 const AUTH_HEADER = `Basic ${auth}`;
 
 const MESSAGES = [
-  { id: 4423100, subject: "$!data.get('firstName'), замовлення №$!data.get('externalOrderId') прийнято" },
-  { id: 4423124, subject: "$!data.get('firstName'), замовлення №$!data.get('externalOrderId') підтверджено" },
-  { id: 4423125, subject: "Замовлення №$!data.get('externalOrderId') відправлено" },
-  { id: 4423127, subject: "Замовлення №$!data.get('externalOrderId') виконано — дякуємо!" },
-  { id: 4426092, subject: "$!data.get('firstName'), замовлення №$!data.get('externalOrderId') готове до видачі" },
-  { id: 4426093, subject: "$!data.get('firstName'), товар у замовленні №$!data.get('externalOrderId') недоступний" },
-  { id: 4426094, subject: "Замовлення №$!data.get('externalOrderId') скасовано" },
+  { id: 4423100, subject: "$!data.get('firstName'), замовлення $!data.get('externalOrderId') прийнято" },
+  { id: 4423124, subject: "$!data.get('firstName'), замовлення $!data.get('externalOrderId') підтверджено" },
+  { id: 4423125, subject: "Замовлення $!data.get('externalOrderId') відправлено" },
+  { id: 4423127, subject: "Замовлення $!data.get('externalOrderId') виконано — дякуємо!" },
+  { id: 4426092, subject: "$!data.get('firstName'), замовлення $!data.get('externalOrderId') готове до видачі" },
+  { id: 4426093, subject: "$!data.get('firstName'), товар у замовленні $!data.get('externalOrderId') недоступний" },
+  { id: 4426094, subject: "Замовлення $!data.get('externalOrderId') скасовано" },
 ];
 
 async function getMessage(id: number): Promise<any> {

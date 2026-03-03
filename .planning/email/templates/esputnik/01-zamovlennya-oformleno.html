@@ -28,7 +28,7 @@
                   <td style="padding:30px 40px 20px;text-align:center">
                     <h2 style="color:#05125C;margin:0 0 8px;font-size:24px">Дякуємо за замовлення!</h2>
                     <p style="margin:0;font-size:14px;color:#666666">
-                      Замовлення <strong>$!data.get('externalOrderId')</strong> від $!data.get('date')
+                      Замовлення <strong>$!data.get('externalOrderId')</strong> від $date.format('dd.MM.yyyy', $date.toDate($data.get('date')))
                     </p>
                   </td>
                 </tr>

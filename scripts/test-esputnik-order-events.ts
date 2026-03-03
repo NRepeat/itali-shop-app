@@ -56,10 +56,9 @@ const TEST_ITEMS = [
 ];
 
 function buildOrderPayload(status: OrderStatus, email: string) {
-  const orderId = `TEST-${status}-${Date.now()}`;
+  const orderId = `#TEST-${Date.now()}`;
   const base = {
     externalOrderId: orderId,
-    orderId,
     totalCost: 2499.0,
     status,
     date: new Date().toISOString(),
@@ -98,7 +97,7 @@ async function sendViaOrdersApi(status: OrderStatus, email: string) {
 }
 
 async function sendViaEventsApi(status: OrderStatus, email: string) {
-  const orderId = `TEST-${status}-${Date.now()}`;
+  const orderId = `#TEST-${Date.now()}`;
   const params: { name: string; value: string }[] = [
     { name: "externalOrderId", value: orderId },
     { name: "totalCost",       value: "2499" },
