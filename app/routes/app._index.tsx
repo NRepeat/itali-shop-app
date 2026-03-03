@@ -27,6 +27,7 @@ import { syncCustomers } from "@/service/sync/customers/syncCustomers";
 import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
+import { revalidateNextJs } from "@/service/revalidate/revalidate-nextjs";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -258,6 +259,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
       }
+    } else if (body.action === "revalidate-menu") {
+      await revalidateNextJs({ type: "menu" });
+      logs.push("Menu cache revalidated on miomio.com.ua");
     } else if (body.action === "sync-orders") {
       const limit = body.limit ? Number(body.limit) : undefined;
       logs =
@@ -1093,6 +1097,23 @@ export default function Index() {
             {isLoading && fetcher.json?.action === "sync-brands"
               ? "Syncing..."
               : `Sync Brands (${stats.totalBrands})`}
+          </s-button>
+        </div>
+      </s-section>
+
+      <s-section heading="Storefront Cache">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Revalidate cached data on miomio.com.ua
+        </div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <s-button
+            variant="primary"
+            onClick={() => handleAction("revalidate-menu")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "revalidate-menu"
+              ? "Revalidating..."
+              : "Revalidate Menu"}
           </s-button>
         </div>
       </s-section>

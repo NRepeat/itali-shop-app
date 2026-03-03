@@ -21,7 +21,7 @@
                 <tr>
                   <td esd-text="true" class="esd-text" style="background-color:#05125C;padding:30px 40px;text-align:center">
                     <!-- Replace src with white Mio Mio logo URL from Esputnik Media Library -->
-                    <img src="https://miomio.com.ua/images/logo-white.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
+                    <img src="https://cdn.sanity.io/images/ru43j1ro/development/e160a3d0c9fc6f56b9fd98fc92420d70fef1028f-969x263.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
                   </td>
                 </tr>
                 <tr>
@@ -50,12 +50,12 @@
                     <p style="margin:0;font-size:16px;color:#05125C">
                       $!data.get('firstName') $!data.get('lastName')
                     </p>
-                    #if("$!data.get('email')" != "")
+                    #if($data.get('email') and $data.get('email')!='')
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">
                       $!data.get('email')
                     </p>
                     #end
-                    #if("$!data.get('phone')" != "")
+                    #if($data.get('phone') and $data.get('phone')!='')
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">
                       $!data.get('phone')
                     </p>
@@ -120,7 +120,8 @@
                     #end
                   </td>
                 </tr>
-                #if("$!data.get('recommendedItems')" != "")#if($data.get('recommendedItems').size() > 0)
+                #if($data.get('recommendedItems'))
+                #if($data.get('recommendedItems').size() gt 0)
                 <tr>
                   <td style="padding:0 40px">
                     <table width="100%" cellpadding="0" cellspacing="0"><tbody><tr>
@@ -155,7 +156,8 @@
                     </table>
                   </td>
                 </tr>
-                #end#end
+                #end
+                #end
                 <tr>
                   <td esd-text="true" class="esd-text" style="text-align:center;background-color:#05125C;padding:25px 40px">
                     <p style="margin:0 0 8px;font-size:14px;color:#ffffff">
