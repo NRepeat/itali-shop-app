@@ -1,18 +1,13 @@
-import { getSyncQueue } from "@/service/sync/sync.registry";
 import { authenticate } from "@/shopify.server";
 import { ActionFunctionArgs } from "react-router";
 
+// NOTE: Fulfillment is initiated by KeyCRM webhook (api.keycrm-webhook.ts),
+// which already queues the DELIVERED eSputnik email and fulfills the order in Shopify.
+// This webhook fires as a side effect — no additional processing needed.
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { payload, shop, topic } = await authenticate.webhook(request);
+  const { shop, topic } = await authenticate.webhook(request);
 
-  console.log("🚀 ~ Received", topic, "webhook for", shop);
-
-  const queue = getSyncQueue(topic);
-  if (queue) {
-    await queue.add(topic, { shop, topic, payload });
-  } else {
-    console.error(`No sync queue found for topic: ${topic}`);
-  }
+  console.log("Received", topic, "webhook for", shop);
 
   return new Response(null, { status: 200 });
 };

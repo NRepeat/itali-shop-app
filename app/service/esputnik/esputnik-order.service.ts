@@ -206,10 +206,9 @@ export async function mapShopifyOrderToEsputnik(
     };
   });
 
-  const orderId = String(payload.name || payload.id);
+  const orderId = String(payload.id);
   return {
     externalOrderId: orderId,
-    orderId,
     totalCost: parseFloat(payload.total_price || "0"),
     status,
     date: payload.created_at,
@@ -257,14 +256,15 @@ export async function sendOrderToEsputnik(
     body: JSON.stringify({ orders: [order] }),
   });
 
+  const body = await response.text();
+
   if (!response.ok) {
-    const body = await response.text();
     throw new Error(
       `eSputnik API error: ${response.status} ${response.statusText} — ${body}`
     );
   }
 
   console.log(
-    `eSputnik order ${order.externalOrderId} sent successfully (status: ${order.status})`
+    `eSputnik order ${order.externalOrderId} sent successfully (status: ${order.status}) — ${body}`
   );
 }
