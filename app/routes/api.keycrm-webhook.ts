@@ -34,10 +34,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await handleKeyCrmOrderStatusChange(payload);
     } catch (error) {
       console.error("Error processing keyCRM webhook:", error);
-      return Response.json(
-        { error: "Processing failed" },
-        { status: 500 }
-      );
     }
   } else {
     console.log(`keyCRM webhook event "${payload.event}" not handled`);
