@@ -434,7 +434,18 @@ export async function handleKeyCrmOrderStatusChange(
     console.log(
       `Cancelling Shopify order ${shopifyOrderId} (keyCRM status: ${statusId})`
     );
-    await cancelOrder(shopifyOrderId, shop, accessToken);
+    try {
+      await cancelOrder(shopifyOrderId, shop, accessToken);
+    } catch (err: any) {
+      // Shopify cannot cancel orders with outstanding fulfillments — log and skip
+      if (err?.message?.includes("outstanding fulfillments")) {
+        console.warn(
+          `Shopify order ${shopifyOrderId} has outstanding fulfillments, cannot cancel — skipping`
+        );
+      } else {
+        throw err;
+      }
+    }
   }
 }
 

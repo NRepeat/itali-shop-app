@@ -25,7 +25,7 @@ export const KEYCRM_CONFIG = {
 
   // keyCRM → Shopify (inbound webhook mapping)
   paidStatusIds: [3, 21] as number[],           // Підтверджено, Оплачено → mark as paid
-  fulfillStatusIds: [8, 10, 9] as number[],     // Передано в доставку, Відправлено, Доставлено → fulfill
+  fulfillStatusIds: [12] as number[],           // Виконано → fulfill order
   closeStatusIds: [12] as number[],             // Виконано → close order
   cancelStatusIds: [18, 19, 20, 15, 13, 14, 16, 17] as number[], // All canceled group → cancel
 
