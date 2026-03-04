@@ -20,6 +20,7 @@ export interface EsputnikOrderJobData {
   status: EsputnikOrderStatus;
   shop: string;
   pickupAddress?: string; // passed through for READY_FOR_PICKUP events
+  trackingNumber?: string; // passed through for IN_PROGRESS (shipped) events
 }
 
 export const esputnikOrderQueue = new Queue<EsputnikOrderJobData>(

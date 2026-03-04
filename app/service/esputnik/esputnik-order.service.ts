@@ -187,13 +187,10 @@ export async function mapShopifyOrderToEsputnik(
     const nameParts = [item.title, item.variant_title].filter(Boolean);
     const productInfo = productsInfo.get(String(item.product_id));
 
-    const imageUrl = productInfo
-      ? productInfo.variantImages.get(String(item.variant_id)) ||
-        productInfo.featuredImageUrl
-      : null;
+    const imageUrl = productInfo ? productInfo.featuredImageUrl : null;
 
     const url = productInfo
-      ? `https://app.miomio.com.ua/products/${productInfo.handle}`
+      ? `https://miomio.com.ua/products/${productInfo.handle}`
       : null;
 
     return {
