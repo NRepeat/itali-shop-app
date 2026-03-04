@@ -8,7 +8,7 @@ progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State: Unified Sync & Update Logic
@@ -61,6 +61,7 @@ progress:
 - **Conditional spread for pickupAddress**: ...(pickupAddress && { pickupAddress }) omits the field entirely when map lookup returns undefined (04-04).
 - **featuredImageUrl always used for email items**: variant images show incorrect product photo in email notification context; featured image is canonical (05-03).
 - **trackingNumber in EsputnikOrderJobData alongside pickupAddress**: both are event-specific extras not in base Shopify order payload, passed through queue -> worker -> mapper extra param (05-03).
+- **Recommendation block interior color preserved as #05125C**: body/heading text outside recommendation #if guards gets #1a1a1a treatment; elements inside the guard blocks are not touched (05-02).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -87,6 +88,6 @@ None.
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
 ## Session Continuity
-- **Last Action**: 2026-03-04 - Executed plan 05-03: Fixed email domain (app.miomio.com.ua -> miomio.com.ua), switched to featuredImageUrl for email line-item images, added trackingNumber to queue interface and wired through worker to mapper
-- **Stopped At**: Completed 05-03-PLAN.md
-- **Next Step**: Phase 5 plans 01 and 02 remain (email template fixes, frontend fixes). DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
+- **Last Action**: 2026-03-04 - Executed plan 05-02: Applied visual fixes to email templates 05, 06, 07 (logo link, black text, integer hryvnia prices, no delivery row; recommendation blocks in 06/07 preserved)
+- **Stopped At**: Completed 05-02-PLAN.md
+- **Next Step**: Phase 5 plan 01 remains (email template fixes for templates 01-04). DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
