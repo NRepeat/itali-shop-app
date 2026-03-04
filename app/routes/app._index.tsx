@@ -453,6 +453,45 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       logs.push(
         `Discount activated! ID: ${disc.discountId}, Title: ${disc.title}, Status: ${disc.status}`,
       );
+    } else if (body.action === "check-url-issues") {
+      const QUERY = `query getProducts($cursor: String) {
+        products(first: 250, after: $cursor) {
+          pageInfo { hasNextPage endCursor }
+          nodes { id handle title }
+        }
+      }`;
+      const withSpaces: string[] = [];
+      const withDoubleSlash: string[] = [];
+      const withLeadingSlash: string[] = [];
+      const withTrailingSlash: string[] = [];
+      let cursor: string | null = null;
+      let total = 0;
+      do {
+        const res = await admin.graphql(QUERY, { variables: { cursor } });
+        const { data } = await res.json();
+        const products: Array<{ id: string; handle: string; title: string }> = data?.products?.nodes ?? [];
+        const pageInfo = data?.products?.pageInfo;
+        total += products.length;
+        for (const p of products) {
+          const fmt = `${p.handle}  |  ${p.title}`;
+          if (/ /.test(p.handle))                         withSpaces.push(fmt);
+          if (/\/\//.test(`/products/${p.handle}`))        withDoubleSlash.push(fmt);
+          if (p.handle.startsWith("/"))                    withLeadingSlash.push(fmt);
+          if (p.handle.endsWith("/"))                      withTrailingSlash.push(fmt);
+        }
+        cursor = pageInfo?.hasNextPage ? pageInfo.endCursor : null;
+      } while (cursor);
+      logs.push(`Scanned ${total} products.`);
+      logs.push(`--- Spaces in handle (${withSpaces.length}) ---`);
+      withSpaces.forEach((l) => logs.push("  " + l));
+      logs.push(`--- Double slashes (${withDoubleSlash.length}) ---`);
+      withDoubleSlash.forEach((l) => logs.push("  " + l));
+      logs.push(`--- Leading slash (${withLeadingSlash.length}) ---`);
+      withLeadingSlash.forEach((l) => logs.push("  " + l));
+      logs.push(`--- Trailing slash (${withTrailingSlash.length}) ---`);
+      withTrailingSlash.forEach((l) => logs.push("  " + l));
+      const issues = withSpaces.length + withDoubleSlash.length + withLeadingSlash.length + withTrailingSlash.length;
+      logs.push(issues === 0 ? "✓ No URL issues found." : `⚠ ${issues} issue(s) found.`);
     } else if (body.action === "delete-discount-function") {
       logs.push("Looking for active app discounts...");
 
@@ -1177,6 +1216,21 @@ export default function Index() {
           )}
         </s-section>
       )}
+
+      <s-section heading="SEO URL Checker">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Scans all Shopify product handles for spaces, double slashes, leading/trailing slashes
+        </div>
+        <s-button
+          variant="primary"
+          onClick={() => handleAction("check-url-issues")}
+          disabled={isLoading || undefined}
+        >
+          {isLoading && fetcher.json?.action === "check-url-issues"
+            ? "Scanning..."
+            : "Check URL Issues"}
+        </s-button>
+      </s-section>
     </s-page>
   );
 }

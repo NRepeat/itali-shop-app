@@ -380,7 +380,11 @@ export async function fetchKeyCrmOrderTracking(
   }
 
   const data = await response.json();
-  const rawTtn = data?.shipping?.tracking_code;
+  console.log(`[fetchKeyCrmOrderTracking] order ${keycrmOrderId} response keys:`, Object.keys(data));
+  // KeyCRM single-order endpoint may wrap in a `data` object
+  const order = data?.data ?? data;
+  const rawTtn = order?.shipping?.tracking_code;
+  console.log(`[fetchKeyCrmOrderTracking] tracking_code:`, rawTtn);
   return typeof rawTtn === "string" && rawTtn.trim() ? rawTtn.trim() : undefined;
 }
 
