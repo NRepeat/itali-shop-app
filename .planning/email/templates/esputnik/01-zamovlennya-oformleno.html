@@ -19,16 +19,18 @@
                 <!-- HEADER -->
                 <tr>
                   <td style="background-color:#05125C;padding:30px 40px;text-align:center">
-                    <!-- Replace src with white Mio Mio logo URL from Esputnik Media Library -->
-                    <img src="https://cdn.sanity.io/images/ru43j1ro/development/e160a3d0c9fc6f56b9fd98fc92420d70fef1028f-969x263.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
+                    <a href="https://miomio.com.ua" target="_blank" style="display:block;line-height:0">
+                      <img src="https://cdn.sanity.io/images/ru43j1ro/development/e160a3d0c9fc6f56b9fd98fc92420d70fef1028f-969x263.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
+                    </a>
                   </td>
                 </tr>
                 <!-- TITLE -->
                 <tr>
                   <td style="padding:30px 40px 20px;text-align:center">
-                    <h2 style="color:#05125C;margin:0 0 8px;font-size:24px">Дякуємо за замовлення!</h2>
+                    <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:24px">Дякуємо за замовлення!</h2>
+                    <p style="margin:0 0 12px;font-size:14px;color:#666666">Наші менеджери зв'яжуться з вами найближчим часом для підтвердження замовлення</p>
                     <p style="margin:0;font-size:14px;color:#666666">
-                      Замовлення <strong>$!data.get('externalOrderId')</strong> від $date.format('dd.MM.yyyy', $date.toDate($data.get('date')))
+                      Замовлення <strong>$!data.get('externalOrderId')</strong> від $date.format('dd.MM.yyyy HH:mm', $date.toDate($data.get('date')))
                     </p>
                   </td>
                 </tr>
@@ -43,7 +45,7 @@
                 <!-- CUSTOMER INFO -->
                 <tr>
                   <td style="padding:20px 40px">
-                    <p style="margin:0;font-size:16px;color:#05125C">$!data.get('firstName') $!data.get('lastName')</p>
+                    <p style="margin:0;font-size:16px;color:#1a1a1a">$!data.get('firstName') $!data.get('lastName')</p>
                     #if($data.get('email') and $data.get('email')!= "")
                     <p style="margin:4px 0 0;font-size:14px;color:#666666">$!data.get('email')</p>
                     #end
@@ -63,13 +65,14 @@
                 <!-- ITEMS HEADER -->
                 <tr>
                   <td style="padding:20px 40px 10px">
-                    <h3 style="letter-spacing:0.5px;margin:0;font-size:16px;color:#05125C;text-transform:uppercase">Товари</h3>
+                    <h3 style="letter-spacing:0.5px;margin:0;font-size:16px;color:#1a1a1a;text-transform:uppercase">Товари</h3>
                   </td>
                 </tr>
                 <!-- ITEMS LOOP -->
                 <tr>
                   <td style="padding:0 40px">
                     #foreach($item in $data.get('items'))
+                    #set($itemCostInt = $item.get('cost').intValue())
                     <table cellpadding="0" cellspacing="0" width="100%">
                       <tbody>
                         <tr>
@@ -87,9 +90,9 @@
                                     #end
                                   </td>
                                   <td valign="top" class="item-details" style="font-size:14px;color:#333333">
-                                    <a href="$!item.get('url')" target="_blank" style="text-decoration:none;font-weight:600;font-size:15px;color:#05125C">$!item.get('name')</a>
+                                    <a href="$!item.get('url')" target="_blank" style="text-decoration:none;font-weight:600;font-size:15px;color:#1a1a1a">$!item.get('name')</a>
                                     <p style="margin:8px 0 0;color:#666666">К-сть: $!item.get('quantity')</p>
-                                    <p style="color:#05125C;margin:4px 0 0;font-weight:600;font-size:16px">$!item.get('cost') $!data.get('currency')</p>
+                                    <p style="color:#1a1a1a;margin:4px 0 0;font-weight:600;font-size:16px">$itemCostInt грн</p>
                                   </td>
                                 </tr>
                               </tbody>
@@ -112,19 +115,14 @@
                 <!-- TOTALS -->
                 <tr>
                   <td style="padding:20px 40px">
-                    <h3 style="font-size:16px;color:#05125C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Підсумок</h3>
+                    <h3 style="font-size:16px;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Підсумок</h3>
                     <table cellspacing="0" width="100%" cellpadding="0" style="font-size:14px;color:#333333">
                       <tbody>
                         #if($data.get('discount') and $data.get('discount')!= "")
+                        #set($discountInt = $data.get('discount').intValue())
                         <tr>
                           <td style="padding:4px 0;color:#666666">Знижка:</td>
-                          <td style="color:#e44d2e;padding:4px 0;text-align:right">-$!data.get('discount') $!data.get('currency')</td>
-                        </tr>
-                        #end
-                        #if($data.get('shipping') and $data.get('shipping')!= "")
-                        <tr>
-                          <td style="padding:4px 0;color:#666666">Доставка:</td>
-                          <td style="padding:4px 0;text-align:right">$!data.get('shipping') $!data.get('currency')</td>
+                          <td style="color:#e44d2e;padding:4px 0;text-align:right">-$discountInt грн</td>
                         </tr>
                         #end
                         <tr>
@@ -134,9 +132,10 @@
                             </tr></tbody></table>
                           </td>
                         </tr>
+                        #set($totalCostInt = $data.get('totalCost').intValue())
                         <tr>
-                          <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#05125C">Всього:</td>
-                          <td style="padding:12px 0 0;text-align:right;font-size:18px;font-weight:700;color:#05125C">$!data.get('totalCost') $!data.get('currency')</td>
+                          <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#1a1a1a">Всього:</td>
+                          <td style="padding:12px 0 0;text-align:right;font-size:18px;font-weight:700;color:#1a1a1a">$totalCostInt грн</td>
                         </tr>
                       </tbody>
                     </table>
@@ -157,7 +156,7 @@
                       <tbody>
                         <tr>
                           <td valign="top" width="50%" style="padding-right:10px">
-                            <h3 style="color:#05125C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;font-size:14px">Доставка</h3>
+                            <h3 style="color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;font-size:14px">Доставка</h3>
                             #if($data.get('deliveryMethod') and $data.get('deliveryMethod')!= "")
                             <p style="margin:0 0 4px;font-size:14px;color:#666666">$!data.get('deliveryMethod')</p>
                             #end
@@ -166,21 +165,16 @@
                             #end
                           </td>
                           <td valign="top" width="50%" style="padding-left:10px">
-                            <h3 style="margin:0 0 8px;font-size:14px;color:#05125C;text-transform:uppercase;letter-spacing:0.5px">Оплата</h3>
+                            <h3 style="margin:0 0 8px;font-size:14px;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px">Оплата</h3>
                             #if($data.get('paymentMethod') and $data.get('paymentMethod')!= "")
                             <p style="margin:0;font-size:14px;color:#666666">$!data.get('paymentMethod')</p>
                             #end
-                            <p style="font-weight:600;color:#05125C;margin:4px 0 0;font-size:14px">$!data.get('totalCost') $!data.get('currency')</p>
+                            #set($totalCostInt2 = $data.get('totalCost').intValue())
+                            <p style="font-weight:600;color:#1a1a1a;margin:4px 0 0;font-size:14px">$totalCostInt2 грн</p>
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                  </td>
-                </tr>
-                <!-- MANAGER NOTICE -->
-                <tr>
-                  <td style="padding:0 40px 20px;text-align:center;font-size:14px;color:#666666">
-                    Наші менеджери зв'яжуться з вами найближчим часом для підтвердження замовлення
                   </td>
                 </tr>
                 <!-- FOOTER -->
