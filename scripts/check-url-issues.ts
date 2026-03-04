@@ -73,7 +73,7 @@ async function main() {
     for (const p of products) {
       const fmt = `${p.handle}  |  ${p.title}`;
       if (/ /.test(p.handle))               withSpaces.push(fmt);
-      if (/\/\//.test(`/products/${p.handle}`)) withDoubleSlash.push(fmt);
+      if (/\/\//.test(`/product/${p.handle}`)) withDoubleSlash.push(fmt);
       if (p.handle.startsWith("/"))          withLeadingSlash.push(fmt);
       if (p.handle.endsWith("/"))            withTrailingSlash.push(fmt);
     }

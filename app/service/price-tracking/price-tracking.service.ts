@@ -33,6 +33,8 @@ export async function processPriceUpdate(
 
   console.log(`Processing price update for product ${product.id} (${product.title})`);
 
+  const notifiedSubscriptionIds = new Set<string>();
+
   for (const variant of product.variants) {
     const shopifyVariantId = `gid://shopify/ProductVariant/${variant.id}`;
     const currentPrice = new Decimal(variant.price);
@@ -80,7 +82,8 @@ export async function processPriceUpdate(
         product.title,
         variant.title,
         product.handle,
-        productImageUrl
+        productImageUrl,
+        notifiedSubscriptionIds
       );
 
       // Check for back-in-stock notifications only when price changed
@@ -134,7 +137,7 @@ async function checkAndNotifyBackInStock(
           productTitle,
           variantTitle,
           productHandle,
-          productUrl: productHandle ? `https://miomio.com.ua/products/${productHandle}` : undefined,
+          productUrl: productHandle ? `https://miomio.com.ua/product/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
           subscriptionId: subscription.id,
@@ -154,7 +157,8 @@ async function checkAndNotifySubscriptions(
   productTitle?: string,
   variantTitle?: string,
   productHandle?: string,
-  productImageUrl?: string
+  productImageUrl?: string,
+  notifiedSubscriptionIds?: Set<string>
 ): Promise<void> {
   console.log(`[checkAndNotifySubscriptions] Checking for PRICE_DROP/ANY_CHANGE subscriptions for product ${shopifyProductId}, variant ${shopifyVariantId} at price ${currentPrice.toString()}`);
   // Find active PRICE_DROP subscriptions where target price is met
@@ -189,6 +193,12 @@ async function checkAndNotifySubscriptions(
     );
 
     for (const subscription of subscriptions) {
+      // ANY_CHANGE: skip if already notified for this product in this webhook run
+      if (subscription.subscriptionType === "ANY_CHANGE" && notifiedSubscriptionIds?.has(subscription.id)) {
+        console.log(`Skipping duplicate ANY_CHANGE notification for subscription ${subscription.id} (already notified this run)`);
+        continue;
+      }
+
       try {
         await sendPriceDropEventToEsputnik({
           email: subscription.email,
@@ -196,11 +206,21 @@ async function checkAndNotifySubscriptions(
           productTitle,
           variantTitle,
           productHandle,
-          productUrl: productHandle ? `https://miomio.com.ua/products/${productHandle}` : undefined,
+          productUrl: productHandle ? `https://miomio.com.ua/product/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
           subscriptionId: subscription.id,
         });
+        // Mark as notified immediately to prevent duplicates across variant loops
+        if (subscription.subscriptionType === "PRICE_DROP") {
+          await prisma.priceSubscription.update({
+            where: { id: subscription.id },
+            data: { notifiedAt: new Date(), isActive: false },
+          });
+        }
+        if (subscription.subscriptionType === "ANY_CHANGE") {
+          notifiedSubscriptionIds?.add(subscription.id);
+        }
         console.log(`eSputnik event sent for subscription ${subscription.id} (${subscription.email})`);
       } catch (error) {
         console.warn(`Failed to send eSputnik event for ${subscription.email}:`, error);
