@@ -148,14 +148,14 @@
                   </td>
                 </tr>
                 <!-- TRACKING NUMBER (guarded by #if) -->
-                #if($data.get('trackingNumber') and $data.get('trackingNumber')!= "")
+                #if($data.get('additionalInfo') and $data.get('additionalInfo')!= "")
                 <tr>
                   <td style="padding:20px 40px">
                     <h3 style="font-size:14px;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px">
                       Трекінг посилки
                     </h3>
                     <p style="margin:0;font-size:14px;color:#666666">
-                      $!data.get('trackingNumber')
+                      $!data.get('additionalInfo')
                     </p>
                   </td>
                 </tr>

@@ -82,19 +82,19 @@ export async function processPriceUpdate(
         product.handle,
         productImageUrl
       );
-    }
 
-    // Check for back-in-stock notifications
-    if (isInStock) {
-      await checkAndNotifyBackInStock(
-        shopifyProductId,
-        shopifyVariantId,
-        currentPrice,
-        product.title,
-        variant.title,
-        product.handle,
-        productImageUrl
-      );
+      // Check for back-in-stock notifications only when price changed
+      if (isInStock) {
+        await checkAndNotifyBackInStock(
+          shopifyProductId,
+          shopifyVariantId,
+          currentPrice,
+          product.title,
+          variant.title,
+          product.handle,
+          productImageUrl
+        );
+      }
     }
   }
 }
@@ -134,7 +134,7 @@ async function checkAndNotifyBackInStock(
           productTitle,
           variantTitle,
           productHandle,
-          productUrl: productHandle ? `https://miomio.com.ua/product/${productHandle}` : undefined,
+          productUrl: productHandle ? `https://miomio.com.ua/products/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
           subscriptionId: subscription.id,
@@ -196,7 +196,7 @@ async function checkAndNotifySubscriptions(
           productTitle,
           variantTitle,
           productHandle,
-          productUrl: productHandle ? `https://miomio.com.ua/product/${productHandle}` : undefined,
+          productUrl: productHandle ? `https://miomio.com.ua/products/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
           subscriptionId: subscription.id,

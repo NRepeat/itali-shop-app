@@ -27,8 +27,9 @@ interface EsputnikOrder {
   deliveryMethod?: string;
   paymentMethod?: string;
   deliveryAddress?: string;
-  pickupAddress?: string;    // for READY_FOR_PICKUP template
-  trackingNumber?: string;   // for IN_PROGRESS template
+  pickupAddress?: string;      // for READY_FOR_PICKUP template
+  trackingNumber?: string;     // passed via Event API params only
+  additionalInfo?: string;     // tracking number stored in order record (Orders API)
   items: EsputnikOrderItem[];
 }
 
@@ -237,24 +238,20 @@ export async function mapShopifyOrderToEsputnik(
       deliveryAddress: formatDeliveryAddress(payload.shipping_address),
     }),
     ...(extra?.pickupAddress && { pickupAddress: extra.pickupAddress }),
-    ...(extra?.trackingNumber && { trackingNumber: extra.trackingNumber }),
+    ...(extra?.trackingNumber && { additionalInfo: extra.trackingNumber }),
     items,
   };
 }
 
-// CONFIRMED, IN_PROGRESS, READY_FOR_PICKUP, OUT_OF_STOCK use /event endpoint
-// IN_PROGRESS uses event API so trackingNumber is passed as an explicit param accessible in the template
-const EVENT_API_STATUSES = new Set(["CONFIRMED", "IN_PROGRESS", "READY_FOR_PICKUP", "OUT_OF_STOCK"]);
+// These statuses use /event endpoint (automation workflows with explicit params)
+// CONFIRMED, READY_FOR_PICKUP, OUT_OF_STOCK: custom statuses not in eSputnik standard set
+// IN_PROGRESS uses Orders API — tracking number stored in additionalInfo field
+const EVENT_API_STATUSES = new Set(["CONFIRMED", "READY_FOR_PICKUP", "OUT_OF_STOCK"]);
 
 export async function sendOrderToEsputnik(
   order: EsputnikOrder
 ): Promise<void> {
-  if (order.status === "IN_PROGRESS") {
-    // Event API: triggers email automation with trackingNumber param
-    await sendOrderViaEventApi(order);
-    // Orders API: updates order record status in eSputnik
-    await sendOrderViaOrdersApi(order);
-  } else if (EVENT_API_STATUSES.has(order.status)) {
+  if (EVENT_API_STATUSES.has(order.status)) {
     await sendOrderViaEventApi(order);
   } else {
     await sendOrderViaOrdersApi(order);
