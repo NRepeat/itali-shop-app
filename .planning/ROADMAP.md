@@ -51,6 +51,7 @@ Standardize the synchronization flow between Shopify and the internal system to 
 | 2: Products | 3/3 | Completed | 2026-02-23 |
 | 3: Orders/Cust | 3/3 | Completed | 2026-02-23 |
 | 4: Email Templates | 0/4 | In Progress | — |
+| 5: Email Improvements & Frontend | 0/6 | Planned | — |
 
 ### Phase 4: Create Sputnik email templates and update order event flows
 
@@ -64,3 +65,18 @@ Plans:
 - [ ] 04-02-PLAN.md — Email templates 01–03: замовлення оформлено, підтверджено, відправлено
 - [ ] 04-03-PLAN.md — Email templates 04–07: виконано, готово до самовивозу, товару немає в наявності, скасовано
 - [ ] 04-04-PLAN.md — Wire orders/create webhook to Esputnik + READY_FOR_PICKUP store address passthrough
+
+### Phase 5: Email improvements and frontend fixes
+
+**Goal:** Fix email template visual/data issues, wire tracking number through to shipped email, split keyCRM comment routing, add Відмова від отримання status, and apply frontend fixes to nnshop storefront (phone default, Viber contact, SKU-first related products).
+**Requirements**: ORD-01
+**Depends on:** Phase 4
+**Plans:** 6 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Email templates 01–04 visual fixes (colors, prices, date+time, logo link, no delivery cost row)
+- [ ] 05-02-PLAN.md — Email templates 05–07 visual fixes + preserve recommendation blocks
+- [ ] 05-03-PLAN.md — eSputnik service fixes: product URL domain, featured image, trackingNumber interface
+- [ ] 05-04-PLAN.md — keyCRM: Відмова від отримання status, comment routing split, trackingNumber passthrough
+- [ ] 05-05-PLAN.md — Frontend: quick order phone +380, Footer Viber icon, verify cart/status badge
+- [ ] 05-06-PLAN.md — Frontend: SKU-first related products, verify discount code in checkout, Sanity content updates
