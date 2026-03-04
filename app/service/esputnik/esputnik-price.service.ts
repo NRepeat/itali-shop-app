@@ -5,6 +5,9 @@ export interface EsputnikPriceEventParams {
   productId: string;
   productTitle?: string;
   variantTitle?: string;
+  productHandle?: string;
+  productUrl?: string;
+  productImageUrl?: string;
   newPrice: string;
   oldPrice?: string;
   currency?: string;
@@ -23,6 +26,15 @@ export async function sendPriceDropEventToEsputnik(
       : []),
     ...(params.variantTitle
       ? [{ name: "variantTitle", value: params.variantTitle }]
+      : []),
+    ...(params.productHandle
+      ? [{ name: "productHandle", value: params.productHandle }]
+      : []),
+    ...(params.productUrl
+      ? [{ name: "productUrl", value: params.productUrl }]
+      : []),
+    ...(params.productImageUrl
+      ? [{ name: "productImageUrl", value: params.productImageUrl }]
       : []),
     ...(params.oldPrice
       ? [{ name: "oldPrice", value: params.oldPrice }]

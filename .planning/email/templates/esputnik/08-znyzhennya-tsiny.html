@@ -1,0 +1,110 @@
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="telephone=no" name="format-detection">
+    <title>Ціна знизилась</title>
+    <style>
+      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; } img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; } body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; } .wrapper { max-width: 600px; margin: 0 auto; } .content { padding: 20px; } @media only screen and (max-width: 620px) { .wrapper { width: 100% !important; } .content { padding: 15px !important; } .product-image { width: 100% !important; height: auto !important; } }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f4">
+    <table cellspacing="0" width="100%" cellpadding="0" style="background-color:#f4f4f4">
+      <tbody>
+        <tr>
+          <td align="center" style="padding:20px 10px">
+            <table cellpadding="0" cellspacing="0" width="600" class="wrapper" style="overflow:hidden;background-color:#ffffff;border-radius:8px">
+              <tbody>
+
+                <!-- HEADER -->
+                <tr>
+                  <td style="background-color:#05125C;padding:30px 40px;text-align:center">
+                    <a href="https://miomio.com.ua" target="_blank" style="display:block;line-height:0">
+                      <img src="https://cdn.sanity.io/images/ru43j1ro/development/e160a3d0c9fc6f56b9fd98fc92420d70fef1028f-969x263.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
+                    </a>
+                  </td>
+                </tr>
+
+                <!-- TITLE -->
+                <tr>
+                  <td style="padding:30px 40px 20px;text-align:center">
+                    <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:24px">Ціна знизилась!</h2>
+                    <p style="color:#555555;margin:0;font-size:15px">Товар зі списку відстеження став дешевшим</p>
+                  </td>
+                </tr>
+
+                <!-- PRODUCT CARD -->
+                <tr>
+                  <td style="padding:0 40px 30px">
+                    <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e8e8e8;border-radius:8px;overflow:hidden">
+                      <tbody>
+
+                        <!-- PRODUCT IMAGE (shown only if productImageUrl provided) -->
+                        #if($data.get('productImageUrl'))
+                        <tr>
+                          <td style="text-align:center;padding:20px;background-color:#fafafa">
+                            <a href="$!data.get('productUrl')" target="_blank" style="display:block">
+                              <img src="$!data.get('productImageUrl')" alt="$!data.get('productTitle')" class="product-image" width="200" style="display:block;margin:0 auto;max-width:200px;border-radius:4px">
+                            </a>
+                          </td>
+                        </tr>
+                        #end
+
+                        <!-- PRODUCT NAME -->
+                        <tr>
+                          <td style="padding:20px 20px 8px;text-align:center">
+                            <a href="$!data.get('productUrl')" target="_blank" style="color:#1a1a1a;font-size:16px;font-weight:bold;text-decoration:none;line-height:1.4">$!data.get('productTitle')</a>
+                            #if($data.get('variantTitle'))
+                            <p style="color:#888888;font-size:13px;margin:4px 0 0">$!data.get('variantTitle')</p>
+                            #end
+                          </td>
+                        </tr>
+
+                        <!-- PRICE -->
+                        <tr>
+                          <td style="padding:12px 20px 20px;text-align:center">
+                            #if($data.get('oldPrice'))
+                            <span style="color:#aaaaaa;font-size:15px;text-decoration:line-through;margin-right:8px">$!data.get('oldPrice').split('.')[0] грн</span>
+                            #end
+                            <span style="color:#d32f2f;font-size:24px;font-weight:bold">$!data.get('newPrice').split('.')[0] грн</span>
+                          </td>
+                        </tr>
+
+                        <!-- CTA BUTTON -->
+                        <tr>
+                          <td style="padding:0 20px 24px;text-align:center">
+                            <a href="$!data.get('productUrl')" target="_blank" style="display:inline-block;background-color:#05125C;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;padding:12px 32px;border-radius:6px">Перейти до товару</a>
+                          </td>
+                        </tr>
+
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- INFO TEXT -->
+                <tr>
+                  <td style="padding:0 40px 30px;text-align:center">
+                    <p style="color:#888888;font-size:13px;margin:0;line-height:1.5">Ви отримали це повідомлення, оскільки підписались на сповіщення про зміну ціни на сайті miomio.com.ua</p>
+                  </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                  <td style="background-color:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eeeeee">
+                    <p style="color:#aaaaaa;font-size:12px;margin:0 0 4px">
+                      <a href="https://miomio.com.ua" target="_blank" style="color:#aaaaaa;text-decoration:none">miomio.com.ua</a>
+                    </p>
+                    <p style="color:#aaaaaa;font-size:12px;margin:0">© 2025 Міо Міо</p>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

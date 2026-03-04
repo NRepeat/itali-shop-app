@@ -18,6 +18,7 @@ interface ProductPayload {
   title: string;
   handle: string;
   status?: string;
+  featuredImage?: { url: string } | null;
   variants: ProductVariant[];
 }
 
@@ -74,7 +75,9 @@ export async function processPriceUpdate(
         shopifyVariantId,
         currentPrice,
         product.title,
-        variant.title
+        variant.title,
+        product.handle,
+        product.featuredImage?.url
       );
     }
 
@@ -85,7 +88,9 @@ export async function processPriceUpdate(
         shopifyVariantId,
         currentPrice,
         product.title,
-        variant.title
+        variant.title,
+        product.handle,
+        product.featuredImage?.url
       );
     }
   }
@@ -97,7 +102,9 @@ async function checkAndNotifyBackInStock(
   shopifyVariantId: string,
   currentPrice: Decimal,
   productTitle?: string,
-  variantTitle?: string
+  variantTitle?: string,
+  productHandle?: string,
+  productImageUrl?: string
 ): Promise<void> {
   console.log(`[checkAndNotifyBackInStock] Checking for BACK_IN_STOCK subscriptions for product ${shopifyProductId}, variant ${shopifyVariantId}`);
   // Find BACK_IN_STOCK subscriptions
@@ -123,6 +130,9 @@ async function checkAndNotifyBackInStock(
           productId: shopifyProductId,
           productTitle,
           variantTitle,
+          productHandle,
+          productUrl: productHandle ? `https://miomio.com.ua/product/${productHandle}` : undefined,
+          productImageUrl,
           newPrice: currentPrice.toString(),
           subscriptionId: subscription.id,
         });
@@ -139,7 +149,9 @@ async function checkAndNotifySubscriptions(
   shopifyVariantId: string,
   currentPrice: Decimal,
   productTitle?: string,
-  variantTitle?: string
+  variantTitle?: string,
+  productHandle?: string,
+  productImageUrl?: string
 ): Promise<void> {
   console.log(`[checkAndNotifySubscriptions] Checking for PRICE_DROP/ANY_CHANGE subscriptions for product ${shopifyProductId}, variant ${shopifyVariantId} at price ${currentPrice.toString()}`);
   // Find active PRICE_DROP subscriptions where target price is met
@@ -180,6 +192,9 @@ async function checkAndNotifySubscriptions(
           productId: shopifyProductId,
           productTitle,
           variantTitle,
+          productHandle,
+          productUrl: productHandle ? `https://miomio.com.ua/product/${productHandle}` : undefined,
+          productImageUrl,
           newPrice: currentPrice.toString(),
           subscriptionId: subscription.id,
         });
