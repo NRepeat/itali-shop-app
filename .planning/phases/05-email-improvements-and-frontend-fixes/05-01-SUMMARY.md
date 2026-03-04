@@ -51,10 +51,10 @@ completed: 2026-03-04
 
 ## Performance
 
-- **Duration:** ~5 min (auto tasks 1-2)
+- **Duration:** ~20 min (auto tasks 1-2 + human-action checkpoint for Task 3)
 - **Started:** 2026-03-04T13:24:22Z
-- **Completed:** 2026-03-04T13:29:00Z (Tasks 1-2; Task 3 awaiting human action)
-- **Tasks:** 2/3 complete (Task 3 is a human-action checkpoint)
+- **Completed:** 2026-03-04T14:26:25Z
+- **Tasks:** 3/3 complete
 - **Files modified:** 4
 
 ## Accomplishments
@@ -70,7 +70,7 @@ Each task was committed atomically:
 
 1. **Task 1: Fix templates 01 and 02** - `12a2af2` (feat)
 2. **Task 2: Fix templates 03 and 04** - `2a5d113` (feat)
-3. **Task 3: Update eSputnik sender display name** - PENDING (human-action checkpoint)
+3. **Task 3: Update eSputnik sender display name** - COMPLETE (human action, confirmed by user "done" 2026-03-04)
 
 ## Files Created/Modified
 - `.planning/email/templates/esputnik/01-zamovlennya-oformleno.html` - Clickable logo, #1a1a1a text, intValue prices, HH:mm date, manager notice at top, no delivery cost row
@@ -91,23 +91,30 @@ None - plan executed exactly as written.
 
 None.
 
-## User Setup Required
+## Human Actions Completed
 
-**Task 3 requires manual action in eSputnik admin.**
-
-1. Log in to eSputnik account at https://esputnik.com
-2. Go to Account Settings → Sender Names (Імена відправників)
-3. Find the sender used by transactional email workflows for order emails
-4. Change the display name (From name) to: **Міо Міо**
-5. Save the change
-6. If sender name is set per-workflow, update each transactional workflow (INITIALIZED, CONFIRMED, IN_PROGRESS, DELIVERED, CANCELLED)
-7. Verify: send a test email and confirm the "From:" field shows "Міо Міо"
+**Task 3 — eSputnik sender display name update (completed 2026-03-04):**
+- User logged into eSputnik admin at https://esputnik.com
+- Updated sender display name (From name) to: **Міо Міо**
+- Confirmed by user response "done"
 
 ## Next Phase Readiness
 - All 4 HTML templates are ready to paste into eSputnik editor
-- eSputnik sender display name update is the only remaining action for this plan
-- After Task 3 is complete, this plan is fully done
+- eSputnik sender display name is set to "Міо Міо"
+- Plan 05-01 is fully complete
+
+## Self-Check: PASSED
+
+Commits verified:
+- 12a2af2 — feat(05-01): fix email templates 01 and 02 (FOUND)
+- 2a5d113 — feat(05-01): fix email templates 03 and 04 (FOUND)
+
+Files verified in git history:
+- .planning/email/templates/esputnik/01-zamovlennya-oformleno.html (FOUND)
+- .planning/email/templates/esputnik/02-pidtverdzheno.html (FOUND)
+- .planning/email/templates/esputnik/03-vidpravleno.html (FOUND)
+- .planning/email/templates/esputnik/04-vykonano.html (FOUND)
 
 ---
 *Phase: 05-email-improvements-and-frontend-fixes*
-*Completed: 2026-03-04 (Tasks 1-2; Task 3 pending human action)*
+*Completed: 2026-03-04*
