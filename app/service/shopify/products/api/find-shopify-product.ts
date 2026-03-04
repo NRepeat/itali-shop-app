@@ -1,5 +1,32 @@
 import { client } from "@shared/lib/shopify/client/client";
 
+const GET_PRODUCT_TAGS_QUERY = `
+  query getProductTags($id: ID!) {
+    product(id: $id) {
+      tags
+    }
+  }
+`;
+
+export const fetchShopifyProductTags = async (
+  productId: string,
+  accessToken: string,
+  shopDomain: string,
+): Promise<string[]> => {
+  try {
+    const response = await client.request<{ product: { tags: string[] } | null }>({
+      query: GET_PRODUCT_TAGS_QUERY,
+      variables: { id: productId },
+      accessToken,
+      shopDomain,
+    });
+    return response.product?.tags ?? [];
+  } catch (error) {
+    console.error(`Error fetching tags for product ${productId}:`, error);
+    return [];
+  }
+};
+
 const FIND_PRODUCT_BY_SKU_QUERY = `
   query findProductBySku($query: String!) {
     products(first: 1, query: $query) {

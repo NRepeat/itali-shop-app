@@ -12,7 +12,7 @@ import { setProductMetafields } from "./set-product-metafields";
 import { linkProducts } from "./link-products";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
 import { updateShopifyProduct } from "@/service/shopify/products/api/update-shopify-product";
-import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
+import { findShopifyProductBySku, fetchShopifyProductTags } from "@/service/shopify/products/api/find-shopify-product";
 import {
   CreateBasicAutomaticDiscountMutationVariables,
   CreateProductAsynchronousMutationVariables,
@@ -359,11 +359,17 @@ export const processSyncTask = async (job: Job) => {
       optionDescriptions,
     );
     console.log("variants",JSON.stringify(variants));
-    const tags = await buildTags(
+    const newTags = await buildTags(
       product,
       bcTagsDescription,
       ukrainianDescription,
     );
+
+    // For existing products: preserve manually-added Shopify tags by merging with sync tags
+    const existingTags = existingProductId
+      ? await fetchShopifyProductTags(existingProductId, accessToken, shop)
+      : [];
+    const tags = [...new Set([...existingTags, ...newTags])];
 
     const files = buildFiles(product, productImages, ukrainianDescription);
 
