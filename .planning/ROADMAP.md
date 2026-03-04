@@ -71,7 +71,7 @@ Plans:
 **Goal:** Fix email template visual/data issues, wire tracking number through to shipped email, split keyCRM comment routing, add Відмова від отримання status, and apply frontend fixes to nnshop storefront (phone default, Viber contact, SKU-first related products).
 **Requirements**: ORD-01
 **Depends on:** Phase 4
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 - [ ] 05-01-PLAN.md — Email templates 01–04 visual fixes (colors, prices, date+time, logo link, no delivery cost row)

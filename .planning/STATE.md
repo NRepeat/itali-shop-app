@@ -62,6 +62,8 @@ progress:
 - **featuredImageUrl always used for email items**: variant images show incorrect product photo in email notification context; featured image is canonical (05-03).
 - **trackingNumber in EsputnikOrderJobData alongside pickupAddress**: both are event-specific extras not in base Shopify order payload, passed through queue -> worker -> mapper extra param (05-03).
 - **Recommendation block interior color preserved as #05125C**: body/heading text outside recommendation #if guards gets #1a1a1a treatment; elements inside the guard blocks are not touched (05-02).
+- **intValue() via #set variable in Velocity templates**: price values use #set($varInt = $data.get('field').intValue()) before output, then $varInt грн — avoids inline method call rendering issues and cleanly replaces UAH currency reference (05-01).
+- **Template 01 totalCost in two positions uses two #set variables**: Totals section and Payment column both display totalCost; separate $totalCostInt and $totalCostInt2 variables avoid Velocity scope confusion (05-01).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -88,6 +90,6 @@ None.
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
 ## Session Continuity
-- **Last Action**: 2026-03-04 - Executed plan 05-02: Applied visual fixes to email templates 05, 06, 07 (logo link, black text, integer hryvnia prices, no delivery row; recommendation blocks in 06/07 preserved)
-- **Stopped At**: Completed 05-02-PLAN.md
-- **Next Step**: Phase 5 plan 01 remains (email template fixes for templates 01-04). DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
+- **Last Action**: 2026-03-04 - Executed plan 05-01 Tasks 1-2: Applied visual fixes to email templates 01-04 (clickable logo, #1a1a1a text, integer hryvnia prices via intValue(), no delivery cost row; template 01 manager notice moved to top under h2; template 01 order date includes HH:mm)
+- **Stopped At**: Paused at Task 3 checkpoint in 05-01-PLAN.md — awaiting human action in eSputnik admin to update sender display name to "Міо Міо"
+- **Next Step**: After user updates eSputnik sender display name, plan 05-01 will be complete. DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
