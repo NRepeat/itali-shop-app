@@ -125,6 +125,13 @@
                             </tr></tbody></table>
                           </td>
                         </tr>
+                        #if($data.get('discount') and $data.get('discount') != "")
+                        #set($discountInt = $data.get('discount').intValue())
+                        <tr>
+                          <td style="padding:4px 0;color:#666666">Знижка:</td>
+                          <td style="color:#e44d2e;padding:4px 0;text-align:right">-$discountInt грн</td>
+                        </tr>
+                        #end
                         #set($totalCostInt = $data.get('totalCost').intValue())
                         <tr>
                           <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#1a1a1a">Всього:</td>
@@ -162,7 +169,7 @@
                             #if($data.get('paymentMethod') and $data.get('paymentMethod')!= "")
                             <p style="margin:0;font-size:14px;color:#666666">$!data.get('paymentMethod')</p>
                             #end
-                            #set($totalCostInt2 = $data.get('totalCost').intValue())
+                        #set($totalCostInt2 = $data.get('totalCost').intValue())
                             <p style="font-weight:600;color:#1a1a1a;margin:4px 0 0;font-size:14px">$totalCostInt2 грн</p>
                           </td>
                         </tr>

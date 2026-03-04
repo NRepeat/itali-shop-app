@@ -160,6 +160,13 @@
                             </table>
                           </td>
                         </tr>
+                        #if($data.get('discount') and $data.get('discount') != "")
+                        #set($discountInt = $data.get('discount').intValue())
+                        <tr>
+                          <td style="padding:4px 0;color:#666666">Знижка:</td>
+                          <td style="color:#e44d2e;padding:4px 0;text-align:right">-$discountInt грн</td>
+                        </tr>
+                        #end
                         #set($totalCostInt = $data.get('totalCost').intValue())
                         <tr>
                           <td style="padding:12px 0 0;font-size:18px;font-weight:700;color:#1a1a1a">
