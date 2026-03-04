@@ -62,6 +62,7 @@ progress:
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
+- Phase 5 added: Email improvements and frontend fixes
 
 ### Todos & Blockers
 None.
