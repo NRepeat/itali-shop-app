@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-last_updated: "2026-03-04T14:26:25Z"
+status: unknown
+last_updated: "2026-03-04T14:29:15.816Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 19
+  completed_plans: 18
 ---
 
 # Project State: Unified Sync & Update Logic
@@ -19,9 +19,9 @@ progress:
 
 ## Current Position
 **Phase**: 05-email-improvements-and-frontend-fixes
-**Plan**: 05-01 complete (was paused at Task 3 human-action; now fully done)
-**Status**: In Progress (05-01, 05-02, 05-03 complete; 05-04, 05-05, 05-06 remain)
-**Progress**: [███████████████████░] Phase 5 in progress (plans 05-01/02/03 done)
+**Plan**: 05-04 complete
+**Status**: In Progress (05-01, 05-02, 05-03, 05-04 complete; remaining plans TBD)
+**Progress**: [████████████████████] Phase 5 in progress (plans 05-01/02/03/04 done)
 
 ## Performance Metrics
 - **Requirements Mapped**: 9/9 (100%)
@@ -64,6 +64,10 @@ progress:
 - **Recommendation block interior color preserved as #05125C**: body/heading text outside recommendation #if guards gets #1a1a1a treatment; elements inside the guard blocks are not touched (05-02).
 - **intValue() via #set variable in Velocity templates**: price values use #set($varInt = $data.get('field').intValue()) before output, then $varInt грн — avoids inline method call rendering issues and cleanly replaces UAH currency reference (05-01).
 - **Template 01 totalCost in two positions uses two #set variables**: Totals section and Payment column both display totalCost; separate $totalCostInt and $totalCostInt2 variables avoid Velocity scope confusion (05-01).
+- **Відмова від отримання comment-only DEPLOYMENT BLOCKER**: No placeholder number added to keycrm.ts to avoid incorrect runtime behavior; admin must confirm status ID before go-live (05-04).
+- **extractCustomerNote prefix-filter strategy**: Filters lines starting with "Метод оплати:" and "Промокод:" from combined note; Viber preference lines pass through to buyer_comment intentionally (05-04).
+- **buildManagerComment uses direct payload fields**: payment_gateway_names[0] and discount_codes[] used directly instead of parsing the combined note string, making manager comment independent of create.ts format (05-04).
+- **trackingNumber from context.ttn with typeof guard**: typeof check + trim() safely handles absent ttn; conditional spread omits the field when undefined, matching existing pickupAddress pattern (05-04).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -89,7 +93,9 @@ None.
 | 12 | fix cleanTitle — add Cyrillic EA7 and H'estia di Venezia aliases | 2026-02-25 | f69914b | [12-fix-cleantitle-add-cyrillic-ea7-aliases-](./quick/12-fix-cleantitle-add-cyrillic-ea7-aliases-/) |
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
+| Phase 05-email-improvements-and-frontend-fixes P04 | 15 | 2 tasks | 3 files |
+
 ## Session Continuity
-- **Last Action**: 2026-03-04 - Completed plan 05-01 in full: Tasks 1-2 applied visual fixes to email templates 01-04 (clickable logo, #1a1a1a text, integer hryvnia prices, no delivery cost row; template 01 manager notice moved to top, date includes HH:mm). Task 3 (human-action): user updated eSputnik sender display name to "Міо Міо" — confirmed done.
-- **Stopped At**: Plan 05-01 complete. Ready for 05-04.
-- **Next Step**: Execute 05-04-PLAN.md — keyCRM: Відмова від отримання status, comment routing split, trackingNumber passthrough. DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
+- **Last Action**: 2026-03-04 - Completed plan 05-04: Added Відмова від отримання DEPLOYMENT BLOCKER to keycrm.ts; split keyCRM comment routing (buyer_comment/manager_comment from direct payload fields); wired context.ttn as trackingNumber to eSputnik queue for shipped email.
+- **Stopped At**: Completed 05-04-PLAN.md
+- **Next Step**: DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and add Відмова від отримання status ID to keycrm.ts once confirmed in keyCRM admin panel. Configure eSputnik workflow automations before go-live.
