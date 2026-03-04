@@ -107,6 +107,7 @@ interface KeyCrmOrder {
   shipping?: KeyCrmShipping;
   shipping_price?: number;
   discount_amount?: number;
+  discount_percent?: number;
   ordered_at?: string;
   payments?: KeyCrmPayment[];
   buyer_comment?: string;
@@ -235,6 +236,12 @@ export async function mapShopifyOrderToKeyCrm(
     : 0;
 
   const discountAmount = parseFloat(payload.total_discounts || "0");
+  // subtotal_price is before discounts; discount_percent = discount / (subtotal + discount) * 100
+  const subtotalPrice = parseFloat(payload.subtotal_price || "0");
+  const discountBase = subtotalPrice + discountAmount;
+  const discountPercent = discountAmount > 0 && discountBase > 0
+    ? Math.round((discountAmount / discountBase) * 1000) / 10
+    : 0;
 
   const shipping: KeyCrmShipping | undefined = shippingAddress
     ? {
@@ -289,6 +296,7 @@ export async function mapShopifyOrderToKeyCrm(
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: shippingPrice } : {}),
     ...(discountAmount > 0 ? { discount_amount: discountAmount } : {}),
+    ...(discountPercent > 0 ? { discount_percent: discountPercent } : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
     ...(buildManagerComment(payload) ? { manager_comment: buildManagerComment(payload) } : {}),
