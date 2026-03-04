@@ -45,7 +45,7 @@ async function main() {
       const putRes = await fetch(`${BASE_URL}/messages/email/${id}`, {
         method: "PUT",
         headers: { Authorization: AUTH_HEADER, "Content-Type": "application/json" },
-        body: JSON.stringify({ ...msg, htmlText }),
+        body: JSON.stringify({ ...msg, htmlText, rawHtml: htmlText }),
         signal: AbortSignal.timeout(15000),
       });
       if (!putRes.ok) {
