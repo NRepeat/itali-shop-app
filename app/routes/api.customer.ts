@@ -147,7 +147,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           createdAt: order.createdAt,
           cancelledAt: order.cancelledAt,
           financialStatus: order.displayFinancialStatus,
-          fulfillmentStatus: order.displayFulfillmentStatus,
+          fulfillmentStatus: order.cancelledAt ? "СКАСОВАНО" : order.displayFulfillmentStatus,
           tags: order.tags,
           note: order.note,
           total: order.totalPriceSet?.shopMoney,
