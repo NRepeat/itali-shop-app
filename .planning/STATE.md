@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-01T12:14:00.000Z"
+status: in_progress
+last_updated: "2026-03-04T13:25:22Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 16
+  completed_plans: 14
 ---
 
 # Project State: Unified Sync & Update Logic
@@ -18,10 +18,10 @@ progress:
 **Current Focus**: Initializing project roadmap and state.
 
 ## Current Position
-**Phase**: 04-create-sputnik-email-templates-and-update-order-event-flows
-**Plan**: 04-04 complete
-**Status**: Complete
-**Progress**: [████████████████████] All 4 phases complete (13/13 plans)
+**Phase**: 05-email-improvements-and-frontend-fixes
+**Plan**: 05-03 complete
+**Status**: In Progress (3 of ~3 plans complete in phase 5)
+**Progress**: [█████████████████░░░] Phase 5 in progress (14/16 plans)
 
 ## Performance Metrics
 - **Requirements Mapped**: 9/9 (100%)
@@ -59,6 +59,8 @@ progress:
 - **INITIALIZED fires on orders/create (not keyCRM)**: orders/create directly enqueues INITIALIZED, while keyCRM status 3 maps to CONFIRMED, preventing double order-created email (04-04).
 - **PICKUP_ADDRESS_MAP intentionally empty at deploy**: keyCRM status IDs for READY_FOR_PICKUP stores are unknown until confirmed in admin panel; DEPLOYMENT BLOCKER comment documents all 4 store addresses to map (04-04).
 - **Conditional spread for pickupAddress**: ...(pickupAddress && { pickupAddress }) omits the field entirely when map lookup returns undefined (04-04).
+- **featuredImageUrl always used for email items**: variant images show incorrect product photo in email notification context; featured image is canonical (05-03).
+- **trackingNumber in EsputnikOrderJobData alongside pickupAddress**: both are event-specific extras not in base Shopify order payload, passed through queue -> worker -> mapper extra param (05-03).
 
 ### Roadmap Evolution
 - Phase 4 added: Create Sputnik email templates and update order event flows
@@ -85,6 +87,6 @@ None.
 | 13 | fix cleanTitle model SKU stripping: case-insensitive + sku double-pass | 2026-02-25 | 3fef875 | [13-fix-cleantitle-model-sku-stripping-make-](./quick/13-fix-cleantitle-model-sku-stripping-make-/) |
 | 14 | fix handle duplicate colors add feminine Ukrainian color slug variants | 2026-02-25 | 205cb78 | [14-fix-handle-duplicate-colors-add-feminine](./quick/14-fix-handle-duplicate-colors-add-feminine/) |
 ## Session Continuity
-- **Last Action**: 2026-03-01 - Executed plan 04-04: Wired orders/create webhook to Esputnik INITIALIZED queue; added PICKUP_ADDRESS_MAP with DEPLOYMENT BLOCKER comment and pickupAddress passthrough for READY_FOR_PICKUP events
-- **Stopped At**: Completed 04-04-PLAN.md
-- **Next Step**: All 13 plans across 4 phases complete. DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
+- **Last Action**: 2026-03-04 - Executed plan 05-03: Fixed email domain (app.miomio.com.ua -> miomio.com.ua), switched to featuredImageUrl for email line-item images, added trackingNumber to queue interface and wired through worker to mapper
+- **Stopped At**: Completed 05-03-PLAN.md
+- **Next Step**: Phase 5 plans 01 and 02 remain (email template fixes, frontend fixes). DEPLOYMENT BLOCKER: populate PICKUP_ADDRESS_MAP in keycrm-shopify-sync.service.ts and configure Esputnik workflow automations before go-live.
