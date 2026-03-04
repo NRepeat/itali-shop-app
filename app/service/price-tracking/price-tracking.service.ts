@@ -18,6 +18,8 @@ interface ProductPayload {
   title: string;
   handle: string;
   status?: string;
+  // REST webhook payload uses images[], GraphQL uses featuredImage
+  images?: { src: string }[];
   featuredImage?: { url: string } | null;
   variants: ProductVariant[];
 }
@@ -27,6 +29,7 @@ export async function processPriceUpdate(
   product: ProductPayload
 ): Promise<void> {
   const shopifyProductId = `gid://shopify/Product/${product.id}`;
+  const productImageUrl: string | undefined = product.featuredImage?.url ?? product.images?.[0]?.src;
 
   console.log(`Processing price update for product ${product.id} (${product.title})`);
 
@@ -77,7 +80,7 @@ export async function processPriceUpdate(
         product.title,
         variant.title,
         product.handle,
-        product.featuredImage?.url
+        productImageUrl
       );
     }
 
@@ -90,7 +93,7 @@ export async function processPriceUpdate(
         product.title,
         variant.title,
         product.handle,
-        product.featuredImage?.url
+        productImageUrl
       );
     }
   }
