@@ -28,6 +28,7 @@ export const KEYCRM_CONFIG = {
   fulfillStatusIds: [12] as number[],           // Виконано → fulfill order
   closeStatusIds: [12] as number[],             // Виконано → close order
   cancelStatusIds: [18, 19, 20, 15, 13, 14, 16, 17] as number[], // All canceled group → cancel
+  // DEPLOYMENT BLOCKER — also add the Відмова від отримання status ID to cancelStatusIds once confirmed (see esputnikStatusMap below)
 
   // keyCRM → eSputnik (status_id → eSputnik event)
   esputnikStatusMap: {
@@ -37,5 +38,12 @@ export const KEYCRM_CONFIG = {
     19: "CANCELLED",    // Скасовано
     15: "OUT_OF_STOCK", // Немає в наявності (was CANCELLED — now has distinct email)
     // READY_FOR_PICKUP: add keyCRM status ID when known from keyCRM admin panel
+    // DEPLOYMENT BLOCKER — Відмова від отримання
+    // The keyCRM status ID for "Відмова від отримання" (refused delivery / parcel not collected)
+    // is unknown and must be confirmed in the keyCRM admin panel before go-live.
+    // ACTION REQUIRED: Open keyCRM admin → Settings → Order Statuses, find the
+    // "Відмова від отримання" status, and add it here:
+    //   XX: "CANCELLED",  // Відмова від отримання — sends CANCELLED eSputnik email
+    // Also add XX to cancelStatusIds above.
   } as Record<number, EsputnikOrderStatus>
 };
