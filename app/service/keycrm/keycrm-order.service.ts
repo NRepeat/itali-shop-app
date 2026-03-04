@@ -358,6 +358,32 @@ export async function updateOrderInKeyCrm(
   console.log(`keyCRM order ${keycrmOrderId} updated successfully`);
 }
 
+export async function fetchKeyCrmOrderTracking(
+  keycrmOrderId: number
+): Promise<string | undefined> {
+  const response = await fetch(
+    `${KEYCRM_CONFIG.baseUrl}/order/${keycrmOrderId}?include=shipping`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: KEYCRM_CONFIG.authHeader,
+        Accept: "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `keyCRM API error (GET /order/${keycrmOrderId}): ${response.status} ${response.statusText} — ${body}`
+    );
+  }
+
+  const data = await response.json();
+  const rawTtn = data?.shipping?.tracking_code;
+  return typeof rawTtn === "string" && rawTtn.trim() ? rawTtn.trim() : undefined;
+}
+
 export async function findKeyCrmOrderBySourceUuid(
   sourceUuid: string
 ): Promise<{ id: number } | null> {

@@ -25,7 +25,7 @@ export const KEYCRM_CONFIG = {
 
   // keyCRM → Shopify (inbound webhook mapping)
   paidStatusIds: [3, 21] as number[],           // Підтверджено, Оплачено → mark as paid
-  fulfillStatusIds: [10, 12] as number[],        // Відправлено → fulfill with tracking; Виконано → fulfill (no-op if already done)
+  fulfillStatusIds: [12] as number[],             // Виконано → fulfill order in Shopify (Відправлено does NOT fulfill — only sends eSputnik email)
   closeStatusIds: [12] as number[],             // Виконано → close order
   cancelStatusIds: [18, 19, 20, 15, 13, 14, 16, 17] as number[], // All canceled group → cancel
   // DEPLOYMENT BLOCKER — also add the Відмова від отримання status ID to cancelStatusIds once confirmed (see esputnikStatusMap below)

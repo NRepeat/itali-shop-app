@@ -2,6 +2,7 @@ import { KEYCRM_CONFIG } from "@shared/config/keycrm";
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { client } from "../sync/client/shopify";
 import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
+import { fetchKeyCrmOrderTracking } from "./keycrm-order.service";
 import type { FulfillmentInput, OrderCloseInput } from "@/types";
 
 interface KeyCrmWebhookPayload {
@@ -380,11 +381,22 @@ export async function handleKeyCrmOrderStatusChange(
   const { shop, accessToken } = await getShopAndToken();
   const shopifyOrderId = mapping.shopifyOrderId;
 
-  // Extract tracking number upfront — used by both eSputnik queue and fulfillOrder.
-  // keyCRM sends TTN in context.shipping.tracking_code on order.status_changed webhooks.
-  const rawTtn = context.shipping?.tracking_code;
-  const trackingNumber: string | undefined =
-    typeof rawTtn === 'string' && rawTtn.trim() ? rawTtn.trim() : undefined;
+  // Fetch tracking number from keyCRM API — the webhook does not include it reliably.
+  // Only needed when status maps to IN_PROGRESS (ВІДПРАВЛЕНО).
+  let trackingNumber: string | undefined;
+  const esputnikStatusForTracking = KEYCRM_CONFIG.esputnikStatusMap[statusId];
+  if (esputnikStatusForTracking === "IN_PROGRESS") {
+    try {
+      trackingNumber = await fetchKeyCrmOrderTracking(keycrmOrderId);
+      if (trackingNumber) {
+        console.log(`keyCRM order ${keycrmOrderId} tracking code: ${trackingNumber}`);
+      } else {
+        console.log(`keyCRM order ${keycrmOrderId} has no tracking code yet`);
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch tracking code for keyCRM order ${keycrmOrderId}:`, err);
+    }
+  }
 
   // 1. eSputnik event (Підтверджено, Відправлено, Виконано, Скасовано, Немає в наявності)
   const esputnikStatus = KEYCRM_CONFIG.esputnikStatusMap[statusId];

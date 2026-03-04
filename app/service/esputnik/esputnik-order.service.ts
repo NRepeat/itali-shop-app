@@ -242,13 +242,19 @@ export async function mapShopifyOrderToEsputnik(
   };
 }
 
-// CONFIRMED, READY_FOR_PICKUP, OUT_OF_STOCK are custom statuses — must use /event endpoint
-const EVENT_API_STATUSES = new Set(["CONFIRMED", "READY_FOR_PICKUP", "OUT_OF_STOCK"]);
+// CONFIRMED, IN_PROGRESS, READY_FOR_PICKUP, OUT_OF_STOCK use /event endpoint
+// IN_PROGRESS uses event API so trackingNumber is passed as an explicit param accessible in the template
+const EVENT_API_STATUSES = new Set(["CONFIRMED", "IN_PROGRESS", "READY_FOR_PICKUP", "OUT_OF_STOCK"]);
 
 export async function sendOrderToEsputnik(
   order: EsputnikOrder
 ): Promise<void> {
-  if (EVENT_API_STATUSES.has(order.status)) {
+  if (order.status === "IN_PROGRESS") {
+    // Event API: triggers email automation with trackingNumber param
+    await sendOrderViaEventApi(order);
+    // Orders API: updates order record status in eSputnik
+    await sendOrderViaOrdersApi(order);
+  } else if (EVENT_API_STATUSES.has(order.status)) {
     await sendOrderViaEventApi(order);
   } else {
     await sendOrderViaOrdersApi(order);
@@ -303,6 +309,7 @@ async function sendOrderViaEventApi(order: EsputnikOrder): Promise<void> {
   if (order.paymentMethod)   params.push({ name: "paymentMethod",   value: order.paymentMethod });
   if (order.deliveryAddress) params.push({ name: "deliveryAddress", value: order.deliveryAddress });
   if (order.pickupAddress)   params.push({ name: "pickupAddress",   value: order.pickupAddress });
+  if (order.trackingNumber)  params.push({ name: "trackingNumber",  value: order.trackingNumber });
 
   const response = await fetch(`${ESPUTNIK_CONFIG.baseUrl}/event`, {
     method: "POST",
