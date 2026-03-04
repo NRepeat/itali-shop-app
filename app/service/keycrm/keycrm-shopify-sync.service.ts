@@ -18,6 +18,11 @@ interface KeyCrmWebhookPayload {
     created_at?: string;
     updated_at?: string;
     status_changed_at?: string;
+    shipping?: {
+      tracking_code?: string | null;
+      tracking_status?: string | null;
+      [key: string]: any;
+    } | null;
     [key: string]: any;
   };
 }
@@ -217,7 +222,8 @@ async function markOrderAsPaid(
 async function fulfillOrder(
   shopifyOrderId: string,
   shop: string,
-  accessToken: string
+  accessToken: string,
+  trackingNumber?: string
 ): Promise<void> {
   const orderId = gqlOrderId(shopifyOrderId);
 
@@ -272,13 +278,14 @@ async function fulfillOrder(
       query: FULFILLMENT_CREATE_MUTATION,
       variables: {
         fulfillment: {
-          notifyCustomer:false,
+          notifyCustomer: false,
           lineItemsByFulfillmentOrder: [
             {
               fulfillmentOrderId: fo.id,
               fulfillmentOrderLineItems: lineItems,
             },
           ],
+          ...(trackingNumber && { trackingInfo: { number: trackingNumber } }),
         },
       },
       accessToken,
@@ -373,6 +380,12 @@ export async function handleKeyCrmOrderStatusChange(
   const { shop, accessToken } = await getShopAndToken();
   const shopifyOrderId = mapping.shopifyOrderId;
 
+  // Extract tracking number upfront — used by both eSputnik queue and fulfillOrder.
+  // keyCRM sends TTN in context.shipping.tracking_code on order.status_changed webhooks.
+  const rawTtn = context.shipping?.tracking_code;
+  const trackingNumber: string | undefined =
+    typeof rawTtn === 'string' && rawTtn.trim() ? rawTtn.trim() : undefined;
+
   // 1. eSputnik event (Підтверджено, Відправлено, Виконано, Скасовано, Немає в наявності)
   const esputnikStatus = KEYCRM_CONFIG.esputnikStatusMap[statusId];
   if (esputnikStatus) {
@@ -395,13 +408,6 @@ export async function handleKeyCrmOrderStatusChange(
     const pickupAddress = esputnikStatus === "READY_FOR_PICKUP"
       ? PICKUP_ADDRESS_MAP[statusId]
       : undefined;
-
-    // Extract tracking number for IN_PROGRESS (status 10) — ships email with tracking block
-    // keyCRM sends TTN (tracking number) in context.ttn on the order.changed webhook.
-    // If context.ttn is absent, trackingNumber remains undefined and the template #if guard
-    // prevents the tracking block from rendering.
-    const trackingNumber: string | undefined =
-      typeof context.ttn === 'string' && context.ttn.trim() ? context.ttn.trim() : undefined;
 
     await esputnikOrderQueue.add("esputnik-order-sync", {
       payload: webhookPayload,
@@ -428,7 +434,7 @@ export async function handleKeyCrmOrderStatusChange(
     console.log(
       `Fulfilling Shopify order ${shopifyOrderId} (keyCRM status: ${statusId})`
     );
-    await fulfillOrder(shopifyOrderId, shop, accessToken);
+    await fulfillOrder(shopifyOrderId, shop, accessToken, trackingNumber);
   }
 
   if (KEYCRM_CONFIG.closeStatusIds.includes(statusId)) {

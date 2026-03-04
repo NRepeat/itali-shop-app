@@ -182,7 +182,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
         updatedAt: order.updatedAt,
         cancelledAt: order.cancelledAt,
         financialStatus: order.displayFinancialStatus,
-        fulfillmentStatus: order.displayFulfillmentStatus,
+        fulfillmentStatus: order.cancelledAt ? "СКАСОВАНО" : order.displayFulfillmentStatus,
         tags: order.tags,
         note: order.note,
         email: order.email,
