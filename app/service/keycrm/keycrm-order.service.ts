@@ -124,22 +124,42 @@ export function getKeyCrmStatusId(status: KeyCrmOrderStatus): number {
   return STATUS_MAP[status];
 }
 
+function extractCustomerNote(combinedNote: string | undefined): string | undefined {
+  // The combined note from create.ts follows this format:
+  //   [customer note if present]
+  //   Метод оплати: X
+  //   Промокод: Y
+  //   ⚠️ Не телефонуйте... (Viber preference)
+  // We want only the customer-facing parts (non-technical lines).
+  // Strategy: exclude lines starting with "Метод оплати:" or "Промокод:"
+  if (!combinedNote) return undefined;
+  const lines = combinedNote.split('\n').filter(line => {
+    const trimmed = line.trim();
+    return trimmed.length > 0
+      && !trimmed.startsWith('Метод оплати:')
+      && !trimmed.startsWith('Промокод:');
+  });
+  return lines.length > 0 ? lines.join('\n') : undefined;
+}
+
 function buildManagerComment(payload: Record<string, any>): string | undefined {
   const parts: string[] = [];
 
-  if (payload.note) {
-    parts.push(payload.note);
+  // Payment method from direct payload field
+  const paymentMethod = payload.payment_gateway_names?.[0];
+  if (paymentMethod && paymentMethod !== 'unknown') {
+    parts.push(`Метод оплати: ${paymentMethod}`);
   }
 
-  const noteAttributes: Array<{ name: string; value: string }> = payload.note_attributes || [];
-  if (noteAttributes.length > 0) {
-    const attrs = noteAttributes
-      .map((a) => `${a.name}: ${a.value}`)
-      .join(", ");
-    parts.push(attrs);
+  // Discount codes from direct payload field (NOT parsed from note string)
+  const discountCodes: string[] = (payload.discount_codes || [])
+    .map((d: any) => d.code)
+    .filter(Boolean);
+  if (discountCodes.length > 0) {
+    parts.push(`Промокод: ${discountCodes.join(', ')}`);
   }
 
-  return parts.length > 0 ? parts.join("\n") : undefined;
+  return parts.length > 0 ? parts.join('\n') : undefined;
 }
 
 export async function mapShopifyOrderToKeyCrm(
@@ -272,6 +292,7 @@ export async function mapShopifyOrderToKeyCrm(
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
     ...(buildManagerComment(payload) ? { manager_comment: buildManagerComment(payload) } : {}),
+    ...(extractCustomerNote(payload.note) ? { buyer_comment: extractCustomerNote(payload.note) } : {}),
   };
 }
 
