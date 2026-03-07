@@ -264,6 +264,7 @@ export const buildProductVariants = async (
     for (const combo of combinations) {
       const optionValuesForVariant = [];
       let variantQuantity = Infinity;
+      let skipCombo = false;
 
       for (const pov of combo) {
         const optionValueDesc = optionValues.find(
@@ -310,15 +311,14 @@ export const buildProductVariants = async (
         }
 
         if (!metaobjectId) {
+          // Option is linked (metafield definition exists) but metaobject not found.
+          // Using a plain name here would cause OPTION_VALUE_DOES_NOT_EXIST from Shopify.
+          // Skip the entire combo instead.
           console.warn(
-            `[buildProductVariants] Metaobject not found for "${optionValueDesc.name}" (option "${optionDesc.name}") — using plain value`,
+            `[buildProductVariants] Metaobject not found for "${optionValueDesc.name}" (option "${optionDesc.name}") — skipping combo`,
           );
-          optionValuesForVariant.push({
-            optionName: optionDesc.name,
-            name: optionValueDesc.name,
-          });
-          variantQuantity = Math.min(variantQuantity, pov.quantity);
-          continue;
+          skipCombo = true;
+          break;
         }
 
         optionValuesForVariant.push({
@@ -328,7 +328,7 @@ export const buildProductVariants = async (
         variantQuantity = Math.min(variantQuantity, pov.quantity);
       }
 
-      if (optionValuesForVariant.length !== optionsMap.size) continue;
+      if (skipCombo || optionValuesForVariant.length !== optionsMap.size) continue;
 
       variants.push({
         price: product.price.toString(),
