@@ -43,7 +43,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   const session = await prisma.session.findFirst({
-    where: { accessToken: { not: null } },
     orderBy: { id: "desc" },
   });
   if (!session?.accessToken) {
