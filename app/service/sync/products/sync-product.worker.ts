@@ -224,6 +224,7 @@ async function updateVariantsAndInventory(
       input: {
         name: "available",
         reason: "correction",
+        ignoreCompareQuantity: true,
         quantities: inventoryQuantities,
       },
     },

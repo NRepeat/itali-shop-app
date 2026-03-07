@@ -94,6 +94,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         input: {
           name: "available",
           reason: "correction",
+          ignoreCompareQuantity: true,
           quantities: variants.map((v) => ({
             inventoryItemId: v.inventoryItem.id,
             locationId: LOCATION_ID,

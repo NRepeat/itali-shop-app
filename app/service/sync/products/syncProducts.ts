@@ -52,6 +52,7 @@ async function zeroOutShopifyInventory(
       input: {
         name: "available",
         reason: "correction",
+        ignoreCompareQuantity: true,
         quantities: inventoryItemIds.map((inventoryItemId) => ({
           inventoryItemId,
           locationId: LOCATION_ID,
