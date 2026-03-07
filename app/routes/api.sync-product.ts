@@ -52,7 +52,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, accessToken } = session;
 
   const product = await externalDB.bc_product.findFirst({
-    where: { model: { equals: model, mode: "insensitive" } },
+    where: { model },
     select: {
       product_id: true, model: true, sku: true, upc: true, ean: true,
       jan: true, isbn: true, mpn: true, location: true, quantity: true,
