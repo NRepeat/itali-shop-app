@@ -1,16 +1,15 @@
 /**
  * Check product quantity in external DB for a given model (SKU)
- * Run: dotenv -e .env tsx scripts/check-product-quantity.ts
+ * Run: npx dotenv-cli -e .env tsx scripts/check-product-quantity.ts
  */
 
 import { PrismaClient as ExternalPrismaClient } from "prisma/generated/external_client/client";
 
 const externalDB = new ExternalPrismaClient();
 
-const MODEL = "7w000477";
+const MODEL = "7W000477";
 
 async function main() {
-  // 1. Product-level
   const product = await externalDB.bc_product.findFirst({
     where: { model: MODEL },
     select: {
@@ -19,22 +18,21 @@ async function main() {
       quantity: true,
       status: true,
       price: true,
+      date_modified: true,
     },
   });
 
   if (!product) {
-    console.log(`Product with model "${MODEL}" not found in external DB`);
+    console.log(`Product with model "${MODEL}" not found`);
     return;
   }
 
   console.log("\n=== PRODUCT (bc_product) ===");
-  console.log(`  product_id : ${product.product_id}`);
-  console.log(`  model      : ${product.model}`);
-  console.log(`  status     : ${product.status}`);
-  console.log(`  price      : ${product.price}`);
-  console.log(`  quantity   : ${product.quantity}  <-- product-level stock`);
+  console.log(`  product_id    : ${product.product_id}`);
+  console.log(`  model         : ${product.model}`);
+  console.log(`  quantity      : ${product.quantity}`);
+  console.log(`  date_modified : ${product.date_modified}`);
 
-  // 2. Option values (variants)
   const productOptions = await externalDB.bc_product_option.findMany({
     where: { product_id: product.product_id },
   });
@@ -46,15 +44,6 @@ async function main() {
     },
   });
 
-  console.log(`\n=== VARIANTS (bc_product_option_value) — ${productOptionValues.length} rows ===`);
-
-  if (productOptionValues.length === 0) {
-    console.log("  No option values found — product has a single default variant");
-    console.log(`  Single variant quantity = product.quantity = ${product.quantity}`);
-    return;
-  }
-
-  // Get option names for readability
   const optionDescriptions = await externalDB.bc_option_description.findMany({
     where: {
       language_id: 3,
@@ -72,24 +61,11 @@ async function main() {
   const optionNameMap = new Map(optionDescriptions.map((d) => [d.option_id, d.name]));
   const optionValueNameMap = new Map(optionValueDescriptions.map((d) => [d.option_value_id, d.name]));
 
-  let allZero = true;
+  console.log(`\n=== VARIANTS (bc_product_option_value) ===`);
   for (const pov of productOptionValues) {
     const optName = optionNameMap.get(pov.option_id) ?? `option_id=${pov.option_id}`;
     const valName = optionValueNameMap.get(pov.option_value_id) ?? `value_id=${pov.option_value_id}`;
-    const qty = pov.quantity;
-    if (qty !== 0) allZero = false;
-    const flag = qty === 0 ? "✓ ZERO" : "✗ NON-ZERO ← should be 0 after sale";
-    console.log(`  [${optName}] ${valName.padEnd(20)} quantity=${qty}  ${flag}`);
-  }
-
-  console.log("\n=== VERDICT ===");
-  if (allZero) {
-    console.log("  All variant quantities are 0 in external DB.");
-    console.log("  The sync bug (productSet ignoring inventory) is why Shopify still shows old stock.");
-    console.log("  Run the sync for this product to push qty=0 to Shopify.");
-  } else {
-    console.log("  Some variants still have quantity > 0 in external DB.");
-    console.log("  Either the sale was not yet reflected in the source system, or the wrong product was checked.");
+    console.log(`  [${optName}] ${valName.padEnd(20)} quantity=${pov.quantity}`);
   }
 }
 

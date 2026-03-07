@@ -1,9 +1,34 @@
 // POST /api/sync-product?model=7W000477&secret=SYNC_SECRET
 // Force-syncs a single product by model/SKU — bypasses the quantity > 0 filter
+// For qty=0 products: only zeros out inventory (safe, no productSet)
+// For qty>0 products: full sync via processSyncTask
 
 import type { ActionFunctionArgs } from "react-router";
 import { prisma, externalDB } from "@shared/lib/prisma/prisma.server";
 import { processSyncTask } from "@/service/sync/products/sync-product.worker";
+import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
+import { client } from "@shared/lib/shopify/client/client";
+
+const LOCATION_ID = process.env.SHOPIFY_LOCATION || "gid://shopify/Location/78249492642";
+
+const GET_VARIANTS_QUERY = `
+  query ($id: ID!) {
+    product(id: $id) {
+      variants(first: 100) {
+        nodes { id inventoryItem { id } selectedOptions { name value } }
+      }
+    }
+  }
+`;
+
+const INVENTORY_SET_MUTATION = `
+  mutation ($input: InventorySetQuantitiesInput!) {
+    inventorySetQuantities(input: $input) {
+      inventoryAdjustmentGroup { reason }
+      userErrors { field message }
+    }
+  }
+`;
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const url = new URL(request.url);
@@ -13,7 +38,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!secret || secret !== process.env.SYNC_SECRET) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   if (!model) {
     return Response.json({ error: "model param required" }, { status: 400 });
   }
@@ -22,10 +46,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     where: { accessToken: { not: null } },
     orderBy: { id: "desc" },
   });
-
   if (!session?.accessToken) {
     return Response.json({ error: "No valid Shopify session found" }, { status: 500 });
   }
+
+  const { shop, accessToken } = session;
 
   const product = await externalDB.bc_product.findFirst({
     where: { model: { equals: model, mode: "insensitive" } },
@@ -46,24 +71,60 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return Response.json({ error: `Product "${model}" not found in external DB` }, { status: 404 });
   }
 
-  console.log(`[ForceSyncProduct] Syncing product ${product.product_id} (${product.model}) qty=${product.quantity}`);
+  console.log(`[ForceSyncProduct] model=${product.model} qty=${product.quantity}`);
 
+  // qty=0: only zero-out inventory, don't touch product data
+  if (product.quantity === 0) {
+    const shopifyId = await findShopifyProductBySku(product.model, accessToken, shop);
+    if (!shopifyId) {
+      return Response.json({ error: `Product "${model}" not found in Shopify` }, { status: 404 });
+    }
+
+    const varRes = await client.request<{
+      product: { variants: { nodes: Array<{ id: string; inventoryItem: { id: string }; selectedOptions: Array<{ name: string; value: string }> }> } } | null;
+    }>({ query: GET_VARIANTS_QUERY, variables: { id: shopifyId }, accessToken, shopDomain: shop });
+
+    const variants = varRes.product?.variants?.nodes ?? [];
+    if (variants.length === 0) {
+      return Response.json({ error: "No variants found in Shopify" }, { status: 500 });
+    }
+
+    const invRes = await client.request<{ inventorySetQuantities: { userErrors: Array<{ message: string }> } }>({
+      query: INVENTORY_SET_MUTATION,
+      variables: {
+        input: {
+          name: "available",
+          reason: "correction",
+          quantities: variants.map((v) => ({
+            inventoryItemId: v.inventoryItem.id,
+            locationId: LOCATION_ID,
+            quantity: 0,
+          })),
+        },
+      },
+      accessToken,
+      shopDomain: shop,
+    });
+
+    const errors = invRes.inventorySetQuantities?.userErrors ?? [];
+    if (errors.length > 0) {
+      return Response.json({ error: errors.map((e) => e.message).join(", ") }, { status: 500 });
+    }
+
+    const variantSummary = variants.map((v) => ({
+      id: v.id,
+      options: v.selectedOptions.map((o) => `${o.name}=${o.value}`).join(", "),
+    }));
+
+    console.log(`[ForceSyncProduct] Zeroed out ${variants.length} variants for ${shopifyId}`);
+    return Response.json({ ok: true, action: "zero-out", shopifyId, variants: variantSummary });
+  }
+
+  // qty>0: full sync
   const fakeJob = {
-    data: {
-      product,
-      domain: session.shop,
-      shop: session.shop,
-      accessToken: session.accessToken,
-    },
+    data: { product, domain: shop, shop, accessToken },
   };
-
   await processSyncTask(fakeJob as any);
 
-  return Response.json({
-    ok: true,
-    product_id: product.product_id,
-    model: product.model,
-    quantity: product.quantity,
-    shop: session.shop,
-  });
+  return Response.json({ ok: true, action: "full-sync", model: product.model, quantity: product.quantity });
 };

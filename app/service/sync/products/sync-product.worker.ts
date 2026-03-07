@@ -181,23 +181,14 @@ async function updateVariantsAndInventory(
     return;
   }
 
-  const matchKey = (optValues: Array<{ name: string }>) =>
-    optValues.map((o) => o.name).sort().join("|");
-  const existingKey = (selOpts: Array<{ name: string; value: string }>) =>
-    selOpts.map((o) => o.value).sort().join("|");
-
-  const existingMap = new Map(existingVariants.map((v) => [existingKey(v.selectedOptions), v]));
-
+  // Match by index: productSet preserves variant order, so existingVariants[i] = newVariants[i]
   const variantUpdates: Array<{ id: string; price: string; sku?: string; inventoryPolicy: string; metafields?: any[] }> = [];
   const inventoryQuantities: Array<{ inventoryItemId: string; locationId: string; quantity: number }> = [];
 
-  for (const nv of newVariants) {
-    const key = matchKey((nv.optionValues as Array<{ name: string }>) ?? []);
-    const existing = existingMap.get(key);
-    if (!existing) {
-      console.log(`[VariantUpdate] No match for variant key "${key}", skipping`);
-      continue;
-    }
+  const count = Math.min(existingVariants.length, newVariants.length);
+  for (let i = 0; i < count; i++) {
+    const existing = existingVariants[i];
+    const nv = newVariants[i];
     variantUpdates.push({
       id: existing.id,
       price: nv.price as string,
@@ -214,7 +205,7 @@ async function updateVariantsAndInventory(
   }
 
   if (variantUpdates.length === 0) {
-    console.log(`[VariantUpdate] No matched variants to update for ${productId}`);
+    console.log(`[VariantUpdate] No variants to update for ${productId}`);
     return;
   }
 
