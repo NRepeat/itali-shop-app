@@ -17,8 +17,9 @@ export const syncProducts = async (
     const allProducts = await externalDB.bc_product.findMany({
       where: {
         status: true,
-        quantity: { gt: 0 },
-        ...(since ? { date_modified: { gte: since } } : {}),
+        // When syncing since a date: include qty=0 products (they were sold and need to be updated in Shopify)
+        // When doing a full sync: only qty > 0 (don't create new out-of-stock products)
+        ...(since ? { date_modified: { gte: since } } : { quantity: { gt: 0 } }),
       },
       orderBy: {
         product_id: "desc",

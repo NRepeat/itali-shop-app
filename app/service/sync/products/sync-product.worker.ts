@@ -189,7 +189,7 @@ async function updateVariantsAndInventory(
   const existingMap = new Map(existingVariants.map((v) => [existingKey(v.selectedOptions), v]));
 
   const variantUpdates: Array<{ id: string; price: string; sku?: string; inventoryPolicy: string; metafields?: any[] }> = [];
-  const inventoryItemIds: string[] = [];
+  const inventoryQuantities: Array<{ inventoryItemId: string; locationId: string; quantity: number }> = [];
 
   for (const nv of newVariants) {
     const key = matchKey((nv.optionValues as Array<{ name: string }>) ?? []);
@@ -205,7 +205,12 @@ async function updateVariantsAndInventory(
       inventoryPolicy: nv.inventoryPolicy as string,
       metafields: nv.metafields as any[] | undefined,
     });
-    inventoryItemIds.push(existing.inventoryItem.id);
+    const qty = (nv.inventoryQuantities as Array<{ quantity: number }> | undefined)?.[0]?.quantity ?? 0;
+    inventoryQuantities.push({
+      inventoryItemId: existing.inventoryItem.id,
+      locationId: LOCATION_ID,
+      quantity: qty,
+    });
   }
 
   if (variantUpdates.length === 0) {
@@ -223,13 +228,6 @@ async function updateVariantsAndInventory(
     console.log(`[VariantUpdate] Updated ${variantUpdates.length} variants for ${productId}`);
   }
 
-  const quantity = (newVariants[0]?.inventoryQuantities as Array<{ quantity: number }> | undefined)?.[0]?.quantity ?? 1;
-  const inventoryQuantities = inventoryItemIds.map((inventoryItemId) => ({
-    inventoryItemId,
-    locationId: LOCATION_ID,
-    quantity,
-  }));
-
   const invRes = await admin.graphql(INVENTORY_SET_QUANTITIES_MUTATION, {
     variables: {
       input: {
@@ -243,7 +241,7 @@ async function updateVariantsAndInventory(
   if (invErrors.length > 0) {
     console.error(`[InventoryUpdate] Errors:`, JSON.stringify(invErrors));
   } else {
-    console.log(`[InventoryUpdate] Set inventory for ${inventoryItemIds.length} items`);
+    console.log(`[InventoryUpdate] Set inventory for ${inventoryQuantities.length} items`);
   }
 }
 
@@ -472,6 +470,12 @@ export const processSyncTask = async (job: Job) => {
           shopifyProductId: shopifYproduct.id,
         },
       });
+
+      // For existing products productSet ignores inventoryQuantities — update variants+inventory separately
+      if (existingProductId) {
+        console.log(`[InventorySync] Updating variants and inventory for existing product ${shopifYproduct.id}`);
+        await updateVariantsAndInventory(admin, shopifYproduct.id, variants);
+      }
 
       // Set znizka, sort_order and filter metafields separately
       const discount = discountPercentage ? Number(discountPercentage) : 0;

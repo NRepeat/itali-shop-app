@@ -565,7 +565,7 @@ export default function Index() {
   const [updateLinksLimit, setUpdateLinksLimit] = useState("100");
   const [updateLinksOffset, setUpdateLinksOffset] = useState("0");
   const [fixHandlesLimit, setFixHandlesLimit] = useState("100");
-  const [syncSince, setSyncSince] = useState("2026-02-28");
+  const [syncSince, setSyncSince] = useState("2026-02-25");
   const [fixHandlesOffset, setFixHandlesOffset] = useState("0");
   const [fixTitlesLimit, setFixTitlesLimit] = useState("100");
   const [fixTitlesOffset, setFixTitlesOffset] = useState("0");
