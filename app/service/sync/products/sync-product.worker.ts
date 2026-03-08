@@ -192,7 +192,6 @@ async function updateVariantsAndInventory(
     variantUpdates.push({
       id: existing.id,
       price: nv.price as string,
-      sku: nv.sku as string | undefined,
       inventoryPolicy: nv.inventoryPolicy as string,
       metafields: nv.metafields as any[] | undefined,
     });

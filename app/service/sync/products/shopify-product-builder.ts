@@ -253,7 +253,11 @@ export const buildProductVariants = async (
   } else {
     productOptionValue.forEach((pov) => {
       if (!optionsMap.has(pov.option_id)) optionsMap.set(pov.option_id, []);
-      optionsMap.get(pov.option_id)!.push(pov);
+      const group = optionsMap.get(pov.option_id)!;
+      // deduplicate by option_value_id to avoid duplicate variant combinations
+      if (!group.some((existing) => existing.option_value_id === pov.option_value_id)) {
+        group.push(pov);
+      }
     });
 
     const optionValueGroups = Array.from(optionsMap.values());

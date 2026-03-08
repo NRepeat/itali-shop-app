@@ -123,8 +123,8 @@ export const buildProductInput = (
     vendor: vendor?.name,
     tags: tags,
     seo: {
-      description: decodeHtmlEntities(ukrainianDescription.meta_description),
-      title: ukrainianDescription.meta_title,
+      description: decodeHtmlEntities(ukrainianDescription.meta_description) || undefined,
+      title: ukrainianDescription.meta_title || undefined,
     },
   };
 };
@@ -186,8 +186,8 @@ export const buildProductUpdateInput = (
       ...productMetafieldsmetObjects,
     ],
     seo: {
-      description: decodeHtmlEntities(ukrainianDescription.meta_description),
-      title: ukrainianDescription.meta_title,
+      description: decodeHtmlEntities(ukrainianDescription.meta_description) || undefined,
+      title: ukrainianDescription.meta_title || undefined,
     },
   };
 };
