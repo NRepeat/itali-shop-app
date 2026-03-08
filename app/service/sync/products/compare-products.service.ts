@@ -72,7 +72,6 @@ export async function compareProducts(
       model: true,
       status: true,
       quantity: true,
-      date_modified: true,
     },
     orderBy: { product_id: "asc" },
   });
@@ -120,7 +119,6 @@ export async function compareProducts(
     model: string | null;
     status: boolean;
     quantity: number;
-    date_modified: Date | null;
     classification: Status;
     shopifyId?: string;
     note?: string;
@@ -230,7 +228,7 @@ export async function compareProducts(
     if (activeM.length > 0) {
       log(`\n  Active missing (first 50):`);
       for (const p of activeM.slice(0, 50)) {
-        log(`    id=${String(p.product_id).padEnd(8)} sku="${p.model}"  qty=${p.quantity}  modified=${p.date_modified?.toISOString().slice(0, 10) ?? "?"}`);
+        log(`    id=${String(p.product_id).padEnd(8)} sku="${p.model}"  qty=${p.quantity}`);
       }
       if (activeM.length > 50) log(`    ... and ${activeM.length - 50} more`);
     }

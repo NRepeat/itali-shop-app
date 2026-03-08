@@ -143,7 +143,6 @@ async function main() {
       model: true,
       status: true,
       quantity: true,
-      date_modified: true,
     },
     orderBy: { product_id: "asc" },
   });
@@ -204,7 +203,6 @@ async function main() {
     model: string | null;
     status: boolean;
     quantity: number;
-    date_modified: Date | null;
     classification: Status;
     shopifyId?: string; // resolved Shopify ID if any
     note?: string;
@@ -335,7 +333,7 @@ async function main() {
       log("\n  Active missing products (first 50):");
       for (const p of activeM.slice(0, 50)) {
         log(
-          `    ${pad(p.product_id, 8)} sku="${p.model}"  qty=${pad(p.quantity, 5)}  modified=${p.date_modified?.toISOString().slice(0, 10) ?? "?"}`,
+          `    ${pad(p.product_id, 8)} sku="${p.model}"  qty=${pad(p.quantity, 5)}`,
         );
       }
       if (activeM.length > 50) log(`    ... and ${activeM.length - 50} more`);
