@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 
 const PAGE_SIZE = 250;
@@ -285,6 +287,11 @@ export async function compareProducts(
     }
     if (shopifyOrphans.length > 30) log(`  ... and ${shopifyOrphans.length - 30} more`);
   }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const filename = path.resolve(`compare-products-${timestamp}.txt`);
+  fs.writeFileSync(filename, logs.join("\n") + "\n", "utf8");
+  logs.push(`Saved to: ${filename}`);
 
   return logs;
 }
