@@ -454,6 +454,13 @@ export const processSyncTask = async (job: Job) => {
     shopifYproduct = await createProductAsynchronous(domain, productInput);
 
     if (shopifYproduct) {
+      // Remove any stale mapping pointing to this Shopify product from a different local product
+      await prisma.productMap.deleteMany({
+        where: {
+          shopifyProductId: shopifYproduct.id,
+          NOT: { localProductId: product.product_id },
+        },
+      });
       await prisma.productMap.upsert({
         where: { localProductId: product.product_id },
         update: { shopifyProductId: shopifYproduct.id },
