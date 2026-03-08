@@ -21,8 +21,8 @@
  *   COMPARE_INCLUDE_INACTIVE=true  — also include status=false products
  */
 
-import { PrismaClient } from "prisma/generated/app_client/client";
-import { PrismaClient as ExternalPrismaClient } from "prisma/generated/external_client/client";
+import { PrismaClient } from "../prisma/generated/app_client/client";
+import { PrismaClient as ExternalPrismaClient } from "../prisma/generated/external_client/client";
 import { client } from "../app/shared/lib/shopify/client/client";
 import * as fs from "fs";
 import * as path from "path";
