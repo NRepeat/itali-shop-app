@@ -22,6 +22,15 @@ const COMPARE_PRODUCTS_QUERY = `
   }
 `;
 
+const PRODUCTS_IDS_QUERY = `
+  query ProductIds($first: Int!, $after: String) {
+    products(first: $first, after: $after) {
+      pageInfo { hasNextPage endCursor }
+      edges { node { id } }
+    }
+  }
+`;
+
 interface ShopifyProduct {
   id: string;
   title: string;
@@ -57,6 +66,62 @@ async function fetchAllShopifyProducts(admin: Admin): Promise<ShopifyProduct[]> 
   } while (cursor);
 
   return all;
+}
+
+async function fetchAllShopifyProductIds(admin: Admin): Promise<Set<string>> {
+  const ids = new Set<string>();
+  let cursor: string | null = null;
+
+  do {
+    const res = await admin.graphql(PRODUCTS_IDS_QUERY, {
+      variables: { first: PAGE_SIZE, after: cursor },
+    });
+    const { data } = await res.json();
+    const conn = data?.products;
+    if (!conn) break;
+    for (const edge of conn.edges) ids.add(edge.node.id);
+    cursor = conn.pageInfo.hasNextPage ? conn.pageInfo.endCursor : null;
+  } while (cursor);
+
+  return ids;
+}
+
+export async function fixOrphanedMaps(admin: Admin): Promise<string[]> {
+  const logs: string[] = [];
+  const log = (msg = "") => logs.push(msg);
+
+  log("Fetching all productMap entries...");
+  const productMaps = await prisma.productMap.findMany({
+    select: { localProductId: true, shopifyProductId: true },
+  });
+  log(`productMap entries: ${productMaps.length}`);
+
+  log("Fetching existing Shopify product IDs (paginating)...");
+  const existingShopifyIds = await fetchAllShopifyProductIds(admin);
+  log(`Shopify products found: ${existingShopifyIds.size}`);
+
+  const orphaned = productMaps.filter((m) => !existingShopifyIds.has(m.shopifyProductId));
+  log(`Orphaned productMap entries (Shopify product deleted): ${orphaned.length}`);
+
+  if (orphaned.length === 0) {
+    log("Nothing to clean up.");
+    return logs;
+  }
+
+  log("\nOrphaned entries:");
+  for (const m of orphaned) {
+    log(`  localProductId=${m.localProductId}  shopifyId=${m.shopifyProductId}`);
+  }
+
+  const shopifyIdsToDelete = orphaned.map((m) => m.shopifyProductId);
+  const result = await prisma.productMap.deleteMany({
+    where: { shopifyProductId: { in: shopifyIdsToDelete } },
+  });
+
+  log(`\nDeleted ${result.count} orphaned productMap entries.`);
+  log("These products will be re-created on next sync.");
+
+  return logs;
 }
 
 export async function compareProducts(

@@ -28,7 +28,7 @@ import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import { revalidateNextJs } from "@/service/revalidate/revalidate-nextjs";
-import { compareProducts } from "@/service/sync/products/compare-products.service";
+import { compareProducts, fixOrphanedMaps } from "@/service/sync/products/compare-products.service";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -496,6 +496,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else if (body.action === "compare-products") {
       const includeInactive = body.includeInactive === true;
       logs = await compareProducts(admin, includeInactive);
+    } else if (body.action === "fix-orphaned-maps") {
+      logs = await fixOrphanedMaps(admin);
     } else if (body.action === "delete-discount-function") {
       logs.push("Looking for active app discounts...");
 
@@ -1225,7 +1227,7 @@ export default function Index() {
         <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
           Compares external DB products with Shopify. Uses productMap first, falls back to SKU matching. Flags duplicate SKUs as ambiguous.
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" as const }}>
           <s-button
             variant="primary"
             onClick={() => handleAction("compare-products")}
@@ -1247,6 +1249,15 @@ export default function Index() {
             {isLoading && fetcher.json?.action === "compare-products" && fetcher.json?.includeInactive
               ? "Comparing..."
               : "Compare (all incl. inactive)"}
+          </s-button>
+          <s-button
+            tone="critical"
+            onClick={() => handleAction("fix-orphaned-maps")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "fix-orphaned-maps"
+              ? "Cleaning up..."
+              : "Fix Orphaned Maps"}
           </s-button>
         </div>
       </s-section>
