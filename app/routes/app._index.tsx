@@ -28,6 +28,7 @@ import { syncOrders } from "@/service/sync/orders/syncOrders";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import { revalidateNextJs } from "@/service/revalidate/revalidate-nextjs";
+import { compareProducts } from "@/service/sync/products/compare-products.service";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -492,6 +493,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       withTrailingSlash.forEach((l) => logs.push("  " + l));
       const issues = withSpaces.length + withDoubleSlash.length + withLeadingSlash.length + withTrailingSlash.length;
       logs.push(issues === 0 ? "✓ No URL issues found." : `⚠ ${issues} issue(s) found.`);
+    } else if (body.action === "compare-products") {
+      const includeInactive = body.includeInactive === true;
+      logs = await compareProducts(admin, includeInactive);
     } else if (body.action === "delete-discount-function") {
       logs.push("Looking for active app discounts...");
 
@@ -1216,6 +1220,36 @@ export default function Index() {
           )}
         </s-section>
       )}
+
+      <s-section heading="Compare Products (DB vs Shopify)">
+        <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
+          Compares external DB products with Shopify. Uses productMap first, falls back to SKU matching. Flags duplicate SKUs as ambiguous.
+        </div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <s-button
+            variant="primary"
+            onClick={() => handleAction("compare-products")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "compare-products" && !fetcher.json?.includeInactive
+              ? "Comparing..."
+              : "Compare (active only)"}
+          </s-button>
+          <s-button
+            onClick={() =>
+              fetcher.submit(
+                { action: "compare-products", includeInactive: true },
+                { method: "post", encType: "application/json" },
+              )
+            }
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "compare-products" && fetcher.json?.includeInactive
+              ? "Comparing..."
+              : "Compare (all incl. inactive)"}
+          </s-button>
+        </div>
+      </s-section>
 
       <s-section heading="SEO URL Checker">
         <div style={{ marginBottom: "12px", color: "#666", fontSize: "14px" }}>
