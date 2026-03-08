@@ -29,6 +29,7 @@ import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 import { findShopifyProductBySku } from "@/service/shopify/products/api/find-shopify-product";
 import { revalidateNextJs } from "@/service/revalidate/revalidate-nextjs";
 import { compareProducts, fixOrphanedMaps } from "@/service/sync/products/compare-products.service";
+import { syncMissingProducts } from "@/service/sync/products/sync-missing-products.service";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -498,6 +499,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       logs = await compareProducts(admin, includeInactive);
     } else if (body.action === "fix-orphaned-maps") {
       logs = await fixOrphanedMaps(admin);
+    } else if (body.action === "sync-missing-products") {
+      logs = await syncMissingProducts(admin, session);
     } else if (body.action === "delete-discount-function") {
       logs.push("Looking for active app discounts...");
 
@@ -1258,6 +1261,16 @@ export default function Index() {
             {isLoading && fetcher.json?.action === "fix-orphaned-maps"
               ? "Cleaning up..."
               : "Fix Orphaned Maps"}
+          </s-button>
+          <s-button
+            variant="primary"
+            tone="critical"
+            onClick={() => handleAction("sync-missing-products")}
+            disabled={isLoading || undefined}
+          >
+            {isLoading && fetcher.json?.action === "sync-missing-products"
+              ? "Syncing missing..."
+              : "Sync Missing Products"}
           </s-button>
         </div>
       </s-section>
