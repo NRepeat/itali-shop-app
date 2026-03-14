@@ -17,7 +17,7 @@ const colorMapping: Record<string, string> = {
   Помаранчевий: "pomaranchevij",
   Рудий: "rudij",
   Синій: "sinij",
-  Бежевий: "bilij",
+  Бежевий: "bezhevij",
   Чорний: "chornij",
   Білий: "bilij",
   Золото: "zoloto",

@@ -7,7 +7,7 @@ import {
   buildFiles,
   buildMetafields,
 } from "./shopify-product-builder";
-import { buildProductInput, buildHandle } from "./build-product-input";
+import { buildProductInput, buildHandle, cleanTitle } from "./build-product-input";
 import { setProductMetafields } from "./set-product-metafields";
 import { linkProducts } from "./link-products";
 import { createProductAsynchronous } from "@/service/shopify/products/api/create-shopify-product";
@@ -388,7 +388,7 @@ export const processSyncTask = async (job: Job) => {
       Коричневий: "korichnevij", Гірчичний: "girchichnij", Бордовий: "bordovij",
       Червоний: "chervonij", Срібло: "sriblo", Зелений: "zelenij",
       Жовтий: "zhovtij", Хакі: "haki", Помаранчевий: "pomaranchevij",
-      Рудий: "rudij", Синій: "sinij", Бежевий: "bilij", Чорний: "chornij",
+      Рудий: "rudij", Синій: "sinij", Бежевий: "bezhevij", Чорний: "chornij",
       Білий: "bilij", Золото: "zoloto", Бронзовий: "bronzovij", Сірий: "sirij",
       Мультиколор: "multikolor", "М'ятний": "m-jatnij", Пітон: "piton",
     };
@@ -509,12 +509,21 @@ export const processSyncTask = async (job: Job) => {
           const decodeHtml = (s: string) =>
             s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'");
 
+          const ruTitle = cleanTitle(russianDescription.name, vendor?.name, product.model);
+          const ruHandle = buildHandle(
+            russianDescription.seo_keyword,
+            vendor?.name,
+            product.model,
+            colorSlugForHandle,
+            hasRelatedArticles,
+          );
+
           const fieldsToTranslate = [
-            { shopifyKey: "title", sourceValue: russianDescription.name },
+            { shopifyKey: "title", sourceValue: ruTitle },
             { shopifyKey: "body_html", sourceValue: decodeHtml(russianDescription.description) },
             { shopifyKey: "meta_title", sourceValue: russianDescription.meta_title },
             { shopifyKey: "meta_description", sourceValue: decodeHtml(russianDescription.meta_description) },
-            { shopifyKey: "handle", sourceValue: russianDescription.seo_keyword },
+            { shopifyKey: "handle", sourceValue: ruHandle },
           ];
 
           for (const field of fieldsToTranslate) {

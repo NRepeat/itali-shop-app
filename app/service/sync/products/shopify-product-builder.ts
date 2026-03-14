@@ -13,6 +13,19 @@ import { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import { externalDB, prisma } from "@shared/lib/prisma/prisma.server";
 
 /**
+ * Normalises an option value name into a Shopify-safe metaobject handle.
+ * Must match the formula used in create-missing-size-metaobjects.ts.
+ */
+const toMetaobjectHandle = (name: string): string =>
+  name
+    .toLowerCase()
+    .replace(/,/g, "-")
+    .replace(/\//g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/[^a-z0-9\-_]/g, "");
+
+/**
  * Looks up a metaobject GID from local DB only.
  * Returns the GID if found, null otherwise (no creation, no Shopify API call).
  */
@@ -86,7 +99,7 @@ export const buildProductOptions = async (
     Помаранчевий: "pomaranchevij",
     Рудий: "rudij",
     Синій: "sinij",
-    Бежевий: "bilij",
+    Бежевий: "bezhevij",
     Чорний: "chornij",
     Білий: "bilij",
     Золото: "zoloto",
@@ -165,7 +178,7 @@ export const buildProductOptions = async (
       } else {
         const values: string[] = [];
         for (const ov of relevantOptionValues) {
-          const handle = ov.name.toLowerCase().replace(",", "-");
+          const handle = toMetaobjectHandle(ov.name);
           const id = await lookupMetaobject(admin, handle, type);
           if (id) values.push(id);
         }
@@ -210,7 +223,7 @@ export const buildProductVariants = async (
     Помаранчевий: "pomaranchevij",
     Рудий: "rudij",
     Синій: "sinij",
-    Бежевий: "bilij",
+    Бежевий: "bezhevij",
     Чорний: "chornij",
     Білий: "bilij",
     Золото: "zoloto",
@@ -310,7 +323,7 @@ export const buildProductVariants = async (
             );
           }
         } else {
-          const handle = optionValueDesc.name.toLowerCase().replace(",", "-");
+          const handle = toMetaobjectHandle(optionValueDesc.name);
           metaobjectId = await lookupMetaobject(admin, handle, type);
         }
 

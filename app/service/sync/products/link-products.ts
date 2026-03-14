@@ -30,14 +30,15 @@ async function resolveShopifyId(
   const map = await prisma.productMap.findUnique({ where: { localProductId } });
   if (map) return map.shopifyProductId;
 
-  // Fallback: look up by SKU and populate ProductMap for future runs
-  const externalProduct = await externalDB.bc_product.findUnique({
-    where: { product_id: localProductId },
-    select: { model: true },
-  });
-  if (!externalProduct) return null;
+  // Fallback: look up by SKU and populate ProductMap for future runs.
+  // Use raw query to avoid Prisma P2020 on rows with date_available='0000-00-00'.
+  const rows = await externalDB.$queryRawUnsafe<Array<{ model: string }>>(
+    `SELECT model FROM bc_product WHERE product_id = ${localProductId} LIMIT 1`,
+  );
+  const model = rows[0]?.model?.trim();
+  if (!model) return null;
 
-  const shopifyId = await findShopifyProductBySku(externalProduct.model, accessToken, shopDomain);
+  const shopifyId = await findShopifyProductBySku(model, accessToken, shopDomain);
   if (shopifyId) {
     try {
       await prisma.productMap.upsert({
