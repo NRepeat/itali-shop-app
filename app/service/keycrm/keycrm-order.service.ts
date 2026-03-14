@@ -9,6 +9,9 @@ const GET_PRODUCTS_QUERY = `
       ... on Product {
         id
         featuredImage { url }
+        metafield(namespace: "custom", key: "znizka") {
+          value
+        }
         variants(first: 100) {
           nodes {
             id
@@ -27,6 +30,7 @@ const GET_PRODUCTS_QUERY = `
 interface VariantData {
   imageUrl: string | null;
   selectedOptions: Array<{ name: string; value: string }>;
+  znizka: number; // discount % from metafield, 0 if none
 }
 
 async function fetchProductVariants(
@@ -54,6 +58,7 @@ async function fetchProductVariants(
   for (const node of data.nodes) {
     if (!node?.id) continue;
     const numericId = node.id.replace("gid://shopify/Product/", "");
+    const znizka = Number(node.metafield?.value || "0") || 0;
     const variants = new Map<string, VariantData>();
 
     for (const variant of node.variants?.nodes || []) {
@@ -61,6 +66,7 @@ async function fetchProductVariants(
       variants.set(variantId, {
         imageUrl: variant.image?.url || node.featuredImage?.url || null,
         selectedOptions: variant.selectedOptions || [],
+        znizka,
       });
     }
 
@@ -83,6 +89,7 @@ interface KeyCrmProduct {
   name: string;
   picture?: string;
   properties?: Array<{ name: string; value: string }>;
+  discount_percent?: number;
 }
 
 interface KeyCrmShipping {
@@ -218,10 +225,17 @@ export async function mapShopifyOrderToKeyCrm(
       (opt) => opt.name !== "Title" && opt.value !== "Default Title"
     );
 
+    const finalPrice = parseFloat(item.price || "0");
+    const znizka = variantData?.znizka ?? 0;
+    const originalPrice = znizka > 0
+      ? Math.round((finalPrice / (1 - znizka / 100)) * 100) / 100
+      : finalPrice;
+
     return {
       name: nameParts.join(" - "),
-      price: parseFloat(item.price || "0"),
+      price: originalPrice,
       quantity: item.quantity,
+      ...(znizka > 0 ? { discount_percent: znizka } : {}),
       ...(item.sku ? { sku: item.sku } : {}),
       ...(imageUrl ? { picture: imageUrl } : {}),
       ...(properties.length > 0 ? { properties } : {}),

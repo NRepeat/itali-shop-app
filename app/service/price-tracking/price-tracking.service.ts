@@ -236,16 +236,27 @@ type SubscriptionType = "PRICE_DROP" | "BACK_IN_STOCK" | "ANY_CHANGE";
 export async function createPriceSubscription(data: {
   email: string;
   shopifyProductId: string;
-  shopifyVariantId?: string;
   subscriptionType?: SubscriptionType;
   targetPrice?: number;
 }) {
-  return prisma.priceSubscription.create({
-    data: {
+  const subscriptionType = data.subscriptionType || "ANY_CHANGE";
+  return prisma.priceSubscription.upsert({
+    where: {
+      email_shopifyProductId_subscriptionType: {
+        email: data.email,
+        shopifyProductId: data.shopifyProductId,
+        subscriptionType,
+      },
+    },
+    update: {
+      isActive: true,
+      notifiedAt: null,
+      targetPrice: data.targetPrice ? new Decimal(data.targetPrice) : null,
+    },
+    create: {
       email: data.email,
       shopifyProductId: data.shopifyProductId,
-      shopifyVariantId: data.shopifyVariantId || null,
-      subscriptionType: data.subscriptionType || "PRICE_DROP",
+      subscriptionType,
       targetPrice: data.targetPrice ? new Decimal(data.targetPrice) : null,
     },
   });

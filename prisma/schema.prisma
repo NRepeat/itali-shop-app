@@ -118,8 +118,8 @@ model PriceSubscription {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  @@unique([email, shopifyProductId, subscriptionType])
   @@index([shopifyProductId])
-  @@index([shopifyVariantId])
   @@index([email])
   @@index([subscriptionType])
 }

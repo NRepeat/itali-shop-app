@@ -37,6 +37,7 @@ interface ProductInfo {
   handle: string;
   featuredImageUrl: string | null;
   variantImages: Map<string, string | null>;
+  znizka: number;
 }
 
 const GET_PRODUCTS_QUERY = `
@@ -47,6 +48,9 @@ const GET_PRODUCTS_QUERY = `
         handle
         featuredImage {
           url
+        }
+        metafield(namespace: "custom", key: "znizka") {
+          value
         }
         images(first: 100) {
           nodes {
@@ -125,6 +129,7 @@ async function fetchProductsInfo(
       handle: node.handle,
       featuredImageUrl: node.featuredImage?.url || null,
       variantImages,
+      znizka: Number(node.metafield?.value || "0") || 0,
     });
   }
 
@@ -184,21 +189,30 @@ export async function mapShopifyOrderToEsputnik(
       )
     : 0;
 
+  let znizkaDiscountTotal = 0;
+
   const items: EsputnikOrderItem[] = lineItems.map((item: any) => {
     const nameParts = [item.title, item.variant_title].filter(Boolean);
     const productInfo = productsInfo.get(String(item.product_id));
 
     const imageUrl = productInfo ? productInfo.featuredImageUrl : null;
-
     const url = productInfo
       ? `https://www.miomio.com.ua/product/${productInfo.handle}`
       : null;
+
+    const finalPrice = parseFloat(item.price || "0");
+    const znizka = productInfo?.znizka ?? 0;
+    const originalPrice = znizka > 0
+      ? Math.round((finalPrice / (1 - znizka / 100)) * 100) / 100
+      : finalPrice;
+
+    znizkaDiscountTotal += Math.round((originalPrice - finalPrice) * item.quantity * 100) / 100;
 
     return {
       externalItemId: String(item.product_id || item.variant_id || ""),
       name: nameParts.join(" - "),
       quantity: item.quantity,
-      cost: parseFloat(item.price || "0"),
+      cost: originalPrice,
       ...(url && { url }),
       ...(imageUrl && { imageUrl }),
     };
@@ -225,9 +239,11 @@ export async function mapShopifyOrderToEsputnik(
       lastName: payload.customer.last_name,
     }),
     ...(shippingTotal > 0 && { shipping: shippingTotal }),
-    ...(parseFloat(payload.total_discounts || "0") > 0 && {
-      discount: parseFloat(payload.total_discounts),
-    }),
+    ...(() => {
+      const promoDiscount = parseFloat(payload.total_discounts || "0");
+      const totalDiscount = promoDiscount + znizkaDiscountTotal;
+      return totalDiscount > 0 ? { discount: Math.round(totalDiscount * 100) / 100 } : {};
+    })(),
     ...(payload.shipping_lines?.[0]?.title && {
       deliveryMethod: payload.shipping_lines[0].title,
     }),
