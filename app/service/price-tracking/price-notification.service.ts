@@ -109,8 +109,8 @@ export async function sendPriceNotificationEmail(
     data.email
   );
 
-  const baseUrl = process.env.SHOPIFY_APP_URL || "http://localhost:3000";
-  const unsubscribeUrl = `${baseUrl}/api/unsubscribe?id=${data.subscriptionId}&email=${encodeURIComponent(data.email)}&token=${unsubscribeToken}`;
+  const baseUrl = process.env.NEXT_APP_URL || "http://localhost:3001";
+  const unsubscribeUrl = `${baseUrl}/unsubscribe?id=${data.subscriptionId}&email=${encodeURIComponent(data.email)}&token=${unsubscribeToken}`;
 
   // TODO: Implement actual email sending with your email service
   // Examples: SendGrid, AWS SES, Mailgun, etc.
