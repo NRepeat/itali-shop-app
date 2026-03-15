@@ -200,13 +200,12 @@ export async function mapShopifyOrderToEsputnik(
       ? `https://www.miomio.com.ua/product/${productInfo.handle}`
       : null;
 
-    const originalPrice = parseFloat(item.price || "0");
+    const discountedPrice = parseFloat(item.price || "0");
     const znizka = productInfo?.znizka ?? 0;
-    const discountedPrice = znizka > 0
-      ? Math.round(originalPrice * (1 - znizka / 100) * 100) / 100
-      : originalPrice;
-
-    znizkaDiscountTotal += Math.round((originalPrice - discountedPrice) * item.quantity * 100) / 100;
+    if (znizka > 0) {
+      const originalPrice = Math.round((discountedPrice / (1 - znizka / 100)) * 100) / 100;
+      znizkaDiscountTotal += Math.round((originalPrice - discountedPrice) * item.quantity * 100) / 100;
+    }
 
     return {
       externalItemId: String(item.product_id || item.variant_id || ""),
@@ -239,11 +238,7 @@ export async function mapShopifyOrderToEsputnik(
       lastName: payload.customer.last_name,
     }),
     ...(shippingTotal > 0 && { shipping: shippingTotal }),
-    ...(() => {
-      const promoDiscount = parseFloat(payload.total_discounts || "0");
-      const totalDiscount = promoDiscount + znizkaDiscountTotal;
-      return totalDiscount > 0 ? { discount: Math.round(totalDiscount * 100) / 100 } : {};
-    })(),
+    ...(znizkaDiscountTotal > 0 ? { discount: Math.round(znizkaDiscountTotal * 100) / 100 } : {}),
     ...(payload.shipping_lines?.[0]?.title && {
       deliveryMethod: payload.shipping_lines[0].title,
     }),
