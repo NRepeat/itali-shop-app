@@ -200,19 +200,19 @@ export async function mapShopifyOrderToEsputnik(
       ? `https://www.miomio.com.ua/product/${productInfo.handle}`
       : null;
 
-    const finalPrice = parseFloat(item.price || "0");
+    const originalPrice = parseFloat(item.price || "0");
     const znizka = productInfo?.znizka ?? 0;
-    const originalPrice = znizka > 0
-      ? Math.round((finalPrice / (1 - znizka / 100)) * 100) / 100
-      : finalPrice;
+    const discountedPrice = znizka > 0
+      ? Math.round(originalPrice * (1 - znizka / 100) * 100) / 100
+      : originalPrice;
 
-    znizkaDiscountTotal += Math.round((originalPrice - finalPrice) * item.quantity * 100) / 100;
+    znizkaDiscountTotal += Math.round((originalPrice - discountedPrice) * item.quantity * 100) / 100;
 
     return {
       externalItemId: String(item.product_id || item.variant_id || ""),
       name: nameParts.join(" - "),
       quantity: item.quantity,
-      cost: originalPrice,
+      cost: discountedPrice,
       ...(url && { url }),
       ...(imageUrl && { imageUrl }),
     };
