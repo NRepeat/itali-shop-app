@@ -35,6 +35,7 @@ export const KEYCRM_CONFIG = {
     3:  "CONFIRMED",    // Підтверджено (was INITIALIZED — changed to avoid double-send with orders/create)
     10: "IN_PROGRESS",  // Відправлено
     12: "DELIVERED",    // Виконано
+    18: "CANCELLED",    // Скасовано (група скасування)
     19: "CANCELLED",    // Скасовано
     15: "OUT_OF_STOCK", // Немає в наявності (was CANCELLED — now has distinct email)
     // READY_FOR_PICKUP: add keyCRM status ID when known from keyCRM admin panel
