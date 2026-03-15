@@ -266,8 +266,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       logs.push("Menu cache revalidated on miomio.com.ua");
     } else if (body.action === "sync-orders") {
       const limit = body.limit ? Number(body.limit) : undefined;
-      logs =
-        (await syncOrders(session.shop, session.accessToken!, limit)) || [];
+      const dateFrom = body.since ? new Date(body.since) : undefined;
+      const result = await syncOrders(session.shop, session.accessToken!, limit, dateFrom);
+      logs = result.logs;
     } else if (body.action === "delete-all-customers") {
       logs.push("Fetching all customers from Shopify...");
       let deletedCount = 0;
@@ -580,6 +581,7 @@ export default function Index() {
   const [fixTitlesOffset, setFixTitlesOffset] = useState("0");
   const [customerLimit, setCustomerLimit] = useState("5");
   const [orderLimit, setOrderLimit] = useState("5");
+  const [orderSince, setOrderSince] = useState("");
   const isLoading = fetcher.state !== "idle";
 
   const handleAction = (action: string, limit?: string, offset?: string, since?: string) => {
@@ -1046,9 +1048,16 @@ export default function Index() {
             onInput={(e: any) => setOrderLimit(e.target.value)}
             help-text="Number of orders to sync"
           ></s-text-field>
+          <s-text-field
+            label="Since date"
+            type="date"
+            value={orderSince}
+            onInput={(e: any) => setOrderSince(e.target.value)}
+            help-text="Filter by date_added >= date"
+          ></s-text-field>
           <s-button
             variant="primary"
-            onClick={() => handleAction("sync-orders", orderLimit)}
+            onClick={() => handleAction("sync-orders", orderLimit, undefined, orderSince || undefined)}
             disabled={isLoading || undefined}
           >
             {isLoading &&
@@ -1059,13 +1068,24 @@ export default function Index() {
           </s-button>
           <s-button
             variant="primary"
+            onClick={() => handleAction("sync-orders", undefined, undefined, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))}
+            disabled={isLoading || undefined}
+          >
+            {isLoading &&
+            fetcher.json?.action === "sync-orders" &&
+            fetcher.json?.since && !fetcher.json?.limit
+              ? "Syncing last 3 months..."
+              : `Sync last 3 months`}
+          </s-button>
+          <s-button
+            variant="primary"
             tone="critical"
             onClick={() => handleAction("sync-orders")}
             disabled={isLoading || undefined}
           >
             {isLoading &&
             fetcher.json?.action === "sync-orders" &&
-            !fetcher.json?.limit
+            !fetcher.json?.limit && !fetcher.json?.since
               ? "Syncing all..."
               : `Sync ALL (${stats.remainingOrders})`}
           </s-button>

@@ -136,6 +136,7 @@ export const syncOrders = async (
   domain: string,
   accessToken: string,
   limit?: number,
+  dateFrom?: Date,
 ) => {
   const logs: string[] = [];
   const log = (msg: string) => {
@@ -144,7 +145,10 @@ export const syncOrders = async (
   };
 
   try {
-    const allOrders = await getOrders();
+    if (dateFrom) {
+      log(`Fetching orders since ${dateFrom.toISOString().slice(0, 10)}`);
+    }
+    const allOrders = await getOrders(dateFrom);
     log(`Found ${allOrders.length} orders in external DB`);
 
     const existingMaps = await prisma.orderMap.findMany({

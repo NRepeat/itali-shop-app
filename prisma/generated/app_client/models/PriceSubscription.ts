@@ -273,6 +273,7 @@ export type PriceSubscriptionOrderByWithRelationInput = {
 
 export type PriceSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  email_shopifyProductId_subscriptionType?: Prisma.PriceSubscriptionEmailShopifyProductIdSubscriptionTypeCompoundUniqueInput
   AND?: Prisma.PriceSubscriptionWhereInput | Prisma.PriceSubscriptionWhereInput[]
   OR?: Prisma.PriceSubscriptionWhereInput[]
   NOT?: Prisma.PriceSubscriptionWhereInput | Prisma.PriceSubscriptionWhereInput[]
@@ -285,7 +286,7 @@ export type PriceSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   notifiedAt?: Prisma.DateTimeNullableFilter<"PriceSubscription"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"PriceSubscription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PriceSubscription"> | Date | string
-}, "id">
+}, "id" | "email_shopifyProductId_subscriptionType">
 
 export type PriceSubscriptionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -410,6 +411,12 @@ export type PriceSubscriptionUncheckedUpdateManyInput = {
   notifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type PriceSubscriptionEmailShopifyProductIdSubscriptionTypeCompoundUniqueInput = {
+  email: string
+  shopifyProductId: string
+  subscriptionType: $Enums.SubscriptionType
 }
 
 export type PriceSubscriptionCountOrderByAggregateInput = {

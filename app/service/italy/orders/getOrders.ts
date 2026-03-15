@@ -72,11 +72,11 @@ export interface ExternalOrder {
   options: ExternalOrderOption[];
 }
 
-export const getOrders = async (): Promise<ExternalOrder[]> => {
-  const [orders, orderProducts, orderTotals, orderOptions] = await Promise.all([
-    externalDB.bc_order.findMany({
-      orderBy: { order_id: "desc" },
-      select: {
+export const getOrders = async (dateFrom?: Date): Promise<ExternalOrder[]> => {
+  const orders = await externalDB.bc_order.findMany({
+    where: dateFrom ? { date_added: { gte: dateFrom } } : undefined,
+    orderBy: { order_id: "desc" },
+    select: {
         order_id: true,
         customer_id: true,
         firstname: true,
@@ -111,8 +111,13 @@ export const getOrders = async (): Promise<ExternalOrder[]> => {
         payment_zone: true,
         payment_method: true,
       },
-    }),
+    });
+
+  const orderIds = orders.map((o) => o.order_id);
+
+  const [orderProducts, orderTotals, orderOptions] = await Promise.all([
     externalDB.bc_order_product.findMany({
+      where: { order_id: { in: orderIds } },
       select: {
         order_product_id: true,
         order_id: true,
@@ -127,6 +132,7 @@ export const getOrders = async (): Promise<ExternalOrder[]> => {
       },
     }),
     externalDB.bc_order_total.findMany({
+      where: { order_id: { in: orderIds } },
       select: {
         order_total_id: true,
         order_id: true,
@@ -137,6 +143,7 @@ export const getOrders = async (): Promise<ExternalOrder[]> => {
       },
     }),
     externalDB.bc_order_option.findMany({
+      where: { order_id: { in: orderIds } },
       select: {
         order_option_id: true,
         order_id: true,

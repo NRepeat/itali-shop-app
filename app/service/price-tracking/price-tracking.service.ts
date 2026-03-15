@@ -79,6 +79,7 @@ export async function processPriceUpdate(
         shopifyProductId,
         shopifyVariantId,
         currentPrice,
+        lastPrice?.price,
         product.title,
         variant.title,
         product.handle,
@@ -92,6 +93,7 @@ export async function processPriceUpdate(
           shopifyProductId,
           shopifyVariantId,
           currentPrice,
+          lastPrice?.price,
           product.title,
           variant.title,
           product.handle,
@@ -107,6 +109,7 @@ async function checkAndNotifyBackInStock(
   shopifyProductId: string,
   shopifyVariantId: string,
   currentPrice: Decimal,
+  oldPrice?: Decimal,
   productTitle?: string,
   variantTitle?: string,
   productHandle?: string,
@@ -140,6 +143,7 @@ async function checkAndNotifyBackInStock(
           productUrl: productHandle ? `https://www.miomio.com.ua/product/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
+          oldPrice: oldPrice?.toString(),
           subscriptionId: subscription.id,
         });
         console.log(`eSputnik back-in-stock event sent for subscription ${subscription.id} (${subscription.email})`);
@@ -154,6 +158,7 @@ async function checkAndNotifySubscriptions(
   shopifyProductId: string,
   shopifyVariantId: string,
   currentPrice: Decimal,
+  oldPrice?: Decimal,
   productTitle?: string,
   variantTitle?: string,
   productHandle?: string,
@@ -209,6 +214,7 @@ async function checkAndNotifySubscriptions(
           productUrl: productHandle ? `https://www.miomio.com.ua/product/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
+          oldPrice: oldPrice?.toString(),
           subscriptionId: subscription.id,
         });
         // Mark as notified immediately to prevent duplicates across variant loops
