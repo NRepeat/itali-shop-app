@@ -1,5 +1,6 @@
-import { getSubscriptionsByEmail, createPriceSubscription, cancelSubscription } from "@/service/price-tracking/price-tracking.service";
+import { getSubscriptionsByEmail, createPriceSubscription, cancelSubscription, findInactiveSubscription } from "@/service/price-tracking/price-tracking.service";
 import { checkProductExistsById } from "@/service/shopify/products/api/check-product-exists";
+import { resubscribeContactInEsputnik } from "@/service/esputnik/esputnik-contact.service";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 
 
@@ -91,6 +92,8 @@ async function handleCreate(request: Request) {
       );
     }
 
+    const wasInactive = await findInactiveSubscription(email, shopifyProductId, subscriptionType || "ANY_CHANGE");
+
     const subscription = await createPriceSubscription({
       email,
       shopifyProductId,
@@ -98,6 +101,14 @@ async function handleCreate(request: Request) {
       subscriptionType,
       targetPrice,
     });
+
+    if (wasInactive) {
+      try {
+        await resubscribeContactInEsputnik(email);
+      } catch (err) {
+        console.warn(`Failed to resubscribe ${email} in eSputnik:`, err);
+      }
+    }
 
     return Response.json({ subscription }, { status: 201 });
   } catch (error) {

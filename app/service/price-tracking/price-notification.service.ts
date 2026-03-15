@@ -4,6 +4,7 @@ import {
   type PriceNotificationJobData,
 } from "@shared/lib/queue/price-notification.queue";
 import { createHash } from "crypto";
+import { unsubscribeContactFromEsputnik } from "@/service/esputnik/esputnik-contact.service";
 
 // Generate unsubscribe token from subscription ID and email
 export function generateUnsubscribeToken(
@@ -157,6 +158,12 @@ export async function unsubscribeWithToken(
     where: { id: subscriptionId },
     data: { isActive: false },
   });
+
+  try {
+    await unsubscribeContactFromEsputnik(email);
+  } catch (err) {
+    console.warn(`Failed to unsubscribe ${email} from eSputnik:`, err);
+  }
 
   return { success: true };
 }

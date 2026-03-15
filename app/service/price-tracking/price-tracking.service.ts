@@ -1,6 +1,9 @@
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import { sendPriceDropEventToEsputnik } from "@/service/esputnik/esputnik-price.service";
+import { generateUnsubscribeToken } from "@/service/price-tracking/price-notification.service";
+
+const STOREFRONT_URL = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
 
 interface ProductVariant {
   id: number;
@@ -134,17 +137,20 @@ async function checkAndNotifyBackInStock(
 
     for (const subscription of subscriptions) {
       try {
+        const token = generateUnsubscribeToken(subscription.id, subscription.email);
+        const unsubscribeUrl = `${STOREFRONT_URL}/unsubscribe?id=${subscription.id}&email=${encodeURIComponent(subscription.email)}&token=${token}`;
         await sendPriceDropEventToEsputnik({
           email: subscription.email,
           productId: shopifyProductId,
           productTitle,
           variantTitle,
           productHandle,
-          productUrl: productHandle ? `https://www.miomio.com.ua/product/${productHandle}` : undefined,
+          productUrl: productHandle ? `${STOREFRONT_URL}/product/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
           oldPrice: oldPrice?.toString(),
           subscriptionId: subscription.id,
+          unsubscribeUrl,
         });
         console.log(`eSputnik back-in-stock event sent for subscription ${subscription.id} (${subscription.email})`);
       } catch (error) {
@@ -205,17 +211,20 @@ async function checkAndNotifySubscriptions(
       }
 
       try {
+        const token = generateUnsubscribeToken(subscription.id, subscription.email);
+        const unsubscribeUrl = `${STOREFRONT_URL}/unsubscribe?id=${subscription.id}&email=${encodeURIComponent(subscription.email)}&token=${token}`;
         await sendPriceDropEventToEsputnik({
           email: subscription.email,
           productId: shopifyProductId,
           productTitle,
           variantTitle,
           productHandle,
-          productUrl: productHandle ? `https://www.miomio.com.ua/product/${productHandle}` : undefined,
+          productUrl: productHandle ? `${STOREFRONT_URL}/product/${productHandle}` : undefined,
           productImageUrl,
           newPrice: currentPrice.toString(),
           oldPrice: oldPrice?.toString(),
           subscriptionId: subscription.id,
+          unsubscribeUrl,
         });
         // Mark as notified immediately to prevent duplicates across variant loops
         if (subscription.subscriptionType === "PRICE_DROP") {
@@ -316,5 +325,20 @@ export async function cancelSubscription(id: string, email: string) {
   return prisma.priceSubscription.updateMany({
     where: { id, email },
     data: { isActive: false },
+  });
+}
+
+export async function findInactiveSubscription(
+  email: string,
+  shopifyProductId: string,
+  subscriptionType: SubscriptionType
+) {
+  return prisma.priceSubscription.findFirst({
+    where: {
+      email,
+      shopifyProductId,
+      subscriptionType,
+      isActive: false,
+    },
   });
 }
