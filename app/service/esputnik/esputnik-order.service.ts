@@ -258,10 +258,16 @@ export async function mapShopifyOrderToEsputnik(
 // IN_PROGRESS: tracking number passed as additionalInfo param → $data.get('additionalInfo')
 const EVENT_API_STATUSES = new Set(["CONFIRMED", "IN_PROGRESS", "READY_FOR_PICKUP", "OUT_OF_STOCK"]);
 
+// These statuses need BOTH: Orders API (update status) + Event API (trigger email)
+const DUAL_API_STATUSES = new Set(["OUT_OF_STOCK"]);
+
 export async function sendOrderToEsputnik(
   order: EsputnikOrder
 ): Promise<void> {
-  if (EVENT_API_STATUSES.has(order.status)) {
+  if (DUAL_API_STATUSES.has(order.status)) {
+    await sendOrderViaOrdersApi({ ...order, status: "CANCELLED" });
+    await sendOrderViaEventApi(order);
+  } else if (EVENT_API_STATUSES.has(order.status)) {
     await sendOrderViaEventApi(order);
   } else {
     await sendOrderViaOrdersApi(order);

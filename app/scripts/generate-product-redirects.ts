@@ -23,6 +23,61 @@ const OUTPUT_FILE = path.resolve("redirects-products-generated.csv");
 
 const LANGUAGE_ID_RU = 1;
 const LANGUAGE_ID_UK = 3;
+const SHOPIFY_API_VERSION = "2025-01";
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Shopify: load real handles by SKU ───────────────────────────────────────
+async function loadShopifyHandlesBySku(
+  accessToken: string,
+  shopDomain: string,
+): Promise<Map<string, string>> {
+  const skuToHandle = new Map<string, string>();
+  let cursor: string | null = null;
+
+  console.log("Loading real handles from Shopify...");
+  let page = 0;
+  do {
+    const variables: Record<string, unknown> = { first: 250 };
+    if (cursor) variables.after = cursor;
+
+    const query = `
+      query getProducts($first: Int!, $after: String) {
+        products(first: $first, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            handle
+            variants(first: 1) {
+              nodes { sku }
+            }
+          }
+        }
+      }
+    `;
+    const resp = await fetch(
+      `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": accessToken },
+        body: JSON.stringify({ query, variables }),
+      },
+    );
+    const json = await resp.json();
+    const products = json.data?.products;
+    if (!products) break;
+
+    for (const node of products.nodes) {
+      const sku = node.variants?.nodes?.[0]?.sku;
+      if (sku && node.handle) skuToHandle.set(sku, node.handle);
+    }
+
+    cursor = products.pageInfo.hasNextPage ? products.pageInfo.endCursor : null;
+    page++;
+    if (page % 5 === 0) console.log(`  Loaded ${skuToHandle.size} handles so far...`);
+  } while (cursor);
+
+  console.log(`✓ Loaded ${skuToHandle.size} Shopify handles`);
+  return skuToHandle;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Handle logic (mirrors app/shared/handle.ts + update-product-handles.ts) ─
@@ -184,6 +239,20 @@ function csvRow(source: string, destination: string): string {
 }
 
 async function main() {
+  const { PrismaClient } = await import("prisma/generated/app_client/client");
+  const prisma = new PrismaClient({ datasourceUrl: "postgres://mnmac:password@localhost:5432/mio-mio-system" });
+  const session = await prisma.session.findFirst();
+  await prisma.$disconnect();
+  if (!session?.accessToken || !session.shop) {
+    throw new Error("No Shopify session found in the database");
+  }
+  const { accessToken, shop: shopDomain } = session;
+  console.log(`Shop: ${shopDomain}`);
+  console.log(`Shop: ${shopDomain}`);
+
+  // Load real handles from Shopify
+  const shopifyHandles = await loadShopifyHandlesBySku(accessToken, shopDomain);
+
   console.log("Fetching products from external DB...");
 
   const products = await externalDB.bc_product.findMany({
@@ -237,22 +306,26 @@ async function main() {
     const brandSlug = brandName ? slugifyBrand(brandName) : null;
     const aliasSlugs = brandName ? (brandAliasSlugs[brandName] ?? []) : [];
 
-    // Color requires per-product query — do lazily
-    const colorSlug = await getColorSlug(product.product_id);
+    // UK: use real handle from Shopify (by SKU), fallback to built handle
+    const shopifyHandle = shopifyHandles.get(product.model);
 
-    const newHandle = buildNewHandle(descs.uk, brandSlug, product.model, colorSlug, aliasSlugs);
+    // Color requires per-product query — only needed for RU fallback
+    const colorSlug = shopifyHandle ? null : await getColorSlug(product.product_id);
+
+    const ukHandle = shopifyHandle ?? buildNewHandle(descs.uk, brandSlug, product.model, colorSlug, aliasSlugs);
 
     // ── UK redirect ──
     if (descs.uk) {
       addRow(
         `${OLD_DOMAIN}/${descs.uk}`,
-        `${NEW_DOMAIN}/uk/product/${newHandle}`,
+        `${NEW_DOMAIN}/uk/product/${ukHandle}`,
       );
     }
 
-    // ── RU redirect ──
+    // ── RU redirect ── (RU handle is a Shopify translation — built from descs.ru)
     if (descs.ru) {
-      const ruHandle = buildNewHandle(descs.ru, brandSlug, product.model, colorSlug, aliasSlugs);
+      const ruColorSlug = colorSlug ?? await getColorSlug(product.product_id);
+      const ruHandle = buildNewHandle(descs.ru, brandSlug, product.model, ruColorSlug, aliasSlugs);
       addRow(
         `${OLD_DOMAIN}/${descs.ru}`,
         `${NEW_DOMAIN}/ru/product/${ruHandle}`,
