@@ -51,7 +51,7 @@ const GET_ORDER_QUERY = `
         nodes {
           title variantTitle quantity sku
           originalUnitPriceSet { shopMoney { amount } }
-          product { id }
+          product { id vendor productType }
           variant { id }
           image { url }
         }
@@ -169,6 +169,8 @@ function graphqlOrderToWebhookPayload(order: any): Record<string, any> {
       price: item.originalUnitPriceSet?.shopMoney?.amount || "0",
       product_id: item.product?.id?.replace("gid://shopify/Product/", ""),
       variant_id: item.variant?.id?.replace("gid://shopify/ProductVariant/", ""),
+      vendor: item.product?.vendor || null,
+      product_type: item.product?.productType || null,
       image: item.image ? { src: item.image.url } : null,
     })),
     shipping_lines: (order.shippingLines?.nodes || []).map((line: any) => ({
@@ -466,18 +468,33 @@ export async function handleKeyCrmOrderStatusChange(
       });
     }
 
+    const lineItems: any[] = webhookPayload.line_items ?? [];
+    const brands = [...new Set(lineItems.map((i: any) => i.vendor).filter(Boolean))];
+    const categories = [...new Set(lineItems.map((i: any) => i.product_type).filter(Boolean))];
+
     posthog.capture({
       distinctId,
       event,
       properties: {
+        $revenue: parseFloat(webhookPayload.total_price),
         revenue: parseFloat(webhookPayload.total_price),
         currency: webhookPayload.currency,
         order_id: webhookPayload.name,
         shopify_order_id: shopifyOrderId,
-        items_count: webhookPayload.line_items?.length ?? 0,
+        items_count: lineItems.length,
         discount_amount: parseFloat(webhookPayload.total_discounts ?? "0"),
         payment_method: webhookPayload.payment_gateway,
         keycrm_status_id: statusId,
+        brands,
+        categories,
+        items: lineItems.map((i: any) => ({
+          title: i.title,
+          vendor: i.vendor,
+          product_type: i.product_type,
+          sku: i.sku,
+          quantity: i.quantity,
+          price: parseFloat(i.price ?? "0"),
+        })),
         ...extra,
       },
     });
