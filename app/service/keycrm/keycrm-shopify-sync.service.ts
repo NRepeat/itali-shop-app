@@ -445,13 +445,27 @@ export async function handleKeyCrmOrderStatusChange(
     );
   }
 
-  // PostHog capture helper
+  // PostHog identify + capture helper
   const capturePostHog = (event: string, extra?: Record<string, any>) => {
     if (!posthog || !webhookPayload) return;
-    const distinctId =
+    const email =
       webhookPayload.customer?.email ||
-      webhookPayload.email ||
-      `order_${shopifyOrderId}`;
+      webhookPayload.email;
+    const distinctId = email || `order_${shopifyOrderId}`;
+
+    if (email) {
+      posthog.identify({
+        distinctId,
+        properties: {
+          email,
+          name: [webhookPayload.customer?.first_name, webhookPayload.customer?.last_name]
+            .filter(Boolean)
+            .join(" ") || undefined,
+          phone: webhookPayload.customer?.phone || webhookPayload.phone || undefined,
+        },
+      });
+    }
+
     posthog.capture({
       distinctId,
       event,
