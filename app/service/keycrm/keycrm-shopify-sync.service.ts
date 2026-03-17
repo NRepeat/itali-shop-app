@@ -252,6 +252,9 @@ async function fulfillOrder(
   });
 
   const fulfillmentOrders = data.order?.fulfillmentOrders?.nodes || [];
+  console.log(
+    `Shopify order ${shopifyOrderId} has ${fulfillmentOrders.length} fulfillment order(s): ${fulfillmentOrders.map((fo) => `${fo.id} [${fo.status}]`).join(", ") || "none"}`
+  );
   const openOrders = fulfillmentOrders.filter(
     (fo) => fo.status === "OPEN" || fo.status === "IN_PROGRESS"
   );
@@ -268,7 +271,13 @@ async function fulfillOrder(
       .filter((li) => li.remainingQuantity > 0)
       .map((li) => ({ id: li.id, quantity: li.remainingQuantity }));
 
-    if (lineItems.length === 0) continue;
+    if (lineItems.length === 0) {
+      console.log(`Fulfillment order ${fo.id} has no remaining line items, skipping`);
+      continue;
+    }
+    console.log(
+      `Creating fulfillment for order ${shopifyOrderId}, fulfillment order ${fo.id}, ${lineItems.length} line item(s)${trackingNumber ? `, tracking: ${trackingNumber}` : ""}`
+    );
 
     const result = await client.request<
       {
@@ -381,7 +390,12 @@ export async function handleKeyCrmOrderStatusChange(
     return;
   }
 
+  console.log(
+    `keyCRM order ${keycrmOrderId} mapped to Shopify order ${mapping.shopifyOrderId}`
+  );
+
   const { shop, accessToken } = await getShopAndToken();
+  console.log(`Using Shopify session for shop: ${shop}`);
   const shopifyOrderId = mapping.shopifyOrderId;
 
   // Fetch tracking number from keyCRM API — the webhook does not include it reliably.
@@ -409,10 +423,15 @@ export async function handleKeyCrmOrderStatusChange(
     KEYCRM_CONFIG.closeStatusIds.includes(statusId) ||
     KEYCRM_CONFIG.cancelStatusIds.includes(statusId);
 
+  console.log(
+    `Status ${statusId} → esputnik: ${esputnikStatus ?? "none"}, paid: ${KEYCRM_CONFIG.paidStatusIds.includes(statusId)}, fulfill: ${KEYCRM_CONFIG.fulfillStatusIds.includes(statusId)}, close: ${KEYCRM_CONFIG.closeStatusIds.includes(statusId)}, cancel: ${KEYCRM_CONFIG.cancelStatusIds.includes(statusId)}`
+  );
+
   let order: any = null;
   let webhookPayload: Record<string, any> | null = null;
 
   if (needsOrderData) {
+    console.log(`Fetching Shopify order data for order ${shopifyOrderId}`);
     const orderData = await client.request<{ order: any }, { orderId: string }>({
       query: GET_ORDER_QUERY,
       variables: { orderId: gqlOrderId(shopifyOrderId) },
@@ -421,6 +440,9 @@ export async function handleKeyCrmOrderStatusChange(
     });
     order = orderData.order;
     webhookPayload = graphqlOrderToWebhookPayload(order);
+    console.log(
+      `Shopify order ${shopifyOrderId} fetched: ${order?.name}, total: ${webhookPayload?.total_price} ${webhookPayload?.currency}`
+    );
   }
 
   // PostHog capture helper
