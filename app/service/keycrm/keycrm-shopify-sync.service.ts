@@ -3,6 +3,7 @@ import { prisma } from "@shared/lib/prisma/prisma.server";
 import { client } from "../sync/client/shopify";
 import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
 import { fetchKeyCrmOrderTracking } from "./keycrm-order.service";
+import { posthog } from "@shared/lib/posthog/posthog.server";
 import type { FulfillmentInput, OrderCloseInput } from "@/types";
 
 interface KeyCrmWebhookPayload {
@@ -41,6 +42,7 @@ const GET_ORDER_QUERY = `
       totalPriceSet { shopMoney { amount currencyCode } }
       totalDiscountsSet { shopMoney { amount } }
       currentSubtotalLineItemsQuantity
+      paymentGatewayNames
       customer { firstName lastName email phone }
       shippingAddress {
         address1 address2 city province zip country
@@ -149,6 +151,7 @@ function graphqlOrderToWebhookPayload(order: any): Record<string, any> {
     total_price: order.totalPriceSet?.shopMoney?.amount || "0",
     currency: order.totalPriceSet?.shopMoney?.currencyCode || "UAH",
     total_discounts: order.totalDiscountsSet?.shopMoney?.amount || "0",
+    payment_gateway: order.paymentGatewayNames?.[0] ?? null,
     customer: order.customer
       ? {
           first_name: order.customer.firstName,
@@ -398,24 +401,70 @@ export async function handleKeyCrmOrderStatusChange(
     }
   }
 
-  // 1. eSputnik event (Підтверджено, Відправлено, Виконано, Скасовано, Немає в наявності)
+  // Fetch order data if needed for eSputnik or PostHog
   const esputnikStatus = KEYCRM_CONFIG.esputnikStatusMap[statusId];
-  if (esputnikStatus) {
-    console.log(
-      `keyCRM status ${statusId} → sending ${esputnikStatus} to eSputnik for order ${shopifyOrderId}`
-    );
+  const needsOrderData =
+    !!esputnikStatus ||
+    KEYCRM_CONFIG.paidStatusIds.includes(statusId) ||
+    KEYCRM_CONFIG.closeStatusIds.includes(statusId) ||
+    KEYCRM_CONFIG.cancelStatusIds.includes(statusId);
 
-    const orderData = await client.request<
-      { order: any },
-      { orderId: string }
-    >({
+  let order: any = null;
+  let webhookPayload: Record<string, any> | null = null;
+
+  if (needsOrderData) {
+    const orderData = await client.request<{ order: any }, { orderId: string }>({
       query: GET_ORDER_QUERY,
       variables: { orderId: gqlOrderId(shopifyOrderId) },
       accessToken,
       shopDomain: shop,
     });
+    order = orderData.order;
+    webhookPayload = graphqlOrderToWebhookPayload(order);
+  }
 
-    const webhookPayload = graphqlOrderToWebhookPayload(orderData.order);
+  // PostHog capture helper
+  const capturePostHog = (event: string, extra?: Record<string, any>) => {
+    if (!posthog || !webhookPayload) return;
+    const distinctId =
+      webhookPayload.customer?.email ||
+      webhookPayload.email ||
+      `order_${shopifyOrderId}`;
+    posthog.capture({
+      distinctId,
+      event,
+      properties: {
+        revenue: parseFloat(webhookPayload.total_price),
+        currency: webhookPayload.currency,
+        order_id: webhookPayload.name,
+        shopify_order_id: shopifyOrderId,
+        items_count: webhookPayload.line_items?.length ?? 0,
+        discount_amount: parseFloat(webhookPayload.total_discounts ?? "0"),
+        payment_method: webhookPayload.payment_gateway,
+        keycrm_status_id: statusId,
+        ...extra,
+      },
+    });
+    console.log(`PostHog ${event} sent for order ${shopifyOrderId}`);
+  };
+
+  // PostHog event map driven by esputnikStatusMap
+  // Covers: 3→order_confirmed, 10→order_shipped, 12→order_completed,
+  //         15→order_out_of_stock, 18/19→order_cancelled, READY_FOR_PICKUP→order_ready_for_pickup
+  const posthogEventMap: Record<string, string> = {
+    CONFIRMED: "order_confirmed",
+    IN_PROGRESS: "order_shipped",
+    DELIVERED: "order_completed",
+    CANCELLED: "order_cancelled",
+    OUT_OF_STOCK: "order_out_of_stock",
+    READY_FOR_PICKUP: "order_ready_for_pickup",
+  };
+
+  // 1. eSputnik event (Підтверджено, Відправлено, Виконано, Скасовано, Немає в наявності)
+  if (esputnikStatus && webhookPayload) {
+    console.log(
+      `keyCRM status ${statusId} → sending ${esputnikStatus} to eSputnik for order ${shopifyOrderId}`
+    );
 
     const pickupAddress = esputnikStatus === "READY_FOR_PICKUP"
       ? PICKUP_ADDRESS_MAP[statusId]
@@ -432,6 +481,12 @@ export async function handleKeyCrmOrderStatusChange(
     console.log(
       `eSputnik ${esputnikStatus} event queued for order ${shopifyOrderId}`
     );
+
+    // PostHog: fire event for this esputnik status
+    const posthogEvent = posthogEventMap[esputnikStatus];
+    if (posthogEvent) {
+      capturePostHog(posthogEvent, ...(trackingNumber ? [{ tracking_number: trackingNumber }] : []));
+    }
   }
 
   // 2. Shopify actions
@@ -440,6 +495,11 @@ export async function handleKeyCrmOrderStatusChange(
       `Marking Shopify order ${shopifyOrderId} as paid (keyCRM status: ${statusId})`
     );
     await markOrderAsPaid(shopifyOrderId, shop, accessToken);
+
+    // PostHog: fire order_confirmed for paid statuses without esputnik mapping (e.g. status 21)
+    if (!esputnikStatus) {
+      capturePostHog("order_confirmed");
+    }
   }
 
   if (KEYCRM_CONFIG.fulfillStatusIds.includes(statusId)) {
@@ -460,6 +520,12 @@ export async function handleKeyCrmOrderStatusChange(
     console.log(
       `Cancelling Shopify order ${shopifyOrderId} (keyCRM status: ${statusId})`
     );
+
+    // PostHog: fire order_cancelled for cancel statuses without esputnik mapping (e.g. 13, 14, 16, 17, 20)
+    if (!esputnikStatus) {
+      capturePostHog("order_cancelled");
+    }
+
     try {
       await cancelOrder(shopifyOrderId, shop, accessToken);
     } catch (err: any) {
