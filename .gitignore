@@ -27,3 +27,4 @@ prisma/generated
 .react-router/
 .claude
 .gemini
+service-account.json
