@@ -170,7 +170,13 @@ export async function processGoogleMerchantTask(job: Job) {
     const title = getTranslatedValue("title", data.title);
     const description = (getTranslatedValue("body_html", data.description || data.body_html || title || "")).replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-    const allImages = (data.images?.edges || []).map((e: any) => e.node.url || e.node.src).filter(Boolean);
+    // Универсальный парсинг картинок (GraphQL или REST)
+    let allImages: string[] = [];
+    if (data.images?.edges) {
+      allImages = data.images.edges.map((e: any) => e.node.url || e.node.src).filter(Boolean);
+    } else if (Array.isArray(data.images)) {
+      allImages = data.images.map((img: any) => img.src || img.url).filter(Boolean);
+    }
 
     for (const variant of variants) {
       const variantId = variant.id.toString().split("/").pop()?.replace(/\D/g, "");
@@ -203,6 +209,9 @@ export async function processGoogleMerchantTask(job: Job) {
       const mainImageLink = variant.image?.url || variant.image_url || data.featuredImage?.url || allImages[0] || "";
       const additionalImageLinks = allImages.filter((url: string) => url !== mainImageLink).slice(0, 10);
 
+      // Формируем ссылку с параметром size, если он есть
+      const productLink = `${baseUrl}/${locale}/product/${handle}${sizeOpt ? `?size=${encodeURIComponent(sizeOpt.value)}` : ""}`;
+
       const productInput: any = {
         offerId: offerId,
         contentLanguage: locale,
@@ -210,7 +219,7 @@ export async function processGoogleMerchantTask(job: Job) {
         productAttributes: {
           title: `${vendor} ${title}${sizeOpt ? ` - ${sizeOpt.value}` : ""}`,
           description: description, 
-          link: `${baseUrl}/${locale}/product/${handle}?variant=${offerId}`,
+          link: productLink,
           imageLink: mainImageLink,
           additionalImageLinks: additionalImageLinks,
           brand: vendor,

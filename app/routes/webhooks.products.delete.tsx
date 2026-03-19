@@ -12,6 +12,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.miomio.com.ua";
 
   for (const queue of queues) {
+    // Only send to googleMerchantSyncQueue for now as it supports Shopify payload
+    if (queue.name !== "googleMerchantSyncQueue") {
+      continue;
+    }
+
     const numericId = String((payload as any).id).split("/").pop();
     await queue.add(topic, {
       shop,
