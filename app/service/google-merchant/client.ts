@@ -2,7 +2,7 @@ import { v1 } from "@google-shopping/products";
 import { GoogleAuth } from "google-auth-library";
 const { ProductInputsServiceClient, ProductsServiceClient } = v1;
 const auth = new GoogleAuth({
-  keyFile: "./service-account.json", // Путь к твоему секретному файлу
+  keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_PATH || "/app/service-account.json", // Путь к твоему секретному файлу
   scopes: [
     "https://www.googleapis.com/auth/content",
     "https://www.googleapis.com/auth/cloud-platform",
