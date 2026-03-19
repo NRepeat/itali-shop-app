@@ -6,14 +6,19 @@ import { prisma } from "@shared/lib/prisma/prisma.server";
 interface EsputnikOrderItem {
   externalItemId: string;
   name: string;
+  category: string;
+  description?: string;
   quantity: number;
   cost: number;
+  price?: number;
+  discount?: number;
   url?: string;
   imageUrl?: string;
 }
 
 interface EsputnikOrder {
   externalOrderId: string;
+  externalCustomerId?: string;
   totalCost: number;
   status: EsputnikOrderStatus;
   date: string;
@@ -30,6 +35,7 @@ interface EsputnikOrder {
   pickupAddress?: string;      // for READY_FOR_PICKUP template
   trackingNumber?: string;     // passed via Event API params only
   additionalInfo?: string;     // tracking number stored in order record (Orders API)
+  source?: string;
   items: EsputnikOrderItem[];
 }
 
@@ -38,6 +44,9 @@ interface ProductInfo {
   featuredImageUrl: string | null;
   variantImages: Map<string, string | null>;
   znizka: number;
+  description: string | null;
+  productType: string | null;
+  categoryName: string | null;
 }
 
 const GET_PRODUCTS_QUERY = `
@@ -46,6 +55,11 @@ const GET_PRODUCTS_QUERY = `
       ... on Product {
         id
         handle
+        description
+        productType
+        category {
+          name
+        }
         featuredImage {
           url
         }
@@ -130,6 +144,9 @@ async function fetchProductsInfo(
       featuredImageUrl: node.featuredImage?.url || null,
       variantImages,
       znizka: Number(node.metafield?.value || "0") || 0,
+      description: node.description || null,
+      productType: node.productType || null,
+      categoryName: node.category?.name || null,
     });
   }
 
@@ -195,23 +212,32 @@ export async function mapShopifyOrderToEsputnik(
     const nameParts = [item.title, item.variant_title].filter(Boolean);
     const productInfo = productsInfo.get(String(item.product_id));
 
-    const imageUrl = productInfo ? productInfo.featuredImageUrl : null;
+    const imageUrl = productInfo?.variantImages.get(String(item.variant_id)) || productInfo?.featuredImageUrl || null;
     const url = productInfo
       ? `https://www.miomio.com.ua/product/${productInfo.handle}`
       : null;
 
     const discountedPrice = parseFloat(item.price || "0");
     const znizka = productInfo?.znizka ?? 0;
+    const originalPrice = znizka > 0
+      ? Math.round(discountedPrice / (1 - znizka / 100))
+      : Math.round(discountedPrice);
+    
+    const productDiscountAmount = originalPrice - Math.round(discountedPrice);
+
     if (znizka > 0) {
-      const originalPrice = Math.round((discountedPrice / (1 - znizka / 100)) * 100) / 100;
-      znizkaDiscountTotal += Math.round((originalPrice - discountedPrice) * item.quantity * 100) / 100;
+      znizkaDiscountTotal += productDiscountAmount * item.quantity;
     }
 
     return {
       externalItemId: String(item.product_id || item.variant_id || ""),
       name: nameParts.join(" - "),
+      category: productInfo?.categoryName || productInfo?.productType || "Other",
+      ...(productInfo?.description && { description: productInfo.description }),
       quantity: item.quantity,
-      cost: discountedPrice,
+      cost: Math.round(discountedPrice),
+      price: originalPrice,
+      ...(productDiscountAmount > 0 && { discount: productDiscountAmount }),
       ...(url && { url }),
       ...(imageUrl && { imageUrl }),
     };
@@ -219,12 +245,34 @@ export async function mapShopifyOrderToEsputnik(
 
   const externalOrderId = String(payload.name || payload.id);
 
+  const dateKyiv = payload.created_at
+    ? new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Kyiv",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+        .format(new Date(payload.created_at))
+        .replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, "$3-$2-$1 $4:$5:$6")
+    : payload.created_at;
+
+  const shopifyDiscountTotal = parseFloat(payload.total_discounts || "0");
+  const finalDiscountTotal = znizkaDiscountTotal + shopifyDiscountTotal;
+
   return {
     externalOrderId,
-    totalCost: parseFloat(payload.total_price || "0"),
+    totalCost: Math.round(parseFloat(payload.total_price || "0")),
     status,
-    date: payload.created_at,
+    date: dateKyiv,
     currency: payload.currency,
+    ...(payload.customer?.id && {
+      externalCustomerId: String(payload.customer.id).replace("gid://shopify/Customer/", ""),
+    }),
+    source: "Shopify",
     ...(payload.email || payload.customer?.email
       ? { email: payload.email || payload.customer?.email }
       : {}),
@@ -237,8 +285,8 @@ export async function mapShopifyOrderToEsputnik(
     ...(payload.customer?.last_name && {
       lastName: payload.customer.last_name,
     }),
-    ...(shippingTotal > 0 && { shipping: shippingTotal }),
-    ...(znizkaDiscountTotal > 0 ? { discount: Math.round(znizkaDiscountTotal * 100) / 100 } : {}),
+    ...(shippingTotal > 0 && { shipping: Math.round(shippingTotal) }),
+    ...(finalDiscountTotal > 0 ? { discount: Math.round(finalDiscountTotal) } : {}),
     ...(payload.shipping_lines?.[0]?.title && {
       deliveryMethod: payload.shipping_lines[0].title,
     }),
@@ -249,7 +297,10 @@ export async function mapShopifyOrderToEsputnik(
       deliveryAddress: formatDeliveryAddress(payload.shipping_address),
     }),
     ...(extra?.pickupAddress && { pickupAddress: extra.pickupAddress }),
-    ...(extra?.trackingNumber && { additionalInfo: extra.trackingNumber }),
+    ...(extra?.trackingNumber && {
+      trackingNumber: extra.trackingNumber,
+      additionalInfo: extra.trackingNumber,
+    }),
     items,
   };
 }

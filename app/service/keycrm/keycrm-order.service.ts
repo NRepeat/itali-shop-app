@@ -85,11 +85,13 @@ interface KeyCrmBuyer {
 interface KeyCrmProduct {
   sku?: string;
   price: number;
+  purchased_price?: number;
   quantity: number;
   name: string;
   picture?: string;
   properties?: Array<{ name: string; value: string }>;
   discount_percent?: number;
+  discount_amount?: number;
 }
 
 interface KeyCrmShipping {
@@ -115,6 +117,7 @@ interface KeyCrmOrder {
   shipping_price?: number;
   discount_amount?: number;
   discount_percent?: number;
+  promocode?: string;
   ordered_at?: string;
   payments?: KeyCrmPayment[];
   buyer_comment?: string;
@@ -225,17 +228,29 @@ export async function mapShopifyOrderToKeyCrm(
       (opt) => opt.name !== "Title" && opt.value !== "Default Title"
     );
 
-    const finalPrice = parseFloat(item.price || "0");
     const znizka = variantData?.znizka ?? 0;
+    
+    // Shopify line_item.price is the price per unit at purchase.
+    const purchasedPricePerUnit = parseFloat(item.price || "0");
+    
+    // Calculate original price based on znizka (product discount)
+    // originalPrice is "цена первая без скидки"
+    // purchasedPricePerUnit is "вторая цена без дисконта всегда"
     const originalPrice = znizka > 0
-      ? Math.round((finalPrice / (1 - znizka / 100)) * 100) / 100
-      : finalPrice;
+      ? Math.round(purchasedPricePerUnit / (1 - znizka / 100))
+      : Math.round(purchasedPricePerUnit);
+
+    const productDiscountAmount = originalPrice - Math.round(purchasedPricePerUnit);
 
     return {
       name: nameParts.join(" - "),
       price: originalPrice,
+      purchased_price: Math.round(purchasedPricePerUnit),
       quantity: item.quantity,
-      ...(znizka > 0 ? { discount_percent: znizka } : {}),
+      ...(znizka > 0 ? { 
+        discount_percent: znizka,
+        discount_amount: productDiscountAmount > 0 ? productDiscountAmount : undefined
+      } : {}),
       ...(item.sku ? { sku: item.sku } : {}),
       ...(imageUrl ? { picture: imageUrl } : {}),
       ...(properties.length > 0 ? { properties } : {}),
@@ -250,12 +265,10 @@ export async function mapShopifyOrderToKeyCrm(
     : 0;
 
   const discountAmount = parseFloat(payload.total_discounts || "0");
-  // subtotal_price is before discounts; discount_percent = discount / (subtotal + discount) * 100
-  const subtotalPrice = parseFloat(payload.subtotal_price || "0");
-  const discountBase = subtotalPrice + discountAmount;
-  const discountPercent = discountAmount > 0 && discountBase > 0
-    ? Math.round((discountAmount / discountBase) * 1000) / 10
-    : 0;
+  const discountCodes: string[] = (payload.discount_codes || [])
+    .map((d: any) => d.code)
+    .filter(Boolean);
+  const promocode = discountCodes.length > 0 ? discountCodes.join(", ") : undefined;
 
   const shipping: KeyCrmShipping | undefined = shippingAddress
     ? {
@@ -299,7 +312,18 @@ export async function mapShopifyOrderToKeyCrm(
   ];
 
   const orderedAt = payload.created_at
-    ? new Date(payload.created_at).toISOString().replace("T", " ").slice(0, 19)
+    ? new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Kyiv",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+        .format(new Date(payload.created_at))
+        .replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, "$3-$2-$1 $4:$5:$6")
     : undefined;
 
   return {
@@ -308,9 +332,9 @@ export async function mapShopifyOrderToKeyCrm(
     buyer,
     products,
     ...(shipping ? { shipping } : {}),
-    ...(shippingPrice > 0 ? { shipping_price: shippingPrice } : {}),
-    ...(discountAmount > 0 ? { discount_amount: discountAmount } : {}),
-    ...(discountPercent > 0 ? { discount_percent: discountPercent } : {}),
+    ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
+    ...(discountAmount > 0 ? { discount_amount: Math.round(discountAmount) } : {}),
+    ...(promocode ? { promocode } : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
     ...(buildManagerComment(payload) ? { manager_comment: buildManagerComment(payload) } : {}),

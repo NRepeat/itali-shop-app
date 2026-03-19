@@ -298,8 +298,6 @@ export async function processGoogleMerchantTask(job: Job) {
     const shopifyCategoryId = data.category?.id;
     const mappedGoogleCategory = shopifyCategoryId ? typedTaxonomyMapping[shopifyCategoryId] : null;
 
-    console.log(`[Worker] Category Mapping: ID=${shopifyCategoryId}, Mapped=${mappedGoogleCategory}, FullName=${data.category?.fullName}`);
-
     const googleProductCategory = mappedGoogleCategory || 
       data.category?.fullName || 
       data.productType || 
@@ -365,7 +363,22 @@ export async function processGoogleMerchantTask(job: Job) {
 
       const availability = (variant.availableForSale ?? (variant.inventory_management ? (variant.inventory_quantity > 0) : true)) ? "IN_STOCK" : "OUT_OF_STOCK";
       
-      const gender = (handle.includes("cholov") || handle.includes("man") || handle.includes("men")) ? "MALE" : (handle.includes("zhinoch") || handle.includes("woman") || handle.includes("women")) ? "FEMALE" : "UNISEX";
+      const tags = data.tags || [];
+      const isMale = tags.some((t: string) => 
+        ["для чоловіків", "чоловіче", "чоловічий одяг", "чоловіче взуття"].includes(t.toLowerCase())
+      );
+      const isFemale = tags.some((t: string) => 
+        ["жіноче взуття", "жіноче", "жіночий одяг"].includes(t.toLowerCase())
+      );
+
+      let gender = "UNISEX";
+      if (isMale) {
+        gender = "MALE";
+      } else if (isFemale) {
+        gender = "FEMALE";
+      } else {
+        gender = (handle.includes("cholov") || handle.includes("man") || handle.includes("men")) ? "MALE" : (handle.includes("zhinoch") || handle.includes("woman") || handle.includes("women")) ? "FEMALE" : "UNISEX";
+      }
       
       // FALLBACK logic for images with high quality formatting
       const mainImageLink = formatImageUrl(variant.image?.url || variant.image?.src || variant.image_url || data.featuredImage?.url || data.image?.src) || allImages[0] || "";

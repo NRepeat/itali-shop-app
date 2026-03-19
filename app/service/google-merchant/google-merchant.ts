@@ -33,6 +33,7 @@ const GET_PRODUCTS_FOR_GOOGLE_FEED = `#graphql
             id
             name
           }
+          tags
           uk_translations: translations(locale: "uk") {
             key
             value
@@ -267,11 +268,26 @@ export async function generateGoogleMerchantXml(
           ["size", "розмір", "размер"].includes(o.name.toLowerCase()),
         );
 
-        const gender = product.handle.includes("cholov")
-          ? "male"
-          : product.handle.includes("zhinoch")
-            ? "female"
-            : "unisex";
+        const tags = product.tags || [];
+        const isMale = tags.some((t: string) => 
+          ["для чоловіків", "чоловіче", "чоловічий одяг", "чоловіче взуття"].includes(t.toLowerCase())
+        );
+        const isFemale = tags.some((t: string) => 
+          ["жіноче взуття", "жіноче", "жіночий одяг"].includes(t.toLowerCase())
+        );
+
+        let gender = "unisex";
+        if (isMale) {
+          gender = "male";
+        } else if (isFemale) {
+          gender = "female";
+        } else {
+          gender = product.handle.includes("cholov")
+            ? "male"
+            : product.handle.includes("zhinoch")
+              ? "female"
+              : "unisex";
+        }
 
         xml += `
     <item>
