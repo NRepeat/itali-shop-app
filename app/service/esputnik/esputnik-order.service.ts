@@ -43,6 +43,7 @@ interface ProductInfo {
   handle: string;
   featuredImageUrl: string | null;
   variantImages: Map<string, string | null>;
+  variantPrices: Map<string, { price: number; compareAtPrice: number | null }>;
   znizka: number;
   description: string | null;
   productType: string | null;
@@ -74,6 +75,8 @@ const GET_PRODUCTS_QUERY = `
         variants(first: 100) {
           nodes {
             id
+            price
+            compareAtPrice
             image {
               url
             }
@@ -127,6 +130,7 @@ async function fetchProductsInfo(
 
     const variants = node.variants?.nodes || [];
     const variantImages = new Map<string, string | null>();
+    const variantPrices = new Map<string, { price: number; compareAtPrice: number | null }>();
 
     for (let i = 0; i < variants.length; i++) {
       const variant = variants[i];
@@ -137,12 +141,17 @@ async function fetchProductsInfo(
       const image =
         variant.image?.url || productImages[i] || productImages[0] || null;
       variantImages.set(variantId, image);
+      variantPrices.set(variantId, {
+        price: parseFloat(variant.price || "0"),
+        compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+      });
     }
 
     result.set(numericId, {
       handle: node.handle,
       featuredImageUrl: node.featuredImage?.url || null,
       variantImages,
+      variantPrices,
       znizka: Number(node.metafield?.value || "0") || 0,
       description: node.description || null,
       productType: node.productType || null,
@@ -206,28 +215,36 @@ export async function mapShopifyOrderToEsputnik(
       )
     : 0;
 
-  let znizkaDiscountTotal = 0;
+  let totalCatalogTotal = 0;
 
   const items: EsputnikOrderItem[] = lineItems.map((item: any) => {
     const nameParts = [item.title, item.variant_title].filter(Boolean);
     const productInfo = productsInfo.get(String(item.product_id));
+    const variantId = String(item.variant_id);
 
-    const imageUrl = productInfo?.variantImages.get(String(item.variant_id)) || productInfo?.featuredImageUrl || null;
+    const imageUrl = productInfo?.variantImages.get(variantId) || productInfo?.featuredImageUrl || null;
     const url = productInfo
       ? `https://www.miomio.com.ua/product/${productInfo.handle}`
       : null;
 
-    const discountedPrice = parseFloat(item.price || "0");
     const znizka = productInfo?.znizka ?? 0;
-    const originalPrice = znizka > 0
-      ? Math.round(discountedPrice / (1 - znizka / 100))
-      : Math.round(discountedPrice);
+    const variantPrice = productInfo?.variantPrices.get(variantId);
     
-    const productDiscountAmount = originalPrice - Math.round(discountedPrice);
+    // The merchant wants the "catalog" price (before extra checkout discounts).
+    const basePrice = variantPrice 
+      ? Math.max(variantPrice.price, variantPrice.compareAtPrice || 0)
+      : parseFloat(item.price || "0");
+    
+    const originalPrice = Math.round(basePrice);
+    
+    // purchasedPricePerUnit is the "second price" (catalog price after 'znizka' but BEFORE extra discounts).
+    const purchasedPricePerUnit = znizka > 0
+      ? Math.round(originalPrice * (1 - znizka / 100))
+      : originalPrice;
 
-    if (znizka > 0) {
-      znizkaDiscountTotal += productDiscountAmount * item.quantity;
-    }
+    const productDiscountAmount = originalPrice - purchasedPricePerUnit;
+    
+    totalCatalogTotal += purchasedPricePerUnit * item.quantity;
 
     return {
       externalItemId: String(item.product_id || item.variant_id || ""),
@@ -235,7 +252,7 @@ export async function mapShopifyOrderToEsputnik(
       category: productInfo?.categoryName || productInfo?.productType || "Other",
       ...(productInfo?.description && { description: productInfo.description }),
       quantity: item.quantity,
-      cost: Math.round(discountedPrice),
+      cost: purchasedPricePerUnit,
       price: originalPrice,
       ...(productDiscountAmount > 0 && { discount: productDiscountAmount }),
       ...(url && { url }),
@@ -260,8 +277,10 @@ export async function mapShopifyOrderToEsputnik(
         .replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, "$3-$2-$1 $4:$5:$6")
     : payload.created_at;
 
-  const shopifyDiscountTotal = parseFloat(payload.total_discounts || "0");
-  const finalDiscountTotal = znizkaDiscountTotal + shopifyDiscountTotal;
+  const actualTotalPrice = parseFloat(payload.total_price || "0");
+  const expectedTotalPrice = totalCatalogTotal + shippingTotal;
+  const extraDiscountAmount = expectedTotalPrice - actualTotalPrice;
+  const finalDiscountTotal = Math.max(0, Math.round(extraDiscountAmount));
 
   return {
     externalOrderId,

@@ -16,6 +16,8 @@ const GET_PRODUCTS_QUERY = `
           nodes {
             id
             image { url }
+            price
+            compareAtPrice
             selectedOptions {
               name
               value
@@ -31,6 +33,8 @@ interface VariantData {
   imageUrl: string | null;
   selectedOptions: Array<{ name: string; value: string }>;
   znizka: number; // discount % from metafield, 0 if none
+  price: number;
+  compareAtPrice: number | null;
 }
 
 async function fetchProductVariants(
@@ -67,6 +71,8 @@ async function fetchProductVariants(
         imageUrl: variant.image?.url || node.featuredImage?.url || null,
         selectedOptions: variant.selectedOptions || [],
         znizka,
+        price: parseFloat(variant.price || "0"),
+        compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
       });
     }
 
@@ -216,6 +222,8 @@ export async function mapShopifyOrderToKeyCrm(
     console.warn("Failed to fetch product variants from Shopify:", error);
   }
 
+  let totalCatalogTotal = 0;
+
   const products: KeyCrmProduct[] = lineItems.map((item: any) => {
     const nameParts = [item.title, item.variant_title].filter(Boolean);
     const variants = productVariants.get(String(item.product_id));
@@ -230,22 +238,28 @@ export async function mapShopifyOrderToKeyCrm(
 
     const znizka = variantData?.znizka ?? 0;
     
-    // Shopify line_item.price is the price per unit at purchase.
-    const purchasedPricePerUnit = parseFloat(item.price || "0");
+    // Shopify line_item.price is the price per unit at purchase (after ALL discounts).
+    // The merchant wants CRM to show the "catalog" price (before extra checkout discounts).
+    // We get the base price from the catalog (Shopify Admin).
+    const basePrice = variantData 
+      ? Math.max(variantData.price, variantData.compareAtPrice || 0)
+      : parseFloat(item.price || "0");
     
-    // Calculate original price based on znizka (product discount)
-    // originalPrice is "цена первая без скидки"
-    // purchasedPricePerUnit is "вторая цена без дисконта всегда"
-    const originalPrice = znizka > 0
-      ? Math.round(purchasedPricePerUnit / (1 - znizka / 100))
-      : Math.round(purchasedPricePerUnit);
+    const originalPrice = Math.round(basePrice);
+    
+    // purchasedPricePerUnit is the "second price" (catalog price after 'znizka' but BEFORE extra discounts).
+    const purchasedPricePerUnit = znizka > 0
+      ? Math.round(originalPrice * (1 - znizka / 100))
+      : originalPrice;
 
-    const productDiscountAmount = originalPrice - Math.round(purchasedPricePerUnit);
+    const productDiscountAmount = originalPrice - purchasedPricePerUnit;
+    
+    totalCatalogTotal += purchasedPricePerUnit * item.quantity;
 
     return {
       name: nameParts.join(" - "),
       price: originalPrice,
-      purchased_price: Math.round(purchasedPricePerUnit),
+      purchased_price: purchasedPricePerUnit,
       quantity: item.quantity,
       ...(znizka > 0 ? { 
         discount_percent: znizka,
@@ -264,7 +278,14 @@ export async function mapShopifyOrderToKeyCrm(
       )
     : 0;
 
-  const discountAmount = parseFloat(payload.total_discounts || "0");
+  const actualTotalPrice = parseFloat(payload.total_price || "0");
+  const expectedTotalPrice = totalCatalogTotal + shippingPrice;
+  
+  // The difference between what we calculated (catalog second prices + shipping)
+  // and what was actually paid is the "checkout-level" discount.
+  const extraDiscountAmount = expectedTotalPrice - actualTotalPrice;
+  const finalDiscountAmount = Math.max(0, Math.round(extraDiscountAmount));
+
   const discountCodes: string[] = (payload.discount_codes || [])
     .map((d: any) => d.code)
     .filter(Boolean);
@@ -333,7 +354,7 @@ export async function mapShopifyOrderToKeyCrm(
     products,
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
-    ...(discountAmount > 0 ? { discount_amount: Math.round(discountAmount) } : {}),
+    ...(finalDiscountAmount > 0 ? { discount_amount: finalDiscountAmount } : {}),
     ...(promocode ? { promocode } : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
