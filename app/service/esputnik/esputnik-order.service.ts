@@ -355,19 +355,8 @@ export async function mapShopifyOrderToEsputnik(
   const externalOrderId = String(payload.name || payload.id);
 
   const dateKyiv = payload.created_at
-    ? new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/Kyiv",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      })
-        .format(new Date(payload.created_at))
-        .replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, "$3-$2-$1 $4:$5:$6")
-    : payload.created_at;
+    ? new Date(payload.created_at).toISOString()
+    : new Date().toISOString();
 
   const shippingPrice = shippingTotal;
   const expectedTotalPrice = totalCatalogTotal + shippingPrice;
@@ -448,6 +437,7 @@ export async function sendOrderToEsputnik(
 }
 
 async function sendOrderViaOrdersApi(order: EsputnikOrder): Promise<void> {
+  console.log(`Sending order ${order.externalOrderId} to eSputnik via Orders API:`, JSON.stringify(order, null, 2));
   const response = await fetch(`${ESPUTNIK_CONFIG.baseUrl}/orders`, {
     method: "POST",
     headers: {
