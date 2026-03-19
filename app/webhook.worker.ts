@@ -1,4 +1,4 @@
-import { Worker, JobsOptions } from 'bullmq';
+import { Worker } from 'bullmq';
 import { AuditService } from './service/sync/audit.service';
 import {
   productSyncQueue,
@@ -17,7 +17,11 @@ const webhookQueueNames = [
 
 // Worker options
 const workerOptions = {
-  connection: productSyncQueue.opts.connection, // Use the same connection as the queues
+  connection: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD,
+  },
   concurrency: 5, // Process up to 5 jobs at a time
 };
 
@@ -27,17 +31,20 @@ export const webhookWorker = new Worker(
     const { name, data, id } = job;
     try {
       console.log(`Processing job ${id} from queue ${name} with data:`, data);
-      await auditService.log(id || 'unknown', name, 'PROCESSING', `Job ${id} started.`);
+      
+      // name is the queue name (topic like products_update)
+      // id is the job id
+      await auditService.log(name, id || 'unknown', 'PROCESSING', `Job ${id} started.`);
 
       // TODO: In future phases, dispatch to specific syncer based on job.name or job.data.topic
       // For now, just simulate success
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate async work
 
-      await auditService.log(id || 'unknown', name, 'SUCCESS', `Job ${id} completed.`);
+      await auditService.log(name, id || 'unknown', 'SUCCESS', `Job ${id} completed.`);
       console.log(`Job ${id} from queue ${name} completed successfully.`);
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      await auditService.log(id || 'unknown', name, 'FAILURE', `Job ${id} failed: ${errorMessage}`);
+      await auditService.log(name, id || 'unknown', 'FAILURE', `Job ${id} failed: ${errorMessage}`, error);
       console.error(`Job ${id} from queue ${name} failed:`, error);
       throw error; // Re-throw to mark job as failed in BullMQ
     }
@@ -62,7 +69,6 @@ webhookWorker.on('failed', (job, err) => {
 });
 
 webhookWorker.on('error', (err) => {
-  // Log any worker errors
   console.error('Webhook worker experienced an error:', err);
 });
 
@@ -70,6 +76,14 @@ webhookWorker.on('close', () => {
   console.log('Webhook worker closed.');
 });
 
-// To keep the worker running, we might need to explicitly call .run()
-// However, in a Remix app, this typically runs as part of the server process.
-// For now, simply exporting it is sufficient for instantiation.
+console.log('Webhook worker startup sequence initiated.');
+
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('Shutting down webhook worker...');
+  await webhookWorker.close();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

@@ -21,7 +21,7 @@ const shopify = shopifyApp({
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
 });
-
+console.log("Shopify API Secret starts with:", process.env.SHOPIFY_API_SECRET?.substring(0, 4));
 export default shopify;
 export const apiVersion = ApiVersion.October25;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;

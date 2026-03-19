@@ -7,11 +7,7 @@
  * - Adds color slug if product has related articles (color variants)
  */
 
-import { PrismaClient } from "prisma/generated/app_client/client";
-import { PrismaClient as ExternalPrismaClient } from "prisma/generated/external_client/client";
-
-const prisma = new PrismaClient();
-const externalDB = new ExternalPrismaClient();
+import { prisma, externalDB } from "../shared/lib/prisma/prisma.server";
 
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION ?? "2025-10";
 
@@ -300,9 +296,6 @@ async function main() {
   console.log(`${DRY_RUN ? "Would update" : "Updated"} : ${updated}`);
   console.log(`Skipped : ${skipped}`);
   console.log(`Errors  : ${errors}`);
-
-  await prisma.$disconnect();
-  await externalDB.$disconnect();
 }
 
 main().catch((err) => {
