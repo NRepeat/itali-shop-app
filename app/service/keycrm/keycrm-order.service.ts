@@ -344,10 +344,11 @@ export async function mapShopifyOrderToKeyCrm(
 
     // The "Second Price" (purchased price) is the catalog price after 'znizka'
     // but BEFORE any extra checkout-level discounts.
+    const lastItemPriceDiscount = (originalPrice * znizka) / 100;
 
-    const lastItemPrice = (originalPrice * znizka) / 100;
-    const subdivisionPrice = originalPrice - lastItemPrice;
-    const purchasedPrice = Math.round(lastItemPrice);
+    const subdivisionPrice = originalPrice - lastItemPriceDiscount;
+    const purchasedPrice = Math.round(subdivisionPrice);
+
     const roundedOriginalPrice = Math.round(originalPrice);
 
     totalCatalogTotal += purchasedPrice * item.quantity;
@@ -360,7 +361,9 @@ export async function mapShopifyOrderToKeyCrm(
       ...(znizka > 0
         ? {
             discount_amount:
-              subdivisionPrice > 0 ? Math.round(subdivisionPrice) : undefined,
+              subdivisionPrice > 0
+                ? Math.round(lastItemPriceDiscount)
+                : undefined,
           }
         : {}),
       ...(item.sku ? { sku: item.sku } : {}),
@@ -423,7 +426,11 @@ export async function mapShopifyOrderToKeyCrm(
   const payments: KeyCrmPayment[] = [
     {
       payment_method: paymentMethod,
-      amount: totalPrice,
+      amount: Math.round(
+        discount?.percentage
+          ? totalPrice * (1 - discount.percentage / 100)
+          : totalPrice,
+      ),
       status: financialStatus === "paid" ? "paid" : "not_paid",
     },
   ];
