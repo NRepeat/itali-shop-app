@@ -230,21 +230,26 @@ export async function mapShopifyOrderToEsputnik(
     const znizka = productInfo?.znizka ?? 0;
     const variantPrice = productInfo?.variantPrices.get(variantId);
     
-    // The merchant wants the "catalog" price (before extra checkout discounts).
-    const basePrice = variantPrice 
-      ? Math.max(variantPrice.price, variantPrice.compareAtPrice || 0)
+    // The "Second Price" (cost) is the base catalog price after 'znizka'
+    // but BEFORE any extra checkout-level discounts.
+    const purchasedPricePerUnit = variantPrice 
+      ? variantPrice.price 
       : parseFloat(item.price || "0");
     
-    const originalPrice = Math.round(basePrice);
+    // The "First Price" (price) is either compareAtPrice 
+    // or back-calculated from the 'znizka' metafield.
+    let originalPrice = purchasedPricePerUnit;
+    if (variantPrice?.compareAtPrice && variantPrice.compareAtPrice > variantPrice.price) {
+      originalPrice = variantPrice.compareAtPrice;
+    } else if (znizka > 0) {
+      originalPrice = purchasedPricePerUnit / (1 - znizka / 100);
+    }
     
-    // purchasedPricePerUnit is the "second price" (catalog price after 'znizka' but BEFORE extra discounts).
-    const purchasedPricePerUnit = znizka > 0
-      ? Math.round(originalPrice * (1 - znizka / 100))
-      : originalPrice;
-
-    const productDiscountAmount = originalPrice - purchasedPricePerUnit;
+    const roundedOriginalPrice = Math.round(originalPrice);
+    const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);
+    const productDiscountAmount = roundedOriginalPrice - roundedPurchasedPrice;
     
-    totalCatalogTotal += purchasedPricePerUnit * item.quantity;
+    totalCatalogTotal += roundedPurchasedPrice * item.quantity;
 
     return {
       externalItemId: String(item.product_id || item.variant_id || ""),
@@ -252,8 +257,8 @@ export async function mapShopifyOrderToEsputnik(
       category: productInfo?.categoryName || productInfo?.productType || "Other",
       ...(productInfo?.description && { description: productInfo.description }),
       quantity: item.quantity,
-      cost: purchasedPricePerUnit,
-      price: originalPrice,
+      cost: roundedPurchasedPrice,
+      price: roundedOriginalPrice,
       ...(productDiscountAmount > 0 && { discount: productDiscountAmount }),
       ...(url && { url }),
       ...(imageUrl && { imageUrl }),

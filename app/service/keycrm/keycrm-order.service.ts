@@ -238,28 +238,31 @@ export async function mapShopifyOrderToKeyCrm(
 
     const znizka = variantData?.znizka ?? 0;
     
-    // Shopify line_item.price is the price per unit at purchase (after ALL discounts).
-    // The merchant wants CRM to show the "catalog" price (before extra checkout discounts).
-    // We get the base price from the catalog (Shopify Admin).
-    const basePrice = variantData 
-      ? Math.max(variantData.price, variantData.compareAtPrice || 0)
+    // The "Second Price" (purchased price) is the base catalog price after 'znizka'
+    // but BEFORE any extra checkout-level discounts.
+    const purchasedPricePerUnit = variantData 
+      ? variantData.price 
       : parseFloat(item.price || "0");
     
-    const originalPrice = Math.round(basePrice);
+    // The "First Price" (original price) is either compareAtPrice 
+    // or back-calculated from the 'znizka' metafield.
+    let originalPrice = purchasedPricePerUnit;
+    if (variantData?.compareAtPrice && variantData.compareAtPrice > variantData.price) {
+      originalPrice = variantData.compareAtPrice;
+    } else if (znizka > 0) {
+      originalPrice = purchasedPricePerUnit / (1 - znizka / 100);
+    }
     
-    // purchasedPricePerUnit is the "second price" (catalog price after 'znizka' but BEFORE extra discounts).
-    const purchasedPricePerUnit = znizka > 0
-      ? Math.round(originalPrice * (1 - znizka / 100))
-      : originalPrice;
-
-    const productDiscountAmount = originalPrice - purchasedPricePerUnit;
+    const roundedOriginalPrice = Math.round(originalPrice);
+    const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);
+    const productDiscountAmount = roundedOriginalPrice - roundedPurchasedPrice;
     
-    totalCatalogTotal += purchasedPricePerUnit * item.quantity;
+    totalCatalogTotal += roundedPurchasedPrice * item.quantity;
 
     return {
       name: nameParts.join(" - "),
-      price: originalPrice,
-      purchased_price: purchasedPricePerUnit,
+      price: roundedOriginalPrice,
+      purchased_price: roundedPurchasedPrice,
       quantity: item.quantity,
       ...(znizka > 0 ? { 
         discount_percent: znizka,
