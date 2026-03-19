@@ -28,6 +28,37 @@ const GET_PRODUCTS_QUERY = `
   }
 `;
 
+const GET_DISCOUNT_CODES = `
+query {
+        discountNodes(first: 50) {
+          edges {
+            node {
+              id
+              discount {
+                ... on DiscountCodeBasic {
+                  title
+                  status
+                  customerGets {
+                    value {
+                      ... on DiscountPercentage {
+                        percentage
+                      }
+                      ... on DiscountAmount {
+                        amount {
+                          amount
+                          currencyCode
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+`;
+
 interface VariantData {
   imageUrl: string | null;
   selectedOptions: Array<{ name: string; value: string }>;
@@ -35,9 +66,66 @@ interface VariantData {
   price: number;
 }
 
+async function getOrderDiscountFromOrderNote(
+  note: string,
+  shop: string,
+): Promise<{ percentage: number; amount: number; code: string } | null> {
+  try {
+    // 1. Extract and Clean Code
+    const match = note.match(/Промокод:\s*([^\s\n]+)/);
+    const codeFromNote = match ? match[1].trim().toLowerCase() : null;
+
+    if (!codeFromNote) return null;
+
+    // 2. Database & Session Setup
+    const session = await prisma.session.findFirst({
+      where: { shop },
+      select: { accessToken: true },
+    });
+
+    if (!session?.accessToken) return null;
+
+    // 3. API Request
+    const response = await client.request<any>({
+      query: GET_DISCOUNT_CODES,
+      accessToken: session.accessToken,
+      shopDomain: shop,
+    });
+
+    // CRITICAL FIX: Checking both response.discountNodes and response.data.discountNodes
+    // depending on how your specific client library parses JSON
+    const edges =
+      response?.discountNodes?.edges ||
+      response?.data?.discountNodes?.edges ||
+      [];
+
+    // 4. Find the matching node
+    const matchedEdge = edges.find((edge: any) => {
+      return edge.node.discount?.title?.trim().toLowerCase() === codeFromNote;
+    });
+
+    // 5. Build Result
+    if (matchedEdge && matchedEdge.node.discount.status === "ACTIVE") {
+      const discount = matchedEdge.node.discount;
+      const value = discount.customerGets?.value;
+
+      return {
+        code: discount.title, // Return original case (e.g., WELCOME-5)
+        percentage: value?.percentage ? value.percentage * 100 : 0,
+        amount: value?.amount?.amount ? parseFloat(value.amount.amount) : 0,
+      };
+    }
+
+    return null; // Return null if no ACTIVE match was found
+  } catch (error) {
+    console.error("Error in getOrderDiscountFromOrderNote:", error);
+    return null;
+  }
+}
+
 async function fetchProductVariants(
   shop: string,
-  productIds: string[]
+  productIds: string[],
 ): Promise<Map<string, Map<string, VariantData>>> {
   const result = new Map<string, Map<string, VariantData>>();
   if (productIds.length === 0) return result;
@@ -138,7 +226,9 @@ export function getKeyCrmStatusId(status: KeyCrmOrderStatus): number {
   return STATUS_MAP[status];
 }
 
-function extractCustomerNote(combinedNote: string | undefined): string | undefined {
+function extractCustomerNote(
+  combinedNote: string | undefined,
+): string | undefined {
   // The combined note from create.ts follows this format:
   //   [customer note if present]
   //   Метод оплати: X
@@ -147,13 +237,15 @@ function extractCustomerNote(combinedNote: string | undefined): string | undefin
   // We want only the customer-facing parts (non-technical lines).
   // Strategy: exclude lines starting with "Метод оплати:" or "Промокод:"
   if (!combinedNote) return undefined;
-  const lines = combinedNote.split('\n').filter(line => {
+  const lines = combinedNote.split("\n").filter((line) => {
     const trimmed = line.trim();
-    return trimmed.length > 0
-      && !trimmed.startsWith('Метод оплати:')
-      && !trimmed.startsWith('Промокод:');
+    return (
+      trimmed.length > 0 &&
+      !trimmed.startsWith("Метод оплати:") &&
+      !trimmed.startsWith("Промокод:")
+    );
   });
-  return lines.length > 0 ? lines.join('\n') : undefined;
+  return lines.length > 0 ? lines.join("\n") : undefined;
 }
 
 function buildManagerComment(payload: Record<string, any>): string | undefined {
@@ -161,7 +253,7 @@ function buildManagerComment(payload: Record<string, any>): string | undefined {
 
   // Payment method from direct payload field
   const paymentMethod = payload.payment_gateway_names?.[0];
-  if (paymentMethod && paymentMethod !== 'unknown') {
+  if (paymentMethod && paymentMethod !== "unknown") {
     parts.push(`Метод оплати: ${paymentMethod}`);
   }
 
@@ -170,29 +262,35 @@ function buildManagerComment(payload: Record<string, any>): string | undefined {
     .map((d: any) => d.code)
     .filter(Boolean);
   if (discountCodes.length > 0) {
-    parts.push(`Промокод: ${discountCodes.join(', ')}`);
+    parts.push(`Промокод: ${discountCodes.join(", ")}`);
   }
 
-  return parts.length > 0 ? parts.join('\n') : undefined;
+  return parts.length > 0 ? parts.join("\n") : undefined;
 }
 
 export async function mapShopifyOrderToKeyCrm(
   payload: Record<string, any>,
-  shop: string
+  shop: string,
 ): Promise<KeyCrmOrder> {
   const customer = payload.customer || {};
   const shippingAddress = payload.shipping_address;
-  const noteAttributes: Array<{ name: string; value: string }> = payload.note_attributes || [];
+  const noteAttributes: Array<{ name: string; value: string }> =
+    payload.note_attributes || [];
 
   // Extract customer info from note_attributes (quick orders)
-  const noteAttr = (name: string) => noteAttributes.find((a) => a.name === name)?.value;
+  const noteAttr = (name: string) =>
+    noteAttributes.find((a) => a.name === name)?.value;
   const isQuickOrder = noteAttr("_quick_order") === "true";
 
-  const fullName = customer.first_name || customer.last_name
-    ? [customer.first_name, customer.last_name].filter(Boolean).join(" ")
-    : noteAttr("_customer_name") || "Unknown";
+  const fullName =
+    customer.first_name || customer.last_name
+      ? [customer.first_name, customer.last_name].filter(Boolean).join(" ")
+      : noteAttr("_customer_name") || "Unknown";
 
-  const email = payload.email || customer.email || (isQuickOrder ? "skip@dummyemail.com" : undefined);
+  const email =
+    payload.email ||
+    customer.email ||
+    (isQuickOrder ? "skip@dummyemail.com" : undefined);
   const phone = payload.phone || customer.phone || noteAttr("_customer_phone");
 
   const buyer: KeyCrmBuyer = {
@@ -208,18 +306,25 @@ export async function mapShopifyOrderToKeyCrm(
     ...new Set(
       lineItems
         .map((item: any) => String(item.product_id))
-        .filter((id: string) => id && id !== "null" && id !== "undefined")
+        .filter((id: string) => id && id !== "null" && id !== "undefined"),
     ),
   ];
 
   let productVariants = new Map<string, Map<string, VariantData>>();
+  let discount: {
+    percentage: number;
+    amount: number;
+    code: string;
+  } | null = null;
   try {
     productVariants = await fetchProductVariants(shop, productIds);
+    discount = await getOrderDiscountFromOrderNote(payload.note, shop);
   } catch (error) {
     console.warn("Failed to fetch product variants from Shopify:", error);
   }
 
   let totalCatalogTotal = 0;
+  let originTotalCatalogTotal = 0;
 
   const products: KeyCrmProduct[] = lineItems.map((item: any) => {
     const nameParts = [item.title, item.variant_title].filter(Boolean);
@@ -229,64 +334,60 @@ export async function mapShopifyOrderToKeyCrm(
 
     const properties: Array<{ name: string; value: string }> = (
       variantData?.selectedOptions || []
-    ).filter(
-      (opt) => opt.name !== "Title" && opt.value !== "Default Title"
-    );
+    ).filter((opt) => opt.name !== "Title" && opt.value !== "Default Title");
 
     const znizka = variantData?.znizka ?? 0;
-    
+
     // The "First Price" (original price) is the base catalog price.
-    const originalPrice = variantData 
-      ? variantData.price 
+    const originalPrice = variantData
+      ? variantData.price
       : parseFloat(item.price || "0");
-    
+
     // The "Second Price" (purchased price) is the catalog price after 'znizka'
     // but BEFORE any extra checkout-level discounts.
-    const purchasedPricePerUnit = znizka > 0
-      ? originalPrice * (1 - znizka / 100)
-      : originalPrice;
-    
-    const roundedOriginalPrice = Math.round(originalPrice);
-    const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);
-    const productDiscountAmount = roundedOriginalPrice - roundedPurchasedPrice;
-    
-    totalCatalogTotal += roundedPurchasedPrice * item.quantity;
 
+    const itemDiscountAmount = (originalPrice * znizka) / 100;
+    const purchasedPrice = Math.round(originalPrice - itemDiscountAmount);
+    const roundedOriginalPrice = Math.round(originalPrice);
+
+    totalCatalogTotal += purchasedPrice * item.quantity;
+    originTotalCatalogTotal += roundedOriginalPrice * item.quantity;
     return {
       name: nameParts.join(" - "),
       price: roundedOriginalPrice,
-      purchased_price: roundedPurchasedPrice,
+      purchased_price: purchasedPrice,
       quantity: item.quantity,
-      ...(znizka > 0 ? { 
-        discount_percent: znizka,
-        discount_amount: productDiscountAmount > 0 ? productDiscountAmount : undefined
-      } : {}),
+      ...(znizka > 0
+        ? {
+            discount_percent: znizka,
+            discount_amount:
+              itemDiscountAmount > 0 ? itemDiscountAmount : undefined,
+          }
+        : {}),
       ...(item.sku ? { sku: item.sku } : {}),
       ...(imageUrl ? { picture: imageUrl } : {}),
       ...(properties.length > 0 ? { properties } : {}),
     };
   });
 
-  const shippingPrice = Array.isArray(payload.shipping_lines)
-    ? payload.shipping_lines.reduce(
-        (sum: number, line: any) => sum + parseFloat(line.price || "0"),
-        0
-      )
+  const shippingPrice = 0;
+
+  const expectedTotalPrice = totalCatalogTotal + shippingPrice;
+
+  const orderLevelDiscount = discount?.percentage
+    ? Math.round((expectedTotalPrice * discount?.percentage) / 100)
     : 0;
 
-  const actualTotalPrice = parseFloat(payload.total_price || "0");
-  const expectedTotalPrice = totalCatalogTotal + shippingPrice;
-  
-  // The difference between what we calculated (catalog second prices + shipping)
-  // and what was actually paid is the "checkout-level" discount.
-  const extraDiscountAmount = expectedTotalPrice - actualTotalPrice;
-  const finalDiscountAmount = Math.max(0, Math.round(extraDiscountAmount));
+  const discountCodes = discount?.code;
+  const promocode = discountCodes ? discountCodes : undefined;
 
-  const discountCodes: string[] = (payload.discount_codes || [])
-    .map((d: any) => d.code)
-    .filter(Boolean);
-  const promocode = discountCodes.length > 0 ? discountCodes.join(", ") : undefined;
-
+  console.log(
+    promocode,
+    orderLevelDiscount,
+    originTotalCatalogTotal,
+    expectedTotalPrice,
+    "orderLevelDiscount,originTotalCatalogTotal,expectedTotalPrice",
+  );
   const shipping: KeyCrmShipping | undefined = shippingAddress
     ? {
         ...(shippingAddress.city
@@ -350,17 +451,21 @@ export async function mapShopifyOrderToKeyCrm(
     products,
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
-    ...(finalDiscountAmount > 0 ? { discount_amount: finalDiscountAmount } : {}),
+    ...(orderLevelDiscount > 0 ? { discount_amount: orderLevelDiscount } : {}),
     ...(promocode ? { promocode } : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
-    ...(buildManagerComment(payload) ? { manager_comment: buildManagerComment(payload) } : {}),
-    ...(extractCustomerNote(payload.note) ? { buyer_comment: extractCustomerNote(payload.note) } : {}),
+    ...(buildManagerComment(payload)
+      ? { manager_comment: buildManagerComment(payload) }
+      : {}),
+    ...(extractCustomerNote(payload.note)
+      ? { buyer_comment: extractCustomerNote(payload.note) }
+      : {}),
   };
 }
 
 export async function createOrderInKeyCrm(
-  order: KeyCrmOrder
+  order: KeyCrmOrder,
 ): Promise<{ id: number }> {
   const response = await fetch(`${KEYCRM_CONFIG.baseUrl}/order`, {
     method: "POST",
@@ -375,20 +480,20 @@ export async function createOrderInKeyCrm(
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `keyCRM API error (POST /order): ${response.status} ${response.statusText} — ${body}`
+      `keyCRM API error (POST /order): ${response.status} ${response.statusText} — ${body}`,
     );
   }
 
   const data = await response.json();
   console.log(
-    `keyCRM order created: ${order.source_uuid} → keyCRM ID ${data.id}`
+    `keyCRM order created: ${order.source_uuid} → keyCRM ID ${data.id}`,
   );
   return data;
 }
 
 export async function updateOrderInKeyCrm(
   keycrmOrderId: number,
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<void> {
   const response = await fetch(
     `${KEYCRM_CONFIG.baseUrl}/order/${keycrmOrderId}`,
@@ -400,13 +505,13 @@ export async function updateOrderInKeyCrm(
         Accept: "application/json",
       },
       body: JSON.stringify(data),
-    }
+    },
   );
 
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `keyCRM API error (PUT /order/${keycrmOrderId}): ${response.status} ${response.statusText} — ${body}`
+      `keyCRM API error (PUT /order/${keycrmOrderId}): ${response.status} ${response.statusText} — ${body}`,
     );
   }
 
@@ -414,7 +519,7 @@ export async function updateOrderInKeyCrm(
 }
 
 export async function fetchKeyCrmOrderTracking(
-  keycrmOrderId: number
+  keycrmOrderId: number,
 ): Promise<string | undefined> {
   const response = await fetch(
     `${KEYCRM_CONFIG.baseUrl}/order/${keycrmOrderId}?include=shipping`,
@@ -424,27 +529,32 @@ export async function fetchKeyCrmOrderTracking(
         Authorization: KEYCRM_CONFIG.authHeader,
         Accept: "application/json",
       },
-    }
+    },
   );
 
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `keyCRM API error (GET /order/${keycrmOrderId}): ${response.status} ${response.statusText} — ${body}`
+      `keyCRM API error (GET /order/${keycrmOrderId}): ${response.status} ${response.statusText} — ${body}`,
     );
   }
 
   const data = await response.json();
-  console.log(`[fetchKeyCrmOrderTracking] order ${keycrmOrderId} response keys:`, Object.keys(data));
+  console.log(
+    `[fetchKeyCrmOrderTracking] order ${keycrmOrderId} response keys:`,
+    Object.keys(data),
+  );
   // KeyCRM single-order endpoint may wrap in a `data` object
   const order = data?.data ?? data;
   const rawTtn = order?.shipping?.tracking_code;
   console.log(`[fetchKeyCrmOrderTracking] tracking_code:`, rawTtn);
-  return typeof rawTtn === "string" && rawTtn.trim() ? rawTtn.trim() : undefined;
+  return typeof rawTtn === "string" && rawTtn.trim()
+    ? rawTtn.trim()
+    : undefined;
 }
 
 export async function findKeyCrmOrderBySourceUuid(
-  sourceUuid: string
+  sourceUuid: string,
 ): Promise<{ id: number } | null> {
   const url = new URL(`${KEYCRM_CONFIG.baseUrl}/order`);
   url.searchParams.set("filter[source_uuid]", sourceUuid);
@@ -460,7 +570,7 @@ export async function findKeyCrmOrderBySourceUuid(
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `keyCRM API error (GET /order): ${response.status} ${response.statusText} — ${body}`
+      `keyCRM API error (GET /order): ${response.status} ${response.statusText} — ${body}`,
     );
   }
 
