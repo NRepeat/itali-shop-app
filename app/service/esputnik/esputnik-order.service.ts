@@ -376,7 +376,7 @@ export async function mapShopifyOrderToEsputnik(
     : 0;
 
   const promocode = discount?.code;
-  const totalPrice = expectedTotalPrice;
+  const totalPrice = expectedTotalPrice - orderLevelDiscount;
 
   return {
     externalOrderId,

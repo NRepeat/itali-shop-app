@@ -359,9 +359,8 @@ export async function mapShopifyOrderToKeyCrm(
       quantity: item.quantity,
       ...(znizka > 0
         ? {
-            discount_percent: znizka,
             discount_amount:
-              subdivisionPrice > 0 ? subdivisionPrice : undefined,
+              subdivisionPrice > 0 ? Math.round(subdivisionPrice) : undefined,
           }
         : {}),
       ...(item.sku ? { sku: item.sku } : {}),
@@ -419,7 +418,7 @@ export async function mapShopifyOrderToKeyCrm(
 
   const financialStatus = payload.financial_status || "";
   const paymentMethod = payload.payment_gateway_names?.[0] || "unknown";
-  const totalPrice = expectedTotalPrice;
+  const totalPrice = expectedTotalPrice - orderLevelDiscount;
 
   const payments: KeyCrmPayment[] = [
     {
