@@ -22,6 +22,7 @@
     "start:price-worker": "dotenv -e .env tsx app/price-notification-worker.ts",
     "start:esputnik-worker": "dotenv -e .env tsx app/esputnik-order-worker.ts",
     "start:keycrm-worker": "dotenv -e .env tsx app/keycrm-order-worker.ts",
+    "start:webhook-worker": "dotenv -e .env tsx app/webhook.worker.ts",
     "typecheck": "react-router typegen && tsc --noEmit"
   },
   "type": "module",

@@ -1,4 +1,4 @@
-import { getSyncQueue } from "@/service/sync/sync.registry";
+import { getSyncQueues } from "@/service/sync/sync.registry";
 import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
 import { keycrmOrderQueue } from "@shared/lib/queue/keycrm-order.queue";
 import { authenticate } from "@/shopify.server";
@@ -9,9 +9,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log("Received", topic, "webhook for", shop);
 
-  // Existing: queue for keyCRM sync (webhook.worker.ts)
-  const queue = getSyncQueue(topic);
-  if (queue) {
+  // Existing: queues for sync (e.g. orderSyncQueue)
+  const queues = getSyncQueues(topic);
+  for (const queue of queues) {
     await queue.add(topic, { shop, topic, payload });
   }
 

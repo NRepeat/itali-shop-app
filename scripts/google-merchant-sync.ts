@@ -1,9 +1,8 @@
-import { googleMerchantSyncQueue } from "@/service/sync/queues";
-import { prisma } from "@shared/lib/prisma/prisma.server";
-import { client } from "@shared/lib/shopify/client/client";
-import type { LoaderFunctionArgs } from "react-router";
+import { googleMerchantSyncQueue } from "../app/service/sync/queues";
+import { prisma } from "../app/shared/lib/prisma/prisma.server";
+import { client } from "../app/shared/lib/shopify/client/client";
 
-export const DISCOUNT_METAFIELD_KEY = "znizka";
+const DISCOUNT_METAFIELD_KEY = "znizka";
 
 const PRODUCT_METAFIELDS_FRAGMENT = `#graphql
   fragment ProductMetafields on Product {
@@ -89,22 +88,22 @@ const GET_PRODUCTS_FOR_GOOGLE_FEED = `#graphql
   }
 `;
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+async function main() {
   const session = await prisma.session.findFirst({
     select: { shop: true, accessToken: true },
   });
 
   if (!session?.accessToken || !session.shop) {
-    return Response.json(
-      { error: "No Shopify session found" },
-      { status: 503 },
-    );
+    console.error("No Shopify session found in database");
+    process.exit(1);
   }
 
   let hasNextPage = true;
   let cursor: string | null = null;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.miomio.com.ua";
   let productCount = 0;
+
+  console.log(`Starting full Google Merchant sync for shop: ${session.shop}`);
 
   try {
     while (hasNextPage) {
@@ -130,15 +129,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           removeOnComplete: true,
         });
         productCount++;
+        console.log(`Queued product: ${product.handle} (${productCount})`);
       }
 
       hasNextPage = response.products.pageInfo.hasNextPage;
       cursor = response.products.pageInfo.endCursor;
     }
 
-    return Response.json({ success: true, queuedProducts: productCount });
+    console.log(`Successfully queued ${productCount} products for Google Merchant sync.`);
+    process.exit(0);
   } catch (error: any) {
     console.error("Sync error:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    process.exit(1);
   }
-};
+}
+
+main();

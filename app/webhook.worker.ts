@@ -1,10 +1,10 @@
 import { Worker, JobsOptions } from 'bullmq';
-import { AuditService } from '../service/sync/audit.service';
+import { AuditService } from './service/sync/audit.service';
 import {
   productSyncQueue,
   orderSyncQueue,
   customerSyncQueue,
-} from '../service/sync/queues';
+} from './service/sync/queues';
 
 const auditService = new AuditService();
 

@@ -1,0 +1,20 @@
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm.
+Worker Service is running and listening for productSyncQueue and googleMerchantSyncQueue jobs...
+Processing Google Merchant sync for product: krosivky-zhinochi-luca-grossi-616m (ru)
+Processing Google Merchant sync for product: krosivky-zhinochi-luca-grossi-616m (uk)
+✅ Success! Inserted product: 616M-40
+✅ Success! Inserted product: 616M-40
+✅ Success! Inserted product: 616M-39
+✅ Success! Inserted product: 616M-39
+✅ Success! Inserted product: 616M-38,5
+✅ Success! Inserted product: 616M-38
+✅ Success! Inserted product: 616M-38,5
+✅ Success! Inserted product: 616M-37,5
+✅ Success! Inserted product: 616M-38
+✅ Success! Inserted product: 616M-37
+✅ Success! Inserted product: 616M-37,5
+✅ Success! Inserted product: 616M-37
+✅ Success! Inserted product: 616M-36
+Google Merchant Job merchant-test-sync-gid-//shopify/Product/8922488799394-ru-1773863317256 (sync-test-krosivky-zhinochi-luca-grossi-616m-ru) completed.
+✅ Success! Inserted product: 616M-36
+Google Merchant Job merchant-test-sync-gid-//shopify/Product/8922488799394-uk-1773863317259 (sync-test-krosivky-zhinochi-luca-grossi-616m-uk) completed.

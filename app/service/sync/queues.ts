@@ -12,3 +12,4 @@ const redisConnection = {
 export const productSyncQueue = new Queue('productSyncQueue', { connection: redisConnection });
 export const orderSyncQueue = new Queue('orderSyncQueue', { connection: redisConnection });
 export const customerSyncQueue = new Queue('customerSyncQueue', { connection: redisConnection });
+export const googleMerchantSyncQueue = new Queue('googleMerchantSyncQueue', { connection: redisConnection });

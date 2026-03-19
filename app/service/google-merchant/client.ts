@@ -1,6 +1,6 @@
 import { v1 } from "@google-shopping/products";
 import { GoogleAuth } from "google-auth-library";
-const { ProductInputsServiceClient } = v1;
+const { ProductInputsServiceClient, ProductsServiceClient } = v1;
 const auth = new GoogleAuth({
   keyFile: "./service-account.json", // Путь к твоему секретному файлу
   scopes: [
@@ -9,6 +9,11 @@ const auth = new GoogleAuth({
   ],
 });
 export const productsClient = new ProductInputsServiceClient({
+  auth,
+  quotaProjectId: "italy-shop-480420",
+});
+
+export const productsReadClient = new ProductsServiceClient({
   auth,
   quotaProjectId: "italy-shop-480420",
 });
@@ -39,5 +44,55 @@ export async function insertProduct(productData: any) {
       console.error(err.message);
     }
     throw err;
+  }
+}
+
+export async function getProduct(offerId: string, contentLanguage: string, feedLabel: string) {
+  try {
+    // В v1 формат: contentLanguage~feedLabel~offerId
+    const name = `${PARENT}/products/${contentLanguage}~${feedLabel}~${offerId}`;
+    const request = {
+      name,
+    };
+
+    const [response] = await productsReadClient.getProduct(request);
+    return response;
+  } catch (err: any) {
+    console.error(`❌ Error getting product ${offerId}:`);
+    console.error(err.message);
+    throw err;
+  }
+}
+
+export async function listProducts() {
+  try {
+    const request = {
+      parent: PARENT,
+    };
+
+    const [products] = await productsReadClient.listProducts(request);
+    return products;
+  } catch (err: any) {
+    console.error("❌ Error listing products:");
+    console.error(err.message);
+    throw err;
+  }
+}
+
+export async function deleteProduct(offerId: string, contentLanguage: string, feedLabel: string) {
+  try {
+    // В v1 формат: contentLanguage~feedLabel~offerId
+    const name = `${PARENT}/productInputs/${contentLanguage}~${feedLabel}~${offerId}`;
+    const request = {
+      name,
+      dataSource: `${PARENT}/dataSources/${DATA_SOURCE_ID}`,
+    };
+
+    await productsClient.deleteProductInput(request);
+    console.log(`✅ Success! Deleted product: ${offerId}`);
+  } catch (err: any) {
+    console.error(`❌ Error deleting product ${offerId}:`);
+    console.error(err.message);
+    // throw err;
   }
 }

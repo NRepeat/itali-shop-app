@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { getSyncQueues } from "@/service/sync/sync.registry";
 import { revalidateNextJs } from "@/service/revalidate/revalidate-nextjs";
+import { getSyncQueues } from "@/service/sync/sync.registry";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, topic, payload } = await authenticate.webhook(request);
@@ -9,17 +9,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   console.log(`Received ${topic} webhook for ${shop}`);
 
   const queues = getSyncQueues(topic);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.miomio.com.ua";
+
   for (const queue of queues) {
+    const numericId = String((payload as any).id).split("/").pop();
     await queue.add(topic, {
-      action: "delete",
       shop,
-      collectionId: (payload as any).id,
+      topic,
+      payload,
+      baseUrl,
+    }, {
+      jobId: `${numericId}${Date.now()}`,
+      removeOnComplete: true,
     });
   }
 
-  // console.log(`Added collection ${collectionData.id} delete to sync queue`);
-
-  revalidateNextJs({ type: "collection", slug: (payload as any)?.handle }).catch(() => {});
+  revalidateNextJs({ type: "product", slug: (payload as any)?.handle }).catch(() => {});
 
   return new Response(null, { status: 200 });
 };
