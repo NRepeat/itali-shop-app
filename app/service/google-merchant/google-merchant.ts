@@ -229,24 +229,16 @@ export async function generateGoogleMerchantXml(
       for (const variantEdge of product.variants.edges) {
         const variant = variantEdge.node;
 
-        // Calculate price with discount
-        const originalPriceFromVariant = parseFloat(variant.price);
-        const compareAtPriceFromVariant = variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null;
+        // The "First Price" (price) is the base catalog price.
+        const originalPrice = parseFloat(variant.price);
         
-        // Final price after metafield discount
-        // Since the user ONLY uses 'znizka' and NOT compareAtPrice, 
-        // originalPrice is variant.price and finalPrice is calculated from metafield.
-        const finalPrice = discount > 0 ? originalPriceFromVariant * (1 - discount / 100) : originalPriceFromVariant;
-        
-        let originalPrice = originalPriceFromVariant;
-        // If they DID use compareAtPrice, we'd use it as original, but user says they don't.
-        if (compareAtPriceFromVariant && compareAtPriceFromVariant > originalPriceFromVariant) {
-            originalPrice = compareAtPriceFromVariant;
-        }
+        // The "Second Price" (sale_price) is the base catalog price after 'znizka'.
+        const catalogPrice = discount > 0
+            ? originalPrice * (1 - discount / 100)
+            : originalPrice;
 
         const priceStr = `${originalPrice.toFixed(2)} ${currencyCode}`;
-        // Sale price is only needed if it's strictly less than original price
-        const salePriceStr = finalPrice < originalPrice ? `${finalPrice.toFixed(2)} ${currencyCode}` : null;
+        const salePriceStr = catalogPrice < originalPrice ? `${catalogPrice.toFixed(2)} ${currencyCode}` : null;
 
         const id = variant.sku || variant.id.split("/").pop();
         const title = escapeXml(`${product.vendor} ${translatedTitle}`);

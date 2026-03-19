@@ -228,17 +228,16 @@ export async function mapShopifyOrderToEsputnik(
     const znizka = productInfo?.znizka ?? 0;
     const variantPrice = productInfo?.variantPrices.get(variantId);
     
-    // The "Second Price" (cost) is the base catalog price after 'znizka'
-    // but BEFORE any extra checkout-level discounts.
-    const purchasedPricePerUnit = variantPrice 
+    // The "First Price" (price) is the base catalog price.
+    const originalPrice = variantPrice 
       ? variantPrice.price 
       : parseFloat(item.price || "0");
     
-    // The "First Price" (price) is back-calculated from the 'znizka' metafield.
-    let originalPrice = purchasedPricePerUnit;
-    if (znizka > 0) {
-      originalPrice = purchasedPricePerUnit / (1 - znizka / 100);
-    }
+    // The "Second Price" (cost) is the base catalog price after 'znizka'
+    // but BEFORE any extra checkout-level discounts.
+    const purchasedPricePerUnit = znizka > 0
+      ? originalPrice * (1 - znizka / 100)
+      : originalPrice;
     
     const roundedOriginalPrice = Math.round(originalPrice);
     const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);

@@ -235,17 +235,16 @@ export async function mapShopifyOrderToKeyCrm(
 
     const znizka = variantData?.znizka ?? 0;
     
-    // The "Second Price" (purchased price) is the base catalog price after 'znizka'
-    // but BEFORE any extra checkout-level discounts.
-    const purchasedPricePerUnit = variantData 
+    // The "First Price" (original price) is the base catalog price.
+    const originalPrice = variantData 
       ? variantData.price 
       : parseFloat(item.price || "0");
     
-    // The "First Price" (original price) is back-calculated from the 'znizka' metafield.
-    let originalPrice = purchasedPricePerUnit;
-    if (znizka > 0) {
-      originalPrice = purchasedPricePerUnit / (1 - znizka / 100);
-    }
+    // The "Second Price" (purchased price) is the catalog price after 'znizka'
+    // but BEFORE any extra checkout-level discounts.
+    const purchasedPricePerUnit = znizka > 0
+      ? originalPrice * (1 - znizka / 100)
+      : originalPrice;
     
     const roundedOriginalPrice = Math.round(originalPrice);
     const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);

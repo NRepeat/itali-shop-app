@@ -342,23 +342,19 @@ export async function processGoogleMerchantTask(job: Job) {
       const sizeOpt = options.find((o: any) => ["size", "розмір", "размер"].includes(o.name.toLowerCase()));
 
       const priceAmount = parseFloat(variant.price?.amount || variant.price || "0");
-      const compareAtPriceAmount = variant.compareAtPrice?.amount ? parseFloat(variant.compareAtPrice.amount) : (variant.compare_at_price ? parseFloat(variant.compare_at_price) : null);
       const currencyCode = variant.price?.currencyCode || (variant.price?.currencyCode) || "UAH";
       
-      // Calculate final price with discount metafield
-      const discountedPrice = discount > 0 ? priceAmount * (1 - discount / 100) : priceAmount;
+      // The "First Price" (price) is the base catalog price.
+      const originalPrice = priceAmount;
       
-      // Google Merchant logic for Sale Price:
-      // 'price' is the ORIGINAL price (higher)
-      // 'salePrice' is the CURRENT price (lower)
-      let finalPriceMicros = Math.round(discountedPrice * 1000000).toString();
-      let originalPriceMicros = Math.round(priceAmount * 1000000).toString();
-      
-      // If there is a compareAtPrice higher than current price, use it as original
-      if (compareAtPriceAmount && compareAtPriceAmount > priceAmount) {
-          originalPriceMicros = Math.round(compareAtPriceAmount * 1000000).toString();
-      }
+      // The "Second Price" (salePrice) is the base catalog price after 'znizka'.
+      const catalogPrice = discount > 0
+          ? originalPrice * (1 - discount / 100)
+          : originalPrice;
 
+      let finalPriceMicros = Math.round(catalogPrice * 1000000).toString();
+      let originalPriceMicros = Math.round(originalPrice * 1000000).toString();
+      
       const hasSale = parseFloat(originalPriceMicros) > parseFloat(finalPriceMicros);
 
       const availability = (variant.availableForSale ?? (variant.inventory_management ? (variant.inventory_quantity > 0) : true)) ? "IN_STOCK" : "OUT_OF_STOCK";
