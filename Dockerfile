@@ -40,6 +40,8 @@ COPY --from=builder /app/build ./build
 
 # Copy source for workers (they run TypeScript directly)
 COPY --from=builder /app/app ./app
+# Copy scripts for maintenance and sync tasks
+COPY --from=builder /app/scripts ./scripts
 
 # Copy generated prisma clients from builder (with Linux binaries) to build directory
 RUN cp -r /app/prisma/generated /app/build/server/generated

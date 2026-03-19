@@ -110,18 +110,6 @@ export async function processGoogleMerchantTask(job: Job) {
     const { product, payload, locale, baseUrl: jobBaseUrl, topic, shop } = job.data;
     const baseUrl = jobBaseUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://www.miomio.com.ua";
 
-    if (!locale) {
-      console.log(`[Worker] Splitting task for product ${product?.handle || 'unknown'} into ru and uk locales`);
-      const locales = ["ru", "uk"];
-      for (const l of locales) {
-        await processGoogleMerchantTask({
-          ...job,
-          data: { ...job.data, locale: l, baseUrl }
-        } as any);
-      }
-      return;
-    }
-
     const isDelete = topic === "products/delete" || job.data.action === "delete";
 
     // Get session for translations and product fetch
@@ -131,7 +119,8 @@ export async function processGoogleMerchantTask(job: Job) {
     });
 
     // Fetch full product from GraphQL if it's from a webhook payload or incomplete
-    let data = product || payload;
+    // We do this BEFORE splitting into locales to avoid multiple fetches
+    let fullProduct = product || payload;
     if (!isDelete && (payload || !product?.metafields)) {
       const productId = payload?.id || product?.id;
       if (productId && session) {
@@ -148,16 +137,34 @@ export async function processGoogleMerchantTask(job: Job) {
             shopDomain: session.shop,
           });
           if (res.product) {
-            data = res.product;
+            console.log(`[Worker] Successfully fetched full product data for ${res.product.handle}`);
+            fullProduct = res.product;
+          } else {
+            console.warn(`[Worker] Shopify returned null for product ${formattedId}`);
           }
         } catch (e) {
           console.error(`[Worker] Failed to fetch product ${formattedId} from Shopify:`, e);
         }
+      } else {
+        console.log(`[Worker] Skipping fetch: productId=${productId}, hasSession=${!!session}`);
       }
     }
 
+    if (!locale) {
+      console.log(`[Worker] Splitting task for product ${fullProduct?.handle || 'unknown'} into ru and uk locales`);
+      const locales = ["ru", "uk"];
+      for (const l of locales) {
+        await processGoogleMerchantTask({
+          ...job,
+          data: { ...job.data, product: fullProduct, payload: null, locale: l, baseUrl }
+        } as any);
+      }
+      return;
+    }
+
+    const data = fullProduct;
     if (!data) {
-      console.error("[Worker] No data found in job payload");
+      console.error("[Worker] No data found in job payload after fetch attempt");
       return;
     }
 
@@ -263,6 +270,8 @@ export async function processGoogleMerchantTask(job: Job) {
       variants = data.variants;
     }
 
+    console.log(`[Worker] Found ${variants.length} variants for ${handle}`);
+
     const vendor = data.vendor || "MioMio";
     const productTranslations = isUk ? (data.uk_translations || []) : (data.ru_translations || []);
     const getTranslatedValue = (key: string, defaultVal: string) => {
@@ -278,6 +287,8 @@ export async function processGoogleMerchantTask(job: Job) {
     } else if (Array.isArray(data.images)) {
       allImages = data.images.map((img: any) => img.src || img.url).filter(Boolean);
     }
+
+    console.log(`[Worker] Found ${allImages.length} images for ${handle}`);
 
     for (const variant of variants) {
       const variantId = variant.id.toString().split("/").pop()?.replace(/\D/g, "");
@@ -307,7 +318,9 @@ export async function processGoogleMerchantTask(job: Job) {
       const availability = (variant.availableForSale ?? (variant.inventory_management ? (variant.inventory_quantity > 0) : true)) ? "IN_STOCK" : "OUT_OF_STOCK";
       
       const gender = (handle.includes("cholov") || handle.includes("man") || handle.includes("men")) ? "MALE" : (handle.includes("zhinoch") || handle.includes("woman") || handle.includes("women")) ? "FEMALE" : "UNISEX";
-      const mainImageLink = variant.image?.url || variant.image_url || data.featuredImage?.url || allImages[0] || "";
+      
+      // FALLBACK logic for images
+      const mainImageLink = variant.image?.url || variant.image?.src || variant.image_url || data.featuredImage?.url || data.image?.src || allImages[0] || "";
       const additionalImageLinks = allImages.filter((url: string) => url !== mainImageLink).slice(0, 10);
 
       // Формируем ссылку с параметром variant, как в manual sync
