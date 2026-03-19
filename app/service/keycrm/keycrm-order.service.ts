@@ -449,10 +449,10 @@ export async function mapShopifyOrderToKeyCrm(
     source_uuid: String(payload.name || payload.id),
     buyer,
     products,
+    promocode: promocode ? promocode : "",
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
     ...(orderLevelDiscount > 0 ? { discount_amount: orderLevelDiscount } : {}),
-    ...(promocode ? { promocode } : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
     ...(buildManagerComment(payload)
@@ -476,7 +476,7 @@ export async function createOrderInKeyCrm(
     },
     body: JSON.stringify(order),
   });
-
+  console.log(order,"createOrderInKeyCrm",response)
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
