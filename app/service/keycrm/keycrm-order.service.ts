@@ -17,7 +17,6 @@ const GET_PRODUCTS_QUERY = `
             id
             image { url }
             price
-            compareAtPrice
             selectedOptions {
               name
               value
@@ -34,7 +33,6 @@ interface VariantData {
   selectedOptions: Array<{ name: string; value: string }>;
   znizka: number; // discount % from metafield, 0 if none
   price: number;
-  compareAtPrice: number | null;
 }
 
 async function fetchProductVariants(
@@ -72,7 +70,6 @@ async function fetchProductVariants(
         selectedOptions: variant.selectedOptions || [],
         znizka,
         price: parseFloat(variant.price || "0"),
-        compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
       });
     }
 
@@ -244,12 +241,9 @@ export async function mapShopifyOrderToKeyCrm(
       ? variantData.price 
       : parseFloat(item.price || "0");
     
-    // The "First Price" (original price) is either compareAtPrice 
-    // or back-calculated from the 'znizka' metafield.
+    // The "First Price" (original price) is back-calculated from the 'znizka' metafield.
     let originalPrice = purchasedPricePerUnit;
-    if (variantData?.compareAtPrice && variantData.compareAtPrice > variantData.price) {
-      originalPrice = variantData.compareAtPrice;
-    } else if (znizka > 0) {
+    if (znizka > 0) {
       originalPrice = purchasedPricePerUnit / (1 - znizka / 100);
     }
     

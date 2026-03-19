@@ -43,7 +43,7 @@ interface ProductInfo {
   handle: string;
   featuredImageUrl: string | null;
   variantImages: Map<string, string | null>;
-  variantPrices: Map<string, { price: number; compareAtPrice: number | null }>;
+  variantPrices: Map<string, { price: number }>;
   znizka: number;
   description: string | null;
   productType: string | null;
@@ -76,7 +76,6 @@ const GET_PRODUCTS_QUERY = `
           nodes {
             id
             price
-            compareAtPrice
             image {
               url
             }
@@ -130,7 +129,7 @@ async function fetchProductsInfo(
 
     const variants = node.variants?.nodes || [];
     const variantImages = new Map<string, string | null>();
-    const variantPrices = new Map<string, { price: number; compareAtPrice: number | null }>();
+    const variantPrices = new Map<string, { price: number }>();
 
     for (let i = 0; i < variants.length; i++) {
       const variant = variants[i];
@@ -143,7 +142,6 @@ async function fetchProductsInfo(
       variantImages.set(variantId, image);
       variantPrices.set(variantId, {
         price: parseFloat(variant.price || "0"),
-        compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
       });
     }
 
@@ -236,12 +234,9 @@ export async function mapShopifyOrderToEsputnik(
       ? variantPrice.price 
       : parseFloat(item.price || "0");
     
-    // The "First Price" (price) is either compareAtPrice 
-    // or back-calculated from the 'znizka' metafield.
+    // The "First Price" (price) is back-calculated from the 'znizka' metafield.
     let originalPrice = purchasedPricePerUnit;
-    if (variantPrice?.compareAtPrice && variantPrice.compareAtPrice > variantPrice.price) {
-      originalPrice = variantPrice.compareAtPrice;
-    } else if (znizka > 0) {
+    if (znizka > 0) {
       originalPrice = purchasedPricePerUnit / (1 - znizka / 100);
     }
     
