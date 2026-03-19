@@ -33,12 +33,6 @@ const GET_PRODUCTS_FOR_GOOGLE_FEED = `#graphql
             id
             name
           }
-          productCategory {
-            productTaxonomyNode {
-              fullName
-              name
-            }
-          }
           uk_translations: translations(locale: "uk") {
             key
             value
@@ -220,14 +214,13 @@ export async function generateGoogleMerchantXml(
 
       const googleCategory = escapeXml(
         mappedGoogleCategory ||
-          product.productCategory?.productTaxonomyNode?.fullName ||
+          product.category?.fullName ||
           product.productType ||
           (isUk ? "Взуття та аксесуари" : "Обувь и аксессуары"),
       );
 
       const internalProductType = escapeXml(
         product.productType ||
-          product.productCategory?.productTaxonomyNode?.name ||
           product.category?.name ||
           (isUk ? "Взуття та аксесуари" : "Обувь и аксессуары"),
       );

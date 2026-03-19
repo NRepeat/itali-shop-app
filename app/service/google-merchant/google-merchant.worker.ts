@@ -85,6 +85,10 @@ const GET_PRODUCT_BY_ID = `#graphql
       description
       vendor
       productType
+      category {
+        id
+        fullName
+      }
       tags
       uk_translations: translations(locale: "uk") { key value }
       ru_translations: translations(locale: "ru") { key value }
@@ -291,11 +295,13 @@ export async function processGoogleMerchantTask(job: Job) {
 
     // Category resolution
     const typedTaxonomyMapping = taxonomyMapping as Record<string, string>;
-    const shopifyCategoryId = data.category?.id || data.productCategory?.productTaxonomyNode?.id;
+    const shopifyCategoryId = data.category?.id;
     const mappedGoogleCategory = shopifyCategoryId ? typedTaxonomyMapping[shopifyCategoryId] : null;
 
+    console.log(`[Worker] Category Mapping: ID=${shopifyCategoryId}, Mapped=${mappedGoogleCategory}, FullName=${data.category?.fullName}`);
+
     const googleProductCategory = mappedGoogleCategory || 
-      data.productCategory?.productTaxonomyNode?.fullName || 
+      data.category?.fullName || 
       data.productType || 
       (isUk ? "Взуття та аксесуари" : "Обувь и аксессуары");
 

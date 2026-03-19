@@ -42,6 +42,10 @@ const GET_PRODUCT_BY_HANDLE = `#graphql
       description
       vendor
       productType
+      category {
+        id
+        fullName
+      }
       tags
       uk_translations: translations(locale: "uk") { key value }
       ru_translations: translations(locale: "ru") { key value }
