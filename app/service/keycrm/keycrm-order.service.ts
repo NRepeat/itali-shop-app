@@ -256,13 +256,12 @@ function buildManagerComment(payload: Record<string, any>): string | undefined {
   if (paymentMethod && paymentMethod !== "unknown") {
     parts.push(`Метод оплати: ${paymentMethod}`);
   }
+  const match = payload.note.match(/Промокод:\s*([^\s\n]+)/);
+  const codeFromNote = match ? match[1].trim().toLowerCase() : null;
 
   // Discount codes from direct payload field (NOT parsed from note string)
-  const discountCodes: string[] = (payload.discount_codes || [])
-    .map((d: any) => d.code)
-    .filter(Boolean);
-  if (discountCodes.length > 0) {
-    parts.push(`Промокод: ${discountCodes.join(", ")}`);
+  if (codeFromNote > 0) {
+    parts.push(`Промокод: ${codeFromNote}`);
   }
 
   return parts.length > 0 ? parts.join("\n") : undefined;
@@ -346,8 +345,9 @@ export async function mapShopifyOrderToKeyCrm(
     // The "Second Price" (purchased price) is the catalog price after 'znizka'
     // but BEFORE any extra checkout-level discounts.
 
-    const itemDiscountAmount = (originalPrice * znizka) / 100;
-    const purchasedPrice = Math.round(originalPrice - itemDiscountAmount);
+    const lastItemPrice = (originalPrice * znizka) / 100;
+    const subdivisionPrice = originalPrice - lastItemPrice;
+    const purchasedPrice = Math.round(lastItemPrice);
     const roundedOriginalPrice = Math.round(originalPrice);
 
     totalCatalogTotal += purchasedPrice * item.quantity;
@@ -361,7 +361,7 @@ export async function mapShopifyOrderToKeyCrm(
         ? {
             discount_percent: znizka,
             discount_amount:
-              itemDiscountAmount > 0 ? itemDiscountAmount : undefined,
+              subdivisionPrice > 0 ? subdivisionPrice : undefined,
           }
         : {}),
       ...(item.sku ? { sku: item.sku } : {}),
@@ -453,6 +453,9 @@ export async function mapShopifyOrderToKeyCrm(
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
     ...(orderLevelDiscount > 0 ? { discount_amount: orderLevelDiscount } : {}),
+    ...(orderLevelDiscount > 0
+      ? { discount_percent: discount?.percentage || 0 }
+      : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
     ...(buildManagerComment(payload)
@@ -476,7 +479,7 @@ export async function createOrderInKeyCrm(
     },
     body: JSON.stringify(order),
   });
-  console.log(order,"createOrderInKeyCrm",response)
+  console.log(order, "createOrderInKeyCrm", response);
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
