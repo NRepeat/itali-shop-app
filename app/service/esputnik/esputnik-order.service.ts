@@ -29,6 +29,7 @@ interface EsputnikOrder {
   lastName?: string;
   shipping?: number;
   discount?: number;
+  discount_percent?: number;
   taxes?: number;
   restoreUrl?: string;
   statusDescription?: string;
@@ -327,13 +328,13 @@ export async function mapShopifyOrderToEsputnik(
       ? variantPrice.price 
       : parseFloat(item.price || "0");
     
-    // The "Second Price" (cost) is the base catalog price after 'znizka'
-    // matching fixed KeyCRM logic: purchasedPrice = (originalPrice * znizka) / 100
-    const lastItemPrice = (originalPrice * znizka) / 100;
-    const subdivisionPrice = originalPrice - lastItemPrice;
+    // Fixed logic: znizka is a discount percentage
+    // purchasedPrice = originalPrice - (originalPrice * znizka) / 100
+    const itemDiscountAmount = (originalPrice * znizka) / 100;
+    const purchasedPricePerUnit = originalPrice - itemDiscountAmount;
     
     const roundedOriginalPrice = Math.round(originalPrice);
-    const roundedPurchasedPrice = Math.round(lastItemPrice);
+    const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);
     
     totalCatalogTotal += roundedPurchasedPrice * item.quantity;
 
@@ -345,7 +346,7 @@ export async function mapShopifyOrderToEsputnik(
       quantity: item.quantity,
       cost: roundedPurchasedPrice,
       price: roundedOriginalPrice,
-      ...(znizka > 0 && { discount: Math.round(subdivisionPrice) }),
+      ...(znizka > 0 && { discount: Math.round(itemDiscountAmount) }),
       ...(url && { url }),
       ...(imageUrl && { imageUrl }),
     };
@@ -402,6 +403,7 @@ export async function mapShopifyOrderToEsputnik(
     }),
     ...(shippingTotal > 0 && { shipping: Math.round(shippingTotal) }),
     ...(orderLevelDiscount > 0 ? { discount: Math.round(orderLevelDiscount) } : {}),
+    ...(discount?.percentage ? { discount_percent: discount.percentage } : {}),
     ...(payload.total_tax && { taxes: Math.round(parseFloat(payload.total_tax)) }),
     ...(payload.checkout_id && { restoreUrl: `https://${shop}/checkout/${payload.checkout_id}` }),
     ...(status && { statusDescription: status }),
@@ -489,6 +491,7 @@ async function sendOrderViaEventApi(order: EsputnikOrder): Promise<void> {
   if (order.phone)           params.push({ name: "phone",           value: order.phone });
   if (order.shipping)        params.push({ name: "shipping",        value: String(order.shipping) });
   if (order.discount)        params.push({ name: "discount",        value: String(order.discount) });
+  if (order.discount_percent) params.push({ name: "discount_percent", value: String(order.discount_percent) });
   if (order.taxes)           params.push({ name: "taxes",           value: String(order.taxes) });
   if (order.restoreUrl)      params.push({ name: "restoreUrl",      value: order.restoreUrl });
   if (order.statusDescription) params.push({ name: "statusDescription", value: order.statusDescription });
