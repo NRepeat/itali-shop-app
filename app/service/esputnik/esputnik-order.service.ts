@@ -29,6 +29,11 @@ interface EsputnikOrder {
   lastName?: string;
   shipping?: number;
   discount?: number;
+  taxes?: number;
+  restoreUrl?: string;
+  statusDescription?: string;
+  storeId?: string;
+  promocode?: string;
   deliveryMethod?: string;
   paymentMethod?: string;
   deliveryAddress?: string;
@@ -86,6 +91,37 @@ const GET_PRODUCTS_QUERY = `
   }
 `;
 
+const GET_DISCOUNT_CODES = `
+query {
+        discountNodes(first: 50) {
+          edges {
+            node {
+              id
+              discount {
+                ... on DiscountCodeBasic {
+                  title
+                  status
+                  customerGets {
+                    value {
+                      ... on DiscountPercentage {
+                        percentage
+                      }
+                      ... on DiscountAmount {
+                        amount {
+                          amount
+                          currencyCode
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+`;
+
 async function getAccessToken(shop: string): Promise<string> {
   const session = await prisma.session.findFirst({
     where: { shop },
@@ -97,6 +133,57 @@ async function getAccessToken(shop: string): Promise<string> {
   }
 
   return session.accessToken;
+}
+
+async function getOrderDiscountFromOrderNote(
+  note: string,
+  shop: string,
+): Promise<{ percentage: number; amount: number; code: string } | null> {
+  try {
+    // 1. Extract and Clean Code
+    const match = (note || "").match(/Промокод:\s*([^\s\n]+)/);
+    const codeFromNote = match ? match[1].trim().toLowerCase() : null;
+
+    if (!codeFromNote) return null;
+
+    // 2. Database & Session Setup
+    const accessToken = await getAccessToken(shop);
+
+    // 3. API Request
+    const response = await client.request<any, any>({
+      query: GET_DISCOUNT_CODES,
+      accessToken,
+      shopDomain: shop,
+    });
+
+    // Checking both response.discountNodes and response.data.discountNodes
+    const edges =
+      response?.discountNodes?.edges ||
+      response?.data?.discountNodes?.edges ||
+      [];
+
+    // 4. Find the matching node
+    const matchedEdge = edges.find((edge: any) => {
+      return edge.node.discount?.title?.trim().toLowerCase() === codeFromNote;
+    });
+
+    // 5. Build Result
+    if (matchedEdge && matchedEdge.node.discount.status === "ACTIVE") {
+      const discount = matchedEdge.node.discount;
+      const value = discount.customerGets?.value;
+
+      return {
+        code: discount.title, // Return original case (e.g., WELCOME-5)
+        percentage: value?.percentage ? value.percentage * 100 : 0,
+        amount: value?.amount?.amount ? parseFloat(value.amount.amount) : 0,
+      };
+    }
+
+    return null; // Return null if no ACTIVE match was found
+  } catch (error) {
+    console.error("Error in getOrderDiscountFromOrderNote:", error);
+    return null;
+  }
 }
 
 async function fetchProductsInfo(
@@ -198,10 +285,17 @@ export async function mapShopifyOrderToEsputnik(
   ];
 
   let productsInfo = new Map<string, ProductInfo>();
+  let discount: {
+    percentage: number;
+    amount: number;
+    code: string;
+  } | null = null;
+
   try {
     productsInfo = await fetchProductsInfo(shop, productIds);
+    discount = await getOrderDiscountFromOrderNote(payload.note, shop);
   } catch (error) {
-    console.warn("Failed to fetch product details from Shopify:", error);
+    console.warn("Failed to fetch product details or discount from Shopify:", error);
   }
 
   const storefrontDomain = getStorefrontDomain(shop);
@@ -276,14 +370,19 @@ export async function mapShopifyOrderToEsputnik(
         .replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, "$3-$2-$1 $4:$5:$6")
     : payload.created_at;
 
-  const actualTotalPrice = parseFloat(payload.total_price || "0");
-  const expectedTotalPrice = totalCatalogTotal + shippingTotal;
-  const extraDiscountAmount = expectedTotalPrice - actualTotalPrice;
-  const finalDiscountTotal = Math.max(0, Math.round(extraDiscountAmount));
+  const shippingPrice = shippingTotal;
+  const expectedTotalPrice = totalCatalogTotal + shippingPrice;
+
+  const orderLevelDiscount = discount?.percentage
+    ? Math.round((expectedTotalPrice * discount?.percentage) / 100)
+    : 0;
+
+  const promocode = discount?.code;
+  const actualTotalPrice = expectedTotalPrice - orderLevelDiscount;
 
   return {
     externalOrderId,
-    totalCost: Math.round(parseFloat(payload.total_price || "0")),
+    totalCost: Math.round(actualTotalPrice),
     status,
     date: dateKyiv,
     currency: payload.currency,
@@ -304,7 +403,12 @@ export async function mapShopifyOrderToEsputnik(
       lastName: payload.customer.last_name,
     }),
     ...(shippingTotal > 0 && { shipping: Math.round(shippingTotal) }),
-    ...(finalDiscountTotal > 0 ? { discount: Math.round(finalDiscountTotal) } : {}),
+    ...(orderLevelDiscount > 0 ? { discount: Math.round(orderLevelDiscount) } : {}),
+    ...(payload.total_tax && { taxes: Math.round(parseFloat(payload.total_tax)) }),
+    ...(payload.checkout_id && { restoreUrl: `https://${shop}/checkout/${payload.checkout_id}` }),
+    ...(status && { statusDescription: status }),
+    storeId: shop.split(".")[0],
+    ...(promocode ? { promocode } : {}),
     ...(payload.shipping_lines?.[0]?.title && {
       deliveryMethod: payload.shipping_lines[0].title,
     }),
@@ -387,6 +491,11 @@ async function sendOrderViaEventApi(order: EsputnikOrder): Promise<void> {
   if (order.phone)           params.push({ name: "phone",           value: order.phone });
   if (order.shipping)        params.push({ name: "shipping",        value: String(order.shipping) });
   if (order.discount)        params.push({ name: "discount",        value: String(order.discount) });
+  if (order.taxes)           params.push({ name: "taxes",           value: String(order.taxes) });
+  if (order.restoreUrl)      params.push({ name: "restoreUrl",      value: order.restoreUrl });
+  if (order.statusDescription) params.push({ name: "statusDescription", value: order.statusDescription });
+  if (order.storeId)         params.push({ name: "storeId",         value: order.storeId });
+  if (order.promocode)       params.push({ name: "promocode",       value: order.promocode });
   if (order.deliveryMethod)  params.push({ name: "deliveryMethod",  value: order.deliveryMethod });
   if (order.paymentMethod)   params.push({ name: "paymentMethod",   value: order.paymentMethod });
   if (order.deliveryAddress) params.push({ name: "deliveryAddress", value: order.deliveryAddress });
