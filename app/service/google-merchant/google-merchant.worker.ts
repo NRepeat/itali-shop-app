@@ -2,6 +2,7 @@ import { insertProduct, deleteProduct } from "./client";
 import { Job } from "bullmq";
 import { client as shopifyClient } from "@shared/lib/shopify/client/client";
 import { prisma } from "@shared/lib/prisma/prisma.server";
+import taxonomyMapping from "./taxonomy-mapping.json";
 
 export const googleMerchantQueueName = "googleMerchantSyncQueue";
 
@@ -15,6 +16,22 @@ const IGNORED_HIGHLIGHT_VALUES = new Set([
   "fw", 
   "ss"
 ]);
+
+/**
+ * Ensures Shopify images have enough resolution for Google Merchant.
+ * Non-clothing: 100x100, Clothing: 250x250.
+ * We request 1024x1024 for safety and better quality.
+ */
+function formatImageUrl(url: string | undefined): string {
+  if (!url) return "";
+  if (!url.includes("cdn.shopify.com")) return url;
+  
+  // Remove existing size patterns like _small, _thumb, _100x100, etc.
+  const cleanUrl = url.replace(/_(?:pico|icon|thumb|small|compact|medium|large|grande|(?:\d+x\d+))\./g, ".");
+  
+  // Add 1024x1024 suffix before the extension
+  return cleanUrl.replace(/\.(jpg|jpeg|png|webp|gif)/g, "_1024x1024.$1");
+}
 
 const GET_TRANSLATIONS_QUERY = `#graphql
   query getTranslations($id: ID!, $locale: String!) {
@@ -272,6 +289,16 @@ export async function processGoogleMerchantTask(job: Job) {
 
     console.log(`[Worker] Found ${variants.length} variants for ${handle}`);
 
+    // Category resolution
+    const typedTaxonomyMapping = taxonomyMapping as Record<string, string>;
+    const shopifyCategoryId = data.category?.id || data.productCategory?.productTaxonomyNode?.id;
+    const mappedGoogleCategory = shopifyCategoryId ? typedTaxonomyMapping[shopifyCategoryId] : null;
+
+    const googleProductCategory = mappedGoogleCategory || 
+      data.productCategory?.productTaxonomyNode?.fullName || 
+      data.productType || 
+      (isUk ? "Взуття та аксесуари" : "Обувь и аксессуары");
+
     const vendor = data.vendor || "MioMio";
     const productTranslations = isUk ? (data.uk_translations || []) : (data.ru_translations || []);
     const getTranslatedValue = (key: string, defaultVal: string) => {
@@ -283,9 +310,9 @@ export async function processGoogleMerchantTask(job: Job) {
     // Универсальный парсинг картинок (GraphQL или REST)
     let allImages: string[] = [];
     if (data.images?.edges) {
-      allImages = data.images.edges.map((e: any) => e.node.url || e.node.src).filter(Boolean);
+      allImages = data.images.edges.map((e: any) => formatImageUrl(e.node.url || e.node.src)).filter(Boolean);
     } else if (Array.isArray(data.images)) {
-      allImages = data.images.map((img: any) => img.src || img.url).filter(Boolean);
+      allImages = data.images.map((img: any) => formatImageUrl(img.src || img.url)).filter(Boolean);
     }
 
     console.log(`[Worker] Found ${allImages.length} images for ${handle}`);
@@ -312,15 +339,30 @@ export async function processGoogleMerchantTask(job: Job) {
 
       const priceAmount = parseFloat(variant.price?.amount || variant.price || "0");
       const compareAtPriceAmount = variant.compareAtPrice?.amount ? parseFloat(variant.compareAtPrice.amount) : (variant.compare_at_price ? parseFloat(variant.compare_at_price) : null);
-      const currencyCode = variant.price?.currencyCode || "UAH";
+      const currencyCode = variant.price?.currencyCode || (variant.price?.currencyCode) || "UAH";
       
-      const amountMicros = Math.round(priceAmount * 1000000).toString();
+      // Calculate final price with discount metafield
+      const discountedPrice = discount > 0 ? priceAmount * (1 - discount / 100) : priceAmount;
+      
+      // Google Merchant logic for Sale Price:
+      // 'price' is the ORIGINAL price (higher)
+      // 'salePrice' is the CURRENT price (lower)
+      let finalPriceMicros = Math.round(discountedPrice * 1000000).toString();
+      let originalPriceMicros = Math.round(priceAmount * 1000000).toString();
+      
+      // If there is a compareAtPrice higher than current price, use it as original
+      if (compareAtPriceAmount && compareAtPriceAmount > priceAmount) {
+          originalPriceMicros = Math.round(compareAtPriceAmount * 1000000).toString();
+      }
+
+      const hasSale = parseFloat(originalPriceMicros) > parseFloat(finalPriceMicros);
+
       const availability = (variant.availableForSale ?? (variant.inventory_management ? (variant.inventory_quantity > 0) : true)) ? "IN_STOCK" : "OUT_OF_STOCK";
       
       const gender = (handle.includes("cholov") || handle.includes("man") || handle.includes("men")) ? "MALE" : (handle.includes("zhinoch") || handle.includes("woman") || handle.includes("women")) ? "FEMALE" : "UNISEX";
       
-      // FALLBACK logic for images
-      const mainImageLink = variant.image?.url || variant.image?.src || variant.image_url || data.featuredImage?.url || data.image?.src || allImages[0] || "";
+      // FALLBACK logic for images with high quality formatting
+      const mainImageLink = formatImageUrl(variant.image?.url || variant.image?.src || variant.image_url || data.featuredImage?.url || data.image?.src) || allImages[0] || "";
       const additionalImageLinks = allImages.filter((url: string) => url !== mainImageLink).slice(0, 10);
 
       // Формируем ссылку с параметром variant, как в manual sync
@@ -338,12 +380,12 @@ export async function processGoogleMerchantTask(job: Job) {
           additionalImageLinks: additionalImageLinks,
           brand: vendor,
           price: {
-            amountMicros: amountMicros, 
+            amountMicros: originalPriceMicros, 
             currencyCode: currencyCode,
           },
           availability: availability,
           condition: "NEW",
-          googleProductCategory: "3032",
+          googleProductCategory: googleProductCategory,
           gender: gender,
           ageGroup: "ADULT",
           itemGroupId: data.id.toString().split("/").pop()?.replace(/\D/g, ""),
@@ -362,22 +404,18 @@ export async function processGoogleMerchantTask(job: Job) {
         },
       };
 
+      if (hasSale) {
+          productInput.productAttributes.salePrice = {
+              amountMicros: finalPriceMicros,
+              currencyCode: currencyCode,
+          };
+      }
+
       if (colorOpt) productInput.productAttributes.color = colorOpt.value;
       if (sizeOpt) productInput.productAttributes.size = sizeOpt.value;
       
       if (discount > 0) {
          productInput.productAttributes.customLabel0 = `discount_${discount}%`;
-      }
-
-      if (compareAtPriceAmount && compareAtPriceAmount > priceAmount) {
-         productInput.productAttributes.price = {
-            amountMicros: Math.round(compareAtPriceAmount * 1000000).toString(),
-            currencyCode: currencyCode,
-         };
-         productInput.productAttributes.salePrice = {
-            amountMicros: amountMicros,
-            currencyCode: currencyCode,
-         };
       }
 
       console.log(`[Worker] Final Attributes for ${offerId} (${locale}):`, JSON.stringify(productInput.productAttributes, null, 2));

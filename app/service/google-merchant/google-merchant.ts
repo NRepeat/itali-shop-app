@@ -123,6 +123,22 @@ function escapeXml(unsafe: string): string {
   });
 }
 
+/**
+ * Ensures Shopify images have enough resolution for Google Merchant.
+ * Non-clothing: 100x100, Clothing: 250x250.
+ * We request 1024x1024 for safety and better quality.
+ */
+function formatImageUrl(url: string | undefined): string {
+  if (!url) return "";
+  if (!url.includes("cdn.shopify.com")) return url;
+  
+  // Remove existing size patterns like _small, _thumb, _100x100, etc.
+  const cleanUrl = url.replace(/_(?:pico|icon|thumb|small|compact|medium|large|grande|(?:\d+x\d+))\./g, ".");
+  
+  // Add 1024x1024 suffix before the extension
+  return cleanUrl.replace(/\.(jpg|jpeg|png|webp|gif)/g, "_1024x1024.$1");
+}
+
 export async function generateGoogleMerchantXml(
   locale: "uk" | "ru" = "uk",
   session: {
@@ -220,18 +236,31 @@ export async function generateGoogleMerchantXml(
         const variant = variantEdge.node;
 
         // Calculate price with discount
-        const originalPrice = parseFloat(variant.price);
-        const finalPrice =
-          discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
-        const priceStr = `${finalPrice.toFixed(2)} ${currencyCode}`;
-      console.log(discount,originalPrice,finalPrice,currencyCode)
+        const originalPriceFromVariant = parseFloat(variant.price);
+        const compareAtPriceFromVariant = variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null;
+        
+        // Final price after metafield discount
+        // Since the user ONLY uses 'znizka' and NOT compareAtPrice, 
+        // originalPrice is variant.price and finalPrice is calculated from metafield.
+        const finalPrice = discount > 0 ? originalPriceFromVariant * (1 - discount / 100) : originalPriceFromVariant;
+        
+        let originalPrice = originalPriceFromVariant;
+        // If they DID use compareAtPrice, we'd use it as original, but user says they don't.
+        if (compareAtPriceFromVariant && compareAtPriceFromVariant > originalPriceFromVariant) {
+            originalPrice = compareAtPriceFromVariant;
+        }
+
+        const priceStr = `${originalPrice.toFixed(2)} ${currencyCode}`;
+        // Sale price is only needed if it's strictly less than original price
+        const salePriceStr = finalPrice < originalPrice ? `${finalPrice.toFixed(2)} ${currencyCode}` : null;
 
         const id = variant.sku || variant.id.split("/").pop();
         const title = escapeXml(`${product.vendor} ${translatedTitle}`);
         const description = escapeXml(translatedDescription || translatedTitle);
         const link = `${baseUrl}/${locale}/product/${product.handle}?variant=${variant.id.split("/").pop()}`;
-        const imageLink =
-          variant.image?.url || product.featuredImage?.url || "";
+        const imageLink = formatImageUrl(
+          variant.image?.url || product.featuredImage?.url || "",
+        );
         const availability =
           variant.availableForSale &&
           (variant.quantityAvailable === null || variant.quantityAvailable > 0)
@@ -259,7 +288,14 @@ export async function generateGoogleMerchantXml(
       <g:link>${link}</g:link>
       <g:image_link>${imageLink}</g:image_link>
       <g:condition>new</g:condition>
-      <g:price>${priceStr}</g:price>
+      <g:price>${priceStr}</g:price>`;
+
+        if (salePriceStr) {
+          xml += `
+      <g:sale_price>${salePriceStr}</g:sale_price>`;
+        }
+
+        xml += `
       <g:availability>${availability}</g:availability>
       <g:brand>${escapeXml(product.vendor)}</g:brand>
       <g:google_product_category>${googleCategory}</g:google_product_category>
