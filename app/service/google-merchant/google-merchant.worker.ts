@@ -27,6 +27,84 @@ const GET_TRANSLATIONS_QUERY = `#graphql
   }
 `;
 
+const PRODUCT_METAFIELDS_FRAGMENT = `#graphql
+  fragment ProductMetafields on Product {
+    metafields(first: 50) {
+      edges {
+        node {
+          id
+          key
+          value
+          namespace
+          reference {
+            ... on Metaobject {
+              id
+              displayName
+              field(key: "label") { value }
+            }
+          }
+          references(first: 10) {
+            nodes {
+              ... on Metaobject {
+                id
+                displayName
+                field(key: "label") { value }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const GET_PRODUCT_BY_ID = `#graphql
+  ${PRODUCT_METAFIELDS_FRAGMENT}
+  query getProductById($id: ID!) {
+    product(id: $id) {
+      id
+      title
+      handle
+      description
+      vendor
+      productType
+      tags
+      uk_translations: translations(locale: "uk") { key value }
+      ru_translations: translations(locale: "ru") { key value }
+      featuredImage {
+        url
+      }
+      images(first: 10) {
+        edges {
+          node {
+            url
+          }
+        }
+      }
+      ...ProductMetafields
+      variants(first: 100) {
+        edges {
+          node {
+            id
+            sku
+            title
+            availableForSale
+            price
+            compareAtPrice
+            selectedOptions {
+              name
+              value
+            }
+            image {
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 export async function processGoogleMerchantTask(job: Job) {
   try {
     const { product, payload, locale, baseUrl: jobBaseUrl, topic, shop } = job.data;
@@ -44,19 +122,44 @@ export async function processGoogleMerchantTask(job: Job) {
       return;
     }
 
-    const data = payload || product;
     const isDelete = topic === "products/delete" || job.data.action === "delete";
+
+    // Get session for translations and product fetch
+    const session = await prisma.session.findFirst({
+      where: shop ? { shop } : {},
+      select: { shop: true, accessToken: true },
+    });
+
+    // Fetch full product from GraphQL if it's from a webhook payload or incomplete
+    let data = product || payload;
+    if (!isDelete && (payload || !product?.metafields)) {
+      const productId = payload?.id || product?.id;
+      if (productId && session) {
+        const formattedId = productId.toString().includes("gid://shopify/Product/") 
+          ? productId 
+          : `gid://shopify/Product/${productId}`;
+        
+        console.log(`[Worker] Fetching full product data from Shopify for ${formattedId}`);
+        try {
+          const res: any = await shopifyClient.request({
+            query: GET_PRODUCT_BY_ID,
+            variables: { id: formattedId },
+            accessToken: session.accessToken,
+            shopDomain: session.shop,
+          });
+          if (res.product) {
+            data = res.product;
+          }
+        } catch (e) {
+          console.error(`[Worker] Failed to fetch product ${formattedId} from Shopify:`, e);
+        }
+      }
+    }
 
     if (!data) {
       console.error("[Worker] No data found in job payload");
       return;
     }
-
-    // Get session for translations
-    const session = await prisma.session.findFirst({
-      where: shop ? { shop } : {},
-      select: { shop: true, accessToken: true },
-    });
 
     const fetchTranslation = async (resourceId: string, locale: string, key: string) => {
       if (!session || locale === "uk") return null; // Default is UK
@@ -117,13 +220,11 @@ export async function processGoogleMerchantTask(job: Job) {
     const lining = getMetafield("pidkladka");
     const sole = getMetafield("pidoshva");
     const season = getMetafield("sezon");
-    // const collection = getMetafield("kolektsiya");
 
     if (material) rawHighlights.push(isUk ? `Матеріал: ${material}` : `Материал: ${material}`);
     if (lining) rawHighlights.push(isUk ? `Підкладка: ${lining}` : `Подкладка: ${lining}`);
     if (sole) rawHighlights.push(isUk ? `Підошва: ${sole}` : `Подошва: ${sole}`);
     if (season) rawHighlights.push(isUk ? `Сезон: ${season}` : `Сезон: ${season}`);
-    // if (collection) rawHighlights.push(isUk ? `Колекція: ${collection}` : `Коллекция: ${collection}`);
     
     rawHighlights.push(isUk ? "Безкоштовна доставка по Україні" : "Бесплатная доставка по Украине");
     rawHighlights.push(isUk ? "Оригінальна італійська якість" : "Оригинальное итальянское качество");
@@ -209,8 +310,8 @@ export async function processGoogleMerchantTask(job: Job) {
       const mainImageLink = variant.image?.url || variant.image_url || data.featuredImage?.url || allImages[0] || "";
       const additionalImageLinks = allImages.filter((url: string) => url !== mainImageLink).slice(0, 10);
 
-      // Формируем ссылку с параметром size, если он есть
-      const productLink = `${baseUrl}/${locale}/product/${handle}${sizeOpt ? `?size=${encodeURIComponent(sizeOpt.value)}` : ""}`;
+      // Формируем ссылку с параметром variant, как в manual sync
+      const productLink = `${baseUrl}/${locale}/product/${handle}?variant=${variantId}`;
 
       const productInput: any = {
         offerId: offerId,
