@@ -328,14 +328,12 @@ export async function mapShopifyOrderToEsputnik(
       : parseFloat(item.price || "0");
     
     // The "Second Price" (cost) is the base catalog price after 'znizka'
-    // but BEFORE any extra checkout-level discounts.
-    const purchasedPricePerUnit = znizka > 0
-      ? originalPrice * (1 - znizka / 100)
-      : originalPrice;
+    // matching fixed KeyCRM logic: purchasedPrice = (originalPrice * znizka) / 100
+    const lastItemPrice = (originalPrice * znizka) / 100;
+    const subdivisionPrice = originalPrice - lastItemPrice;
     
     const roundedOriginalPrice = Math.round(originalPrice);
-    const roundedPurchasedPrice = Math.round(purchasedPricePerUnit);
-    const productDiscountAmount = roundedOriginalPrice - roundedPurchasedPrice;
+    const roundedPurchasedPrice = Math.round(lastItemPrice);
     
     totalCatalogTotal += roundedPurchasedPrice * item.quantity;
 
@@ -347,7 +345,7 @@ export async function mapShopifyOrderToEsputnik(
       quantity: item.quantity,
       cost: roundedPurchasedPrice,
       price: roundedOriginalPrice,
-      ...(productDiscountAmount > 0 && { discount: productDiscountAmount }),
+      ...(znizka > 0 && { discount: Math.round(subdivisionPrice) }),
       ...(url && { url }),
       ...(imageUrl && { imageUrl }),
     };
@@ -378,11 +376,11 @@ export async function mapShopifyOrderToEsputnik(
     : 0;
 
   const promocode = discount?.code;
-  const actualTotalPrice = expectedTotalPrice - orderLevelDiscount;
+  const totalPrice = expectedTotalPrice;
 
   return {
     externalOrderId,
-    totalCost: Math.round(actualTotalPrice),
+    totalCost: Math.round(totalPrice),
     status,
     date: dateKyiv,
     currency: payload.currency,

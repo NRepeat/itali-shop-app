@@ -419,7 +419,7 @@ export async function mapShopifyOrderToKeyCrm(
 
   const financialStatus = payload.financial_status || "";
   const paymentMethod = payload.payment_gateway_names?.[0] || "unknown";
-  const totalPrice = parseFloat(payload.total_price || "0");
+  const totalPrice = expectedTotalPrice;
 
   const payments: KeyCrmPayment[] = [
     {
@@ -453,7 +453,7 @@ export async function mapShopifyOrderToKeyCrm(
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
     ...(orderLevelDiscount > 0 ? { discount_amount: orderLevelDiscount } : {}),
-    ...(orderLevelDiscount > 0
+    ...(discount?.percentage
       ? { discount_percent: discount?.percentage || 0 }
       : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
