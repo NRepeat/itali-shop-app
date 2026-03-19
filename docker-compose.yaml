@@ -39,7 +39,7 @@ services:
     container_name: itali-shop-app
     restart: always
     ports:
-      - '${PORT:-4000}:3000'
+      - '${PORT:-3005}:3000'
     depends_on:
       db:
         condition: service_healthy
