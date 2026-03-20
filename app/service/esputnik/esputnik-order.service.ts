@@ -503,6 +503,7 @@ async function sendOrderViaEventApi(order: EsputnikOrder): Promise<void> {
     body: JSON.stringify({
       eventTypeKey: `order${order.status}`,
       keyValue,
+      forceUpdate: true,
       params,
     }),
   });

@@ -421,16 +421,12 @@ export async function mapShopifyOrderToKeyCrm(
 
   const financialStatus = payload.financial_status || "";
   const paymentMethod = payload.payment_gateway_names?.[0] || "unknown";
-  const totalPrice = expectedTotalPrice 
+  const totalPrice = expectedTotalPrice - orderLevelDiscount;
 
   const payments: KeyCrmPayment[] = [
     {
       payment_method: paymentMethod,
-      amount: Math.round(
-        discount?.percentage
-          ? totalPrice * (1 - discount.percentage / 100)
-          : totalPrice,
-      ),
+      amount: Math.round(totalPrice),
       status: financialStatus === "paid" ? "paid" : "not_paid",
     },
   ];

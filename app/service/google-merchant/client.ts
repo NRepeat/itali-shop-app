@@ -32,7 +32,6 @@ export async function insertProduct(productData: any) {
     };
 
     const [response] = await productsClient.insertProductInput(request);
-    console.log(`✅ Success! Inserted product: ${productData.offerId}`);
     return response;
   } catch (err: any) {
     console.error(`❌ Error inserting product ${productData.offerId}:`);

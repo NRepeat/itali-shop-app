@@ -433,9 +433,8 @@ export async function processGoogleMerchantTask(job: Job) {
          productInput.productAttributes.customLabel0 = `discount_${discount}%`;
       }
 
-      console.log(`[Worker] Final Attributes for ${offerId} (${locale}):`, JSON.stringify(productInput.productAttributes, null, 2));
       const result = await insertProduct(productInput);
-      console.log(`[Worker] API Response for ${offerId}:`, JSON.stringify(result, null, 2));
+      console.log(`[Worker] API Response for ${offerId}`);
     }
   } catch (error: any) {
     console.error(`[Worker Error] Failed to process product:`, error);

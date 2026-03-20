@@ -22,6 +22,12 @@ const request = async <T, V>(args: ShopifyRequestOptions<V>): Promise<T> => {
       },
     );
 
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      console.error(`[shopify-client] HTTP ${response.status} for ${shopDomain} — body: ${body}`);
+      throw new Error(`Shopify responded with ${response.status}: ${body}`);
+    }
+
     const result = await response.json();
     if (result.errors) {
       throw new Error(

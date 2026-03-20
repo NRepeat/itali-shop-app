@@ -8,7 +8,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, topic, payload } = await authenticate.webhook(request);
 
   console.log(`Received ${topic} webhook for ${shop}`);
-  console.log(`Payload: ${JSON.stringify(payload, null, 2)}`);
 
   const queues = getSyncQueues(topic);
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.miomio.com.ua";

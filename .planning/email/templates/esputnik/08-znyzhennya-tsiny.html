@@ -1,110 +1,125 @@
 <html lang="uk">
-  <head>
-    <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="IE=edge" http-equiv="X-UA-Compatible">
-    <meta content="telephone=no" name="format-detection">
-    <title>Ціна знизилась</title>
-    <style>
-      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; } img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; } body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; } .wrapper { max-width: 600px; margin: 0 auto; } .content { padding: 20px; } @media only screen and (max-width: 620px) { .wrapper { width: 100% !important; } .content { padding: 15px !important; } .product-image { width: 100% !important; height: auto !important; } }
+ <head>
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta content="IE=edge" http-equiv="X-UA-Compatible">
+  <meta content="telephone=no" name="format-detection">
+  <title>Ціна знизилась</title>
+  <style>
+      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+      img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+      body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; }
+      .wrapper { max-width: 600px; margin: 0 auto; }
+      .content { padding: 20px; }
+      @media only screen and (max-width: 620px) {
+        .wrapper { width: 100% !important; }
+        .content { padding: 15px !important; }
+        .product-image { width: 100% !important; height: auto !important; }
+      }
     </style>
-  </head>
-  <body style="margin:0;padding:0;background-color:#f4f4f4">
-    <table cellspacing="0" width="100%" cellpadding="0" style="background-color:#f4f4f4">
-      <tbody>
+ </head>
+ <body class="body" style="margin:0;padding:0;background-color:#f4f4f4">
+  <table cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f4f4">
+   <tbody>
+    <tr>
+     <td align="center" style="padding:20px 10px">
+      <table cellpadding="0" cellspacing="0" width="600" class="wrapper" style="overflow:hidden;background-color:#ffffff;border-radius:8px">
+       <tbody>
+        <!-- HEADER -->
         <tr>
-          <td align="center" style="padding:20px 10px">
-            <table cellpadding="0" cellspacing="0" width="600" class="wrapper" style="overflow:hidden;background-color:#ffffff;border-radius:8px">
-              <tbody>
-
-                <!-- HEADER -->
-                <tr>
-                  <td style="background-color:#05125C;padding:30px 40px;text-align:center">
-                    <a href="https://miomio.com.ua" target="_blank" style="display:block;line-height:0">
-                      <img src="https://cdn.sanity.io/images/ru43j1ro/development/e160a3d0c9fc6f56b9fd98fc92420d70fef1028f-969x263.png" alt="Mio Mio" height="55" style="display:block;margin:0 auto;max-width:180px">
-                    </a>
-                  </td>
-                </tr>
-
-                <!-- TITLE -->
-                <tr>
-                  <td style="padding:30px 40px 20px;text-align:center">
-                    <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:24px">Ціна знизилась!</h2>
-                    <p style="color:#555555;margin:0;font-size:15px">Товар зі списку відстеження став дешевшим</p>
-                  </td>
-                </tr>
-
-                <!-- PRODUCT CARD -->
-                <tr>
-                  <td style="padding:0 40px 30px">
-                    <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e8e8e8;border-radius:8px;overflow:hidden">
-                      <tbody>
-
-                        <!-- PRODUCT IMAGE (shown only if productImageUrl provided) -->
-                        #if($data.get('productImageUrl'))
-                        <tr>
-                          <td style="text-align:center;padding:20px;background-color:#fafafa">
-                            <a href="$!data.get('productUrl')" target="_blank" style="display:block">
-                              <img src="$!data.get('productImageUrl')" alt="$!data.get('productTitle')" class="product-image" width="200" style="display:block;margin:0 auto;max-width:200px;border-radius:4px">
-                            </a>
-                          </td>
-                        </tr>
-                        #end
-
-                        <!-- PRODUCT NAME -->
-                        <tr>
-                          <td style="padding:20px 20px 8px;text-align:center">
-                            <a href="$!data.get('productUrl')" target="_blank" style="color:#1a1a1a;font-size:16px;font-weight:bold;text-decoration:none;line-height:1.4">$!data.get('productTitle')</a>
-                            #if($data.get('variantTitle'))
-                            <p style="color:#888888;font-size:13px;margin:4px 0 0">$!data.get('variantTitle')</p>
-                            #end
-                          </td>
-                        </tr>
-
-                        <!-- PRICE -->
-                        <tr>
-                          <td style="padding:12px 20px 20px;text-align:center">
-                            #if($data.get('oldPrice'))
-                            <span style="color:#aaaaaa;font-size:15px;text-decoration:line-through;margin-right:8px">$!data.get('oldPrice').split('.')[0] грн</span>
-                            #end
-                            <span style="color:#d32f2f;font-size:24px;font-weight:bold">$!data.get('newPrice').split('.')[0] грн</span>
-                          </td>
-                        </tr>
-
-                        <!-- CTA BUTTON -->
-                        <tr>
-                          <td style="padding:0 20px 24px;text-align:center">
-                            <a href="$!data.get('productUrl')" target="_blank" style="display:inline-block;background-color:#05125C;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;padding:12px 32px;border-radius:6px">Перейти до товару</a>
-                          </td>
-                        </tr>
-
-                      </tbody>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- INFO TEXT -->
-                <tr>
-                  <td style="padding:0 40px 30px;text-align:center">
-                    <p style="color:#888888;font-size:13px;margin:0;line-height:1.5">Ви отримали це повідомлення, оскільки підписались на сповіщення про зміну ціни на сайті miomio.com.ua</p>
-                  </td>
-                </tr>
-
-                <!-- FOOTER -->
-                <tr>
-                  <td style="background-color:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eeeeee">
-                    <p style="color:#aaaaaa;font-size:12px;margin:0 0 4px">
-                      <a href="https://miomio.com.ua" target="_blank" style="color:#aaaaaa;text-decoration:none">miomio.com.ua</a>
-                    </p>
-                    <p style="color:#aaaaaa;font-size:12px;margin:0">© 2025 Міо Міо</p>
-                  </td>
-                </tr>
-
-              </tbody>
-            </table>
-          </td>
+         <td style="background-color:#05125C;padding:30px 40px;text-align:center"><a href="https://miomio.com.ua" target="_blank" style="display:block;line-height:0"> <img alt="Mio Mio" height="55" src="https://cdn.sanity.io/images/ru43j1ro/development/e160a3d0c9fc6f56b9fd98fc92420d70fef1028f-969x263.png" style="display:block;margin:0 auto;max-width:180px"> </a></td>
+        </tr><!-- TITLE -->
+        <tr>
+         <td esd-text="true" class="esd-text" style="padding:30px 40px 20px;text-align:center">
+          <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:24px">Ціна знизилась!</h2>
+          <p style="color:#555555;margin:0;font-size:15px">Товар зі списку відстеження став дешевшим</p></td>
+        </tr><!-- PRODUCT CARD -->
+        <tr>
+         <td esd-text="true" class="esd-text" style="padding:0 40px 30px">#if($data.get('productImageUrl')) #end 
+          <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid rgb(232, 232, 232);border-radius:8px;overflow:hidden">
+           <tbody>
+            <tr>
+             <td style="text-align:center;padding:20px;background-color:#fafafa"><a href="$!data.get('productUrl')" target="_blank" class="custom-block-component custom-link-component" style="display:block"><!---->
+               <div class="service-element ue-preview-control-sticky ng-star-inserted">
+                <div class="service-element ue-preview-control-wrapper">
+                 <ue-icon-component src="more" ue-draggable="false" ue-draggable-handle="false" ue-droppable="false" class="ue-dots-icon" style="visibility:visible">
+                  <!----><!---->
+                 </ue-icon-component><!---->
+                 <div class="service-element ue-action-buttons-wrapper">
+                  <ue-icon-component data-element-id="3c0b4827-5981-4c54-a6c5-2ad86f4448cb" disabled="false" draggable="false" ue-draggable="false" ue-draggable-action="MOVE" ue-draggable-handle="true" ue-droppable="false" class="stripo-move-button e2e-additional-move ng-star-inserted" style="visibility:visible">
+                   <!----><!---->
+                  </ue-icon-component><!----><ue-icon-component data-element-id="3c0b4827-5981-4c54-a6c5-2ad86f4448cb" disabled="false" draggable="true" ue-draggable="false" ue-draggable-action="COPY" ue-draggable-handle="true" ue-droppable="false" class="stripo-copy-button ue-preview-dragging e2e-additional-copy ng-star-inserted" style="visibility:visible">
+                   <!----><!---->
+                  </ue-icon-component><!----><ue-icon-component data-element-id="3c0b4827-5981-4c54-a6c5-2ad86f4448cb" disabled="false" draggable="false" ue-draggable="false" ue-droppable="false" class="stripo-delete-button e2e-additional-delete ng-star-inserted" style="visibility:visible">
+                   <!----><!---->
+                  </ue-icon-component><!----><!---->
+                 </div>
+                </div>
+               </div><!----><img alt="$!data.get('productTitle')" src="$!data.get('productImageUrl')" width="200" class="product-image" style="display:block;margin:0px auto;max-width:200px;border-radius:4px"></a></td>
+            </tr>
+            <tr>
+             <td esd-text="true" class="esd-text" style="padding:20px 20px 8px;text-align:center"><a href="$!data.get('productUrl')" target="_blank" class="custom-block-component custom-link-component" style="color:#1a1a1a;font-size:16px;font-weight:bold;text-decoration:none;line-height:1.4"> $!data.get('productTitle') </a> #if($data.get('variantTitle')) 
+              <p style="color:#888888;font-size:13px;margin:4px 0px 0px">Розмір: $!data.get('variantTitle')</p> #end</td>
+            </tr>
+            <tr>
+             <td esd-text="true" class="esd-text" style="padding:12px 20px 20px;text-align:center">#if($data.get('oldPrice')) <span style="color:#aaaaaa;font-size:15px;text-decoration:line-through;margin-right:8px"> $!data.get('oldPrice').replaceAll('\..*', '') грн </span> #end <span style="color:#d32f2f;font-size:24px;font-weight:bold"> $!data.get('newPrice').replaceAll('\..*', '') грн </span></td>
+            </tr>
+            <tr>
+             <td style="padding:0px 20px 24px;text-align:center"><a href="$!data.get('productUrl')" target="_blank" class="custom-block-component custom-link-component" style="display:inline-block;background-color:#05125c;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;padding:12px 32px;border-radius:6px"> Перейти до товару </a></td>
+            </tr>
+           </tbody>
+          </table></td>
+        </tr><!-- INFO TEXT + PRODUCT UNSUBSCRIBE -->
+        <tr>
+         <td esd-text="true" class="esd-text" style="padding:0 40px 30px;text-align:center">
+          <p style="color:#888888;font-size:13px;margin:0 0 12px;line-height:1.5">Ви отримали це повідомлення, оскільки підписались на сповіщення про зміну ціни на сайті miomio.com.ua</p><a href="$!data.get('unsubscribeUrl')" target="_blank" style="color:#aaaaaa;font-size:13px;text-decoration:underline"> Відписатись від сповіщень про цей товар </a></td>
+        </tr><!-- FOOTER -->
+        <tr>
+         <td esd-text="true" class="esd-text" style="background-color:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eeeeee">
+          <p style="color:#aaaaaa;font-size:12px;margin:0 0 4px"><a href="https://miomio.com.ua" target="_blank" style="color:#aaaaaa;text-decoration:none">miomio.com.ua</a></p>
+          <p style="color:#aaaaaa;font-size:12px;margin:0">© 2025 Міо Міо</p></td>
         </tr>
-      </tbody>
-    </table>
-  </body>
+       </tbody>
+      </table></td>
+    </tr>
+   </tbody>
+  </table><!-- GLOBAL UNSUBSCRIBE (eSputnik) -->
+  <table align="center" cellpadding="0" cellspacing="0" class="es-content">
+   <tbody>
+    <tr>
+     <td align="center" class="esd-stripe">
+      <table align="center" bgcolor="#ffffff" cellpadding="0" cellspacing="0" width="600" class="es-content-body">
+       <tbody>
+        <tr>
+         <td align="left" class="esd-structure es-p20t es-p20b es-p20r es-p20l">
+          <table cellpadding="0" cellspacing="0" width="100%">
+           <tbody>
+            <tr>
+             <td align="center" valign="top" width="560" class="esd-container-frame">
+              <table cellpadding="0" cellspacing="0" width="100%">
+               <tbody>
+                <tr>
+                 <td align="center" class="esd-block-html esdev-disable-select">
+                  <table>
+                   <tbody>
+                    <tr>
+                     <td align="center" class="esd-block-text" style="text-align:center">
+                      <p style="color:grey"><a href="https://esputnik.com/unsubscribe" id="unsubscribe" style="font-size:14px">Відписатись від усіх сповіщень</a></p></td>
+                    </tr>
+                   </tbody>
+                  </table></td>
+                </tr>
+               </tbody>
+              </table></td>
+            </tr>
+           </tbody>
+          </table></td>
+        </tr>
+       </tbody>
+      </table></td>
+    </tr>
+   </tbody>
+  </table><esd-config-block variables="{&quot;--common__wrapperBackgroundColor&quot;:&quot;#f6f6f6&quot;,&quot;--common__wrapperBackgroundImage&quot;:&quot;&quot;,&quot;--common__wrapperBackgroundRepeat&quot;:&quot;&quot;,&quot;--common__wrapperBackgroundPositionX&quot;:&quot;&quot;,&quot;--common__wrapperBackgroundPositionY&quot;:&quot;&quot;,&quot;--common__backgroundImageWidth&quot;:&quot;&quot;,&quot;--common__backgroundImageHeight&quot;:&quot;&quot;,&quot;--common__emailContentWidth&quot;:600,&quot;--common__linkDecoration&quot;:&quot;underline&quot;,&quot;--adapt__design&quot;:true,&quot;--common__rtlText&quot;:false,&quot;--common__customListsStyles&quot;:false,&quot;--common__listTopBottomMargin&quot;:15,&quot;--common__listLeftIndent&quot;:40,&quot;--common__listMarkerColor&quot;:&quot;#333333&quot;,&quot;--common__listNumberMarkerColor&quot;:&quot;#333333&quot;,&quot;--common__listBottomMargin&quot;:15,&quot;--common__defaultStructureTopPadding&quot;:20,&quot;--common__defaultStructureRightPadding&quot;:20,&quot;--common__defaultStructureBottomPadding&quot;:0,&quot;--common__defaultStructureLeftPadding&quot;:20,&quot;--stripes__font&quot;:&quot;arial, 'helvetica neue', helvetica, sans-serif&quot;,&quot;--stripes__contentFontSize&quot;:14,&quot;--adapt__fontSize&quot;:14,&quot;--stripes__lineHeight&quot;:&quot;150%&quot;,&quot;--adapt__lineHeight&quot;:&quot;150%&quot;,&quot;--stripes__letterSpacing&quot;:&quot;0&quot;,&quot;--stripes__contentFontColor&quot;:&quot;#333333&quot;,&quot;--stripes__contentLinkColor&quot;:&quot;#1376c8&quot;,&quot;--stripes__contentLinkColor_hover&quot;:&quot;&quot;,&quot;--stripes__contentBackgroundColor&quot;:&quot;#ffffff&quot;,&quot;--stripes__contentParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__contentParagraphBottomMargin&quot;:&quot;&quot;,&quot;--stripes__headerBackgroundColor&quot;:&quot;transparent&quot;,&quot;--stripes__headerBackgroundImage&quot;:&quot;&quot;,&quot;--stripes__headerBackgroundRepeat&quot;:&quot;&quot;,&quot;--stripes__headerBackgroundPositionX&quot;:&quot;&quot;,&quot;--stripes__headerBackgroundPositionY&quot;:&quot;&quot;,&quot;--stripes__headerBackgroundImageWidth&quot;:&quot;&quot;,&quot;--stripes__headerBackgroundImageHeight&quot;:&quot;&quot;,&quot;--stripes__headerContentBackgroundColor&quot;:&quot;#ffffff&quot;,&quot;--stripes__headerFontSize&quot;:14,&quot;--adapt__headerFontSize&quot;:14,&quot;--stripes__headerFontColor&quot;:&quot;#333333&quot;,&quot;--stripes__headerLinkColor&quot;:&quot;#1376c8&quot;,&quot;--stripes__headerLinkColor_hover&quot;:&quot;&quot;,&quot;--stripes__headerParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__headerParagraphBottomMargin&quot;:&quot;&quot;,&quot;--stripes__footerFontSize&quot;:14,&quot;--adapt__footerFontSize&quot;:14,&quot;--stripes__footerFontColor&quot;:&quot;#333333&quot;,&quot;--stripes__footerLinkColor&quot;:&quot;#1376c8&quot;,&quot;--stripes__footerLinkColor_hover&quot;:&quot;&quot;,&quot;--stripes__footerBackgroundColor&quot;:&quot;transparent&quot;,&quot;--stripes__footerBackgroundImage&quot;:&quot;&quot;,&quot;--stripes__footerBackgroundRepeat&quot;:&quot;&quot;,&quot;--stripes__footerBackgroundPositionX&quot;:&quot;&quot;,&quot;--stripes__footerBackgroundPositionY&quot;:&quot;&quot;,&quot;--stripes__footerBackgroundImageWidth&quot;:&quot;&quot;,&quot;--stripes__footerBackgroundImageHeight&quot;:&quot;&quot;,&quot;--stripes__footerContentBackgroundColor&quot;:&quot;#ffffff&quot;,&quot;--stripes__footerParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__footerParagraphBottomMargin&quot;:&quot;&quot;,&quot;--stripes__infoFontSize&quot;:12,&quot;--adapt__infoFontSize&quot;:12,&quot;--stripes__infoFontColor&quot;:&quot;#cccccc&quot;,&quot;--stripes__infoLinkColor&quot;:&quot;#cccccc&quot;,&quot;--stripes__infoLinkColor_hover&quot;:&quot;&quot;,&quot;--stripes__infoParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__infoParagraphBottomMargin&quot;:&quot;&quot;,&quot;--title__font&quot;:&quot;arial, 'helvetica neue', helvetica, sans-serif&quot;,&quot;--title__letterSpacing&quot;:&quot;0&quot;,&quot;--title__h1FontSize&quot;:40,&quot;--adapt__titleH1FontSize&quot;:40,&quot;--title__h1LineHeight&quot;:&quot;120%&quot;,&quot;--adapt__titleH1LineHeight&quot;:&quot;120%&quot;,&quot;--title__h1FontColor&quot;:&quot;#333333&quot;,&quot;--title__h1FontStyle&quot;:&quot;normal&quot;,&quot;--title__h1FontWeight&quot;:&quot;normal&quot;,&quot;--title__h1ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH1ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH1FontAlign&quot;:&quot;left&quot;,&quot;--title__h2FontSize&quot;:32,&quot;--adapt__titleH2FontSize&quot;:32,&quot;--title__h2LineHeight&quot;:&quot;120%&quot;,&quot;--adapt__titleH2LineHeight&quot;:&quot;120%&quot;,&quot;--title__h2FontColor&quot;:&quot;#333333&quot;,&quot;--title__h2FontStyle&quot;:&quot;normal&quot;,&quot;--title__h2FontWeight&quot;:&quot;normal&quot;,&quot;--title__h2ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH2ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH2FontAlign&quot;:&quot;left&quot;,&quot;--title__h3FontSize&quot;:28,&quot;--adapt__titleH3FontSize&quot;:28,&quot;--title__h3LineHeight&quot;:&quot;120%&quot;,&quot;--adapt__titleH3LineHeight&quot;:&quot;120%&quot;,&quot;--title__h3FontColor&quot;:&quot;#333333&quot;,&quot;--title__h3FontStyle&quot;:&quot;normal&quot;,&quot;--title__h3FontWeight&quot;:&quot;normal&quot;,&quot;--title__h3ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH3ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH3FontAlign&quot;:&quot;left&quot;,&quot;--title__h4FontSize&quot;:24,&quot;--adapt__titleH4FontSize&quot;:24,&quot;--title__h4LineHeight&quot;:&quot;120%&quot;,&quot;--adapt__titleH4LineHeight&quot;:&quot;120%&quot;,&quot;--title__h4FontColor&quot;:&quot;#333333&quot;,&quot;--title__h4FontStyle&quot;:&quot;normal&quot;,&quot;--title__h4FontWeight&quot;:&quot;normal&quot;,&quot;--title__h4ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH4ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH4FontAlign&quot;:&quot;left&quot;,&quot;--title__h5FontSize&quot;:20,&quot;--adapt__titleH5FontSize&quot;:20,&quot;--title__h5LineHeight&quot;:&quot;120%&quot;,&quot;--adapt__titleH5LineHeight&quot;:&quot;120%&quot;,&quot;--title__h5FontColor&quot;:&quot;#333333&quot;,&quot;--title__h5FontStyle&quot;:&quot;normal&quot;,&quot;--title__h5FontWeight&quot;:&quot;normal&quot;,&quot;--title__h5ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH5ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH5FontAlign&quot;:&quot;left&quot;,&quot;--title__h6FontSize&quot;:16,&quot;--adapt__titleH6FontSize&quot;:16,&quot;--title__h6LineHeight&quot;:&quot;120%&quot;,&quot;--adapt__titleH6LineHeight&quot;:&quot;120%&quot;,&quot;--title__h6FontColor&quot;:&quot;#333333&quot;,&quot;--title__h6FontStyle&quot;:&quot;normal&quot;,&quot;--title__h6FontWeight&quot;:&quot;normal&quot;,&quot;--title__h6ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH6ParagraphBottomMargin&quot;:&quot;&quot;,&quot;--adapt__titleH6FontAlign&quot;:&quot;left&quot;,&quot;--buttons__outlookSupport&quot;:false,&quot;--button__font&quot;:&quot;arial, 'helvetica neue', helvetica, sans-serif&quot;,&quot;--button__fontSize&quot;:14,&quot;--adapt__buttonFontSize&quot;:14,&quot;--button__letterSpacing&quot;:0,&quot;--button__color&quot;:&quot;#31cb4b&quot;,&quot;--button__textColor&quot;:&quot;#ffffff&quot;,&quot;--button__fontStyle&quot;:&quot;normal&quot;,&quot;--button__fontWeight&quot;:&quot;normal&quot;,&quot;--button__borderSizeTop&quot;:0,&quot;--button__borderSizeRight&quot;:0,&quot;--button__borderSizeBottom&quot;:2,&quot;--button__borderSizeLeft&quot;:0,&quot;--button__borderColorTop&quot;:&quot;#2cb543&quot;,&quot;--button__borderColorRight&quot;:&quot;#2cb543&quot;,&quot;--button__borderColorBottom&quot;:&quot;#2cb543&quot;,&quot;--button__borderColorLeft&quot;:&quot;#2cb543&quot;,&quot;--button__borderStyle&quot;:&quot;solid&quot;,&quot;--button__paddingTop&quot;:10,&quot;--button__paddingRight&quot;:20,&quot;--button__paddingBottom&quot;:10,&quot;--button__paddingLeft&quot;:20,&quot;--button__has_hover&quot;:false,&quot;--button__borderRadiusLT&quot;:15,&quot;--button__borderRadiusRT&quot;:15,&quot;--button__borderRadiusRB&quot;:15,&quot;--button__borderRadiusLB&quot;:15,&quot;--button__display&quot;:&quot;inline-block&quot;,&quot;--adapt__buttonDisplay&quot;:&quot;inline-block&quot;,&quot;--adapt_button_padding&quot;:false,&quot;--adapt__buttonPaddingTop&quot;:10,&quot;--adapt__buttonPaddingRight&quot;:20,&quot;--adapt__buttonPaddingBottom&quot;:10,&quot;--adapt__buttonPaddingLeft&quot;:20,&quot;--adapt__menuFontSize&quot;:14,&quot;--message__hasAmpAccordion&quot;:false,&quot;--message__hasAmpForm&quot;:false,&quot;--message__hasAmpCarousel&quot;:false,&quot;--defaultStylesEnabled&quot;:true}"></esd-config-block>
+ </body>
 </html>

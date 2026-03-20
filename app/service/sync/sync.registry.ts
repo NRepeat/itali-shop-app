@@ -1,4 +1,4 @@
-import { productSyncQueue, orderSyncQueue, customerSyncQueue, googleMerchantSyncQueue } from "./queues";
+import { orderSyncQueue, customerSyncQueue, googleMerchantSyncQueue } from "./queues";
 import { collectionSyncQueue } from "@shared/lib/queue/collection-sync.queue";
 import { Queue } from "bullmq";
 
@@ -10,9 +10,9 @@ type WebhookTopicQueueMap = {
 // Map Shopify webhook topics to the respective BullMQ queues
 const webhookTopicToQueueMap: WebhookTopicQueueMap = {
   // Product topics
-  products_create: [productSyncQueue, googleMerchantSyncQueue],
-  products_update: [productSyncQueue, googleMerchantSyncQueue],
-  products_delete: [productSyncQueue, googleMerchantSyncQueue],
+  products_create: [googleMerchantSyncQueue],
+  products_update: [googleMerchantSyncQueue],
+  products_delete: [googleMerchantSyncQueue],
 
   // _ Order topics
   orders_create: [orderSyncQueue],

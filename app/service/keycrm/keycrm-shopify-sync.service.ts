@@ -587,6 +587,10 @@ export async function handleKeyCrmOrderStatusChange(
         console.warn(
           `Shopify order ${shopifyOrderId} has outstanding fulfillments, cannot cancel — skipping`
         );
+      } else if (err?.message?.includes("already been canceled")) {
+        console.warn(
+          `Shopify order ${shopifyOrderId} is already cancelled — skipping`
+        );
       } else {
         throw err;
       }

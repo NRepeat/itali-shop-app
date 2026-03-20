@@ -1,34 +1,15 @@
-import { getSyncQueues } from "@/service/sync/sync.registry";
-import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
-import { keycrmOrderQueue } from "@shared/lib/queue/keycrm-order.queue";
 import { authenticate } from "@/shopify.server";
 import { ActionFunctionArgs } from "react-router";
 
+// NOTE: Order processing (KeyCRM + eSputnik INITIALIZED) is now triggered directly
+// from nnshop's createOrder() server action via POST /api/internal/process-order.
+// This webhook is kept alive only because Shopify requires a registered endpoint
+// to send webhooks to — it must return 200 or Shopify will retry and eventually
+// uninstall the webhook subscription.
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { payload, shop, topic } = await authenticate.webhook(request);
+  const { shop, topic } = await authenticate.webhook(request);
 
-  console.log("Received", topic, "webhook for", shop);
-
-  // Existing: queues for sync (e.g. orderSyncQueue)
-  const queues = getSyncQueues(topic);
-  for (const queue of queues) {
-    await queue.add(topic, { shop, topic, payload });
-  }
-
-  // Queue new order to KeyCRM
-  await keycrmOrderQueue.add("keycrm-order-sync", {
-    payload,
-    status: "INITIALIZED",
-    shop,
-  });
-
-  // NEW: immediately send "замовлення оформлено" event to Esputnik
-  // Uses INITIALIZED status (distinct from CONFIRMED which is keyCRM status 3)
-  await esputnikOrderQueue.add("esputnik-order-sync", {
-    payload,
-    status: "INITIALIZED",
-    shop,
-  });
+  console.log("Received", topic, "webhook for", shop, "(handled via internal API)");
 
   return new Response(null, { status: 200 });
 };

@@ -106,6 +106,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     select: { shop: true, accessToken: true },
   });
 
+  console.log(`[api.customer] session shop: ${session?.shop}, hasToken: ${!!session?.accessToken}, tokenPrefix: ${session?.accessToken?.substring(0, 8)}`);
+
   if (!session?.accessToken || !session.shop) {
     return Response.json({ error: "No Shopify session found" }, { status: 503 });
   }
