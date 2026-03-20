@@ -396,6 +396,21 @@ export async function handleKeyCrmOrderStatusChange(
     `keyCRM order ${keycrmOrderId} mapped to Shopify order ${mapping.shopifyOrderId}`
   );
 
+  // Trigger LiqPay hold_completion when manager sets status to "Підтверджено" (confirmed)
+  if (statusId === KEYCRM_CONFIG.statuses.confirmed) {
+    const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
+    const secret = process.env.INTERNAL_API_SECRET;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (secret) headers["Authorization"] = `Bearer ${secret}`;
+    fetch(`${nnshopUrl}/api/liqpay/capture`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ shopifyOrderId: mapping.shopifyOrderId }),
+    })
+      .then((r) => console.log(`[keyCRM webhook] capture triggered for ${mapping.shopifyOrderId}: ${r.status}`))
+      .catch((err) => console.error(`[keyCRM webhook] capture failed:`, err));
+  }
+
   const { shop, accessToken } = await getShopAndToken();
   console.log(`Using Shopify session for shop: ${shop}`);
   const shopifyOrderId = mapping.shopifyOrderId;
