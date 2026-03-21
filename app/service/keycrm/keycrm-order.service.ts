@@ -17,6 +17,7 @@ const GET_PRODUCTS_QUERY = `
             id
             image { url }
             price
+            sku
             selectedOptions {
               name
               value
@@ -64,6 +65,7 @@ interface VariantData {
   selectedOptions: Array<{ name: string; value: string }>;
   znizka: number; // discount % from metafield, 0 if none
   price: number;
+  sku: string | null;
 }
 
 async function getOrderDiscountFromOrderNote(
@@ -158,6 +160,7 @@ async function fetchProductVariants(
         selectedOptions: variant.selectedOptions || [],
         znizka,
         price: parseFloat(variant.price || "0"),
+        sku: variant.sku || null,
       });
     }
 
@@ -356,6 +359,9 @@ export async function mapShopifyOrderToKeyCrm(
 
     totalCatalogTotal += purchasedPrice * item.quantity;
     originTotalCatalogTotal += roundedOriginalPrice * item.quantity;
+
+    const sku = item.sku || variantData?.sku;
+
     return {
       name: nameParts.join(" - "),
       price: roundedOriginalPrice,
@@ -369,7 +375,7 @@ export async function mapShopifyOrderToKeyCrm(
                 : undefined,
           }
         : {}),
-      ...(item.sku ? { sku: item.sku } : {}),
+      ...(sku ? { sku } : {}),
       ...(imageUrl ? { picture: imageUrl } : {}),
       ...(properties.length > 0 ? { properties } : {}),
     };
