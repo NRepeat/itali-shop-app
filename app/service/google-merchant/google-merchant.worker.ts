@@ -192,6 +192,10 @@ export async function processGoogleMerchantTask(job: Job) {
 
     const fetchTranslation = async (resourceId: string, locale: string, key: string) => {
       if (!session || locale === "uk") return null; // Default is UK
+      if (!resourceId) {
+        console.warn(`[Worker] fetchTranslation called with empty resourceId for key=${key} locale=${locale} product=${data.handle}`);
+        return null;
+      }
       try {
         const res: any = await shopifyClient.request({
           query: GET_TRANSLATIONS_QUERY,
@@ -201,6 +205,7 @@ export async function processGoogleMerchantTask(job: Job) {
         });
         return res.translatableResource?.translations?.find((t: any) => t.key === key)?.value;
       } catch (e) {
+        console.warn(`[Worker] fetchTranslation failed for resourceId=${resourceId} key=${key} locale=${locale}:`, e);
         return null;
       }
     };
@@ -363,6 +368,8 @@ export async function processGoogleMerchantTask(job: Job) {
         (variant.inventoryQuantity === null || variant.inventoryQuantity === undefined || variant.inventoryQuantity > 0)
           ? "IN_STOCK"
           : "OUT_OF_STOCK";
+
+      console.log(`[Worker] variant=${variant.id} availableForSale=${variant.availableForSale} inventoryQuantity=${variant.inventoryQuantity} → ${availability}`);
       
       const tags = data.tags || [];
       const isMale = tags.some((t: string) => 
