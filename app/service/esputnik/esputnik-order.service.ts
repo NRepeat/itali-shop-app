@@ -286,18 +286,23 @@ export async function mapShopifyOrderToEsputnik(
   ];
 
   let productsInfo = new Map<string, ProductInfo>();
-  let discount: {
-    percentage: number;
-    amount: number;
-    code: string;
-  } | null = null;
-
   try {
     productsInfo = await fetchProductsInfo(shop, productIds);
-    discount = await getOrderDiscountFromOrderNote(payload.note, shop);
   } catch (error) {
-    console.warn("Failed to fetch product details or discount from Shopify:", error);
+    console.warn("Failed to fetch product details from Shopify:", error);
   }
+
+  // Use pre-calculated discount from payload (set by nnshop createOrder).
+  // Falls back gracefully for legacy webhooks without applied_discount.
+  const payloadDiscount = payload.applied_discount as {
+    type: string; title: string; amount: string;
+  } | null | undefined;
+  const orderLevelDiscount = payloadDiscount?.amount
+    ? Math.round(parseFloat(payloadDiscount.amount))
+    : 0;
+  const promocode = payloadDiscount?.type === 'discount_code'
+    ? payloadDiscount.title
+    : undefined;
 
   const storefrontDomain = getStorefrontDomain(shop);
 
@@ -360,12 +365,6 @@ export async function mapShopifyOrderToEsputnik(
 
   const shippingPrice = shippingTotal;
   const expectedTotalPrice = totalCatalogTotal + shippingPrice;
-
-  const orderLevelDiscount = discount?.percentage
-    ? Math.round((expectedTotalPrice * discount?.percentage) / 100)
-    : 0;
-
-  const promocode = discount?.code;
   const totalPrice = expectedTotalPrice - orderLevelDiscount;
 
   return {
@@ -391,8 +390,7 @@ export async function mapShopifyOrderToEsputnik(
       lastName: payload.customer.last_name,
     }),
     ...(shippingTotal > 0 && { shipping: Math.round(shippingTotal) }),
-    ...(orderLevelDiscount > 0 ? { discount: Math.round(orderLevelDiscount) } : {}),
-    ...(discount?.percentage ? { discount_percent: discount.percentage } : {}),
+    ...(orderLevelDiscount > 0 ? { discount: orderLevelDiscount } : {}),
     ...(payload.total_tax && { taxes: Math.round(parseFloat(payload.total_tax)) }),
     ...(payload.checkout_id && { restoreUrl: `https://${shop}/checkout/${payload.checkout_id}` }),
     ...(status && { statusDescription: status }),

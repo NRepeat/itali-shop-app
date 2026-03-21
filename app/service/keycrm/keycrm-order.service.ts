@@ -256,12 +256,9 @@ function buildManagerComment(payload: Record<string, any>): string | undefined {
   if (paymentMethod && paymentMethod !== "unknown") {
     parts.push(`Метод оплати: ${paymentMethod}`);
   }
-  const match = payload.note.match(/Промокод:\s*([^\s\n]+)/);
-  const codeFromNote = match ? match[1].trim().toLowerCase() : null;
-
-  // Discount codes from direct payload field (NOT parsed from note string)
-  if (codeFromNote > 0) {
-    parts.push(`Промокод: ${codeFromNote}`);
+  const appliedDiscount = payload.applied_discount as { type: string; title: string } | null | undefined;
+  if (appliedDiscount?.type === 'discount_code' && appliedDiscount.title) {
+    parts.push(`Промокод: ${appliedDiscount.title}`);
   }
 
   return parts.length > 0 ? parts.join("\n") : undefined;
@@ -310,17 +307,23 @@ export async function mapShopifyOrderToKeyCrm(
   ];
 
   let productVariants = new Map<string, Map<string, VariantData>>();
-  let discount: {
-    percentage: number;
-    amount: number;
-    code: string;
-  } | null = null;
   try {
     productVariants = await fetchProductVariants(shop, productIds);
-    discount = await getOrderDiscountFromOrderNote(payload.note, shop);
   } catch (error) {
     console.warn("Failed to fetch product variants from Shopify:", error);
   }
+
+  // Use pre-calculated discount from payload (set by nnshop createOrder).
+  // Falls back to note-parsing for legacy webhooks that don't include applied_discount.
+  const payloadDiscount = payload.applied_discount as {
+    type: string; title: string; amount: string;
+  } | null | undefined;
+  const discountAmount = payloadDiscount?.amount
+    ? Math.round(parseFloat(payloadDiscount.amount))
+    : 0;
+  const promocodeFromPayload = payloadDiscount?.type === 'discount_code'
+    ? payloadDiscount.title
+    : undefined;
 
   let totalCatalogTotal = 0;
   let originTotalCatalogTotal = 0;
@@ -375,13 +378,8 @@ export async function mapShopifyOrderToKeyCrm(
   const shippingPrice = 0;
 
   const expectedTotalPrice = totalCatalogTotal + shippingPrice;
-
-  const orderLevelDiscount = discount?.percentage
-    ? Math.round((expectedTotalPrice * discount?.percentage) / 100)
-    : 0;
-
-  const discountCodes = discount?.code;
-  const promocode = discountCodes ? discountCodes : undefined;
+  const orderLevelDiscount = discountAmount;
+  const promocode = promocodeFromPayload;
 
   console.log(
     promocode,
@@ -454,10 +452,7 @@ export async function mapShopifyOrderToKeyCrm(
     promocode: promocode ? promocode : "",
     ...(shipping ? { shipping } : {}),
     ...(shippingPrice > 0 ? { shipping_price: Math.round(shippingPrice) } : {}),
-    // ...(orderLevelDiscount > 0 ? { discount_amount: orderLevelDiscount } : {}),
-    ...(discount?.percentage
-      ? { discount_percent: discount?.percentage || 0 }
-      : {}),
+    ...(orderLevelDiscount > 0 ? { discount_amount: orderLevelDiscount } : {}),
     ...(orderedAt ? { ordered_at: orderedAt } : {}),
     payments,
     ...(buildManagerComment(payload)
