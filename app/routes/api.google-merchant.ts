@@ -16,6 +16,7 @@ const PRODUCT_METAFIELDS_FRAGMENT = `#graphql
           namespace
           reference {
             ... on Metaobject {
+              id
               displayName
               field(key: "label") { value }
             }
@@ -23,6 +24,7 @@ const PRODUCT_METAFIELDS_FRAGMENT = `#graphql
           references(first: 10) {
             nodes {
               ... on Metaobject {
+                id
                 displayName
                 field(key: "label") { value }
               }
