@@ -110,6 +110,7 @@ const GET_PRODUCT_BY_ID = `#graphql
             sku
             title
             availableForSale
+            quantityAvailable
             price
             compareAtPrice
             selectedOptions {
@@ -357,7 +358,11 @@ export async function processGoogleMerchantTask(job: Job) {
       
       const hasSale = parseFloat(originalPriceMicros) > parseFloat(finalPriceMicros);
 
-      const availability = (variant.availableForSale ?? (variant.inventory_management ? (variant.inventory_quantity > 0) : true)) ? "IN_STOCK" : "OUT_OF_STOCK";
+      const availability =
+        variant.availableForSale &&
+        (variant.quantityAvailable === null || variant.quantityAvailable === undefined || variant.quantityAvailable > 0)
+          ? "IN_STOCK"
+          : "OUT_OF_STOCK";
       
       const tags = data.tags || [];
       const isMale = tags.some((t: string) => 

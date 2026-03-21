@@ -71,6 +71,7 @@ const GET_PRODUCTS_FOR_GOOGLE_FEED = `#graphql
                 sku
                 title
                 availableForSale
+                quantityAvailable
                 price
                 compareAtPrice
                 selectedOptions {
