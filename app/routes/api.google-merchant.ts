@@ -71,7 +71,7 @@ const GET_PRODUCTS_FOR_GOOGLE_FEED = `#graphql
                 sku
                 title
                 availableForSale
-                quantityAvailable
+                inventoryQuantity
                 price
                 compareAtPrice
                 selectedOptions {
@@ -95,6 +95,12 @@ const GET_PRODUCTS_FOR_GOOGLE_FEED = `#graphql
 `;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const secret = process.env.SYNC_API_SECRET;
+  const provided = new URL(request.url).searchParams.get("secret");
+  if (!secret || provided !== secret) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const session = await prisma.session.findFirst({
     select: { shop: true, accessToken: true },
   });

@@ -110,7 +110,7 @@ const GET_PRODUCT_BY_ID = `#graphql
             sku
             title
             availableForSale
-            quantityAvailable
+            inventoryQuantity
             price
             compareAtPrice
             selectedOptions {
@@ -360,7 +360,7 @@ export async function processGoogleMerchantTask(job: Job) {
 
       const availability =
         variant.availableForSale &&
-        (variant.quantityAvailable === null || variant.quantityAvailable === undefined || variant.quantityAvailable > 0)
+        (variant.inventoryQuantity === null || variant.inventoryQuantity === undefined || variant.inventoryQuantity > 0)
           ? "IN_STOCK"
           : "OUT_OF_STOCK";
       
