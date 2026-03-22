@@ -567,6 +567,23 @@ export async function handleKeyCrmOrderStatusChange(
     if (posthogEvent) {
       capturePostHog(posthogEvent, ...(trackingNumber ? [{ tracking_number: trackingNumber }] : []));
     }
+
+    // GA4 Measurement Protocol: fire purchase on DELIVERED (COD final revenue point)
+    if (esputnikStatus === "DELIVERED" && webhookPayload) {
+      const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
+      const secret = process.env.INTERNAL_API_SECRET;
+      const ga4Headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (secret) ga4Headers["Authorization"] = `Bearer ${secret}`;
+      fetch(`${nnshopUrl}/api/internal/ga4-purchase`, {
+        method: "POST",
+        headers: ga4Headers,
+        body: JSON.stringify({
+          orderName: webhookPayload.name,
+          amount: parseFloat(webhookPayload.total_price),
+          currency: webhookPayload.currency,
+        }),
+      }).catch((err) => console.error("[keyCRM] GA4 purchase call failed:", err));
+    }
   }
 
   // 2. Shopify actions
