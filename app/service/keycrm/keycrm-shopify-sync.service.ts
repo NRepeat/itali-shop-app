@@ -568,7 +568,8 @@ export async function handleKeyCrmOrderStatusChange(
       capturePostHog(posthogEvent, ...(trackingNumber ? [{ tracking_number: trackingNumber }] : []));
     }
 
-    // GA4 Measurement Protocol: fire purchase on DELIVERED (COD final revenue point)
+    // GA4 Measurement Protocol: fire purchase on DELIVERED for all orders.
+    // Single revenue confirmation point: LiqPay and COD both confirm at delivery.
     if (esputnikStatus === "DELIVERED" && webhookPayload) {
       const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
       const secret = process.env.INTERNAL_API_SECRET;
