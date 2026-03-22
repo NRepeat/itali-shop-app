@@ -219,7 +219,13 @@ async function markOrderAsPaid(
 
   const errors = result.orderMarkAsPaid?.userErrors || [];
   if (errors.length > 0) {
-    throw new Error(`orderMarkAsPaid failed: ${errors.map((e) => e.message).join(", ")}`);
+    const msg = errors.map((e) => e.message).join(", ");
+    // Order already paid (e.g. via LiqPay) — not an error
+    if (msg.toLowerCase().includes('cannot be marked') || msg.toLowerCase().includes('already')) {
+      console.log(`Shopify order ${shopifyOrderId} already paid, skipping`);
+      return;
+    }
+    throw new Error(`orderMarkAsPaid failed: ${msg}`);
   }
 
   console.log(`Shopify order ${shopifyOrderId} marked as paid`);
