@@ -28,6 +28,7 @@ export async function processKeyCrmOrderTask(
         data: {
           shopifyOrderId,
           keycrmOrderId: created.id,
+          paymentMethod: payload.payment_gateway_names?.[0] ?? null,
         },
       });
 

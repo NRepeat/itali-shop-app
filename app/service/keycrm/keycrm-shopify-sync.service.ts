@@ -378,7 +378,7 @@ export async function handleKeyCrmOrderStatusChange(
   const statusId = context.status_id;
 
   console.log(
-    `keyCRM webhook: order ${keycrmOrderId} status changed to ${statusId}`
+    `keyCRM webhook: order ${keycrmOrderId} status changed to ${statusId}, payment_status=${context.payment_status}, full_context=${JSON.stringify(context)}`
   );
 
   const mapping = await prisma.keyCrmOrderMap.findUnique({
@@ -396,12 +396,16 @@ export async function handleKeyCrmOrderStatusChange(
     `keyCRM order ${keycrmOrderId} mapped to Shopify order ${mapping.shopifyOrderId}`
   );
 
-  // Trigger LiqPay hold_completion when manager sets status to "Підтверджено" (confirmed)
-  if (statusId === KEYCRM_CONFIG.statuses.confirmed) {
+  // Trigger LiqPay hold_completion when manager confirms a LiqPay order
+  // Only fire for LiqPay payments — other methods (bank transfer, COD) have no hold to capture
+  // paymentMethod is saved in KeyCrmOrderMap at order creation time from Shopify's payment_gateway_names
+  const isLiqpayOrder = mapping.paymentMethod === 'liqpay';
+  if (statusId === KEYCRM_CONFIG.statuses.confirmed && isLiqpayOrder) {
     const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
     const secret = process.env.INTERNAL_API_SECRET;
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (secret) headers["Authorization"] = `Bearer ${secret}`;
+    console.log(`[keyCRM webhook] triggering LiqPay capture for ${mapping.shopifyOrderId}`);
     fetch(`${nnshopUrl}/api/liqpay/capture`, {
       method: "POST",
       headers,
@@ -409,6 +413,8 @@ export async function handleKeyCrmOrderStatusChange(
     })
       .then((r) => console.log(`[keyCRM webhook] capture triggered for ${mapping.shopifyOrderId}: ${r.status}`))
       .catch((err) => console.error(`[keyCRM webhook] capture failed:`, err));
+  } else if (statusId === KEYCRM_CONFIG.statuses.confirmed) {
+    console.log(`[keyCRM webhook] order ${mapping.shopifyOrderId} is not LiqPay — skipping capture`);
   }
 
   const { shop, accessToken } = await getShopAndToken();
@@ -558,7 +564,9 @@ export async function handleKeyCrmOrderStatusChange(
   }
 
   // 2. Shopify actions
-  if (KEYCRM_CONFIG.paidStatusIds.includes(statusId)) {
+  // Skip markOrderAsPaid for LiqPay confirmed orders — /api/liqpay/capture handles it
+  const skipMarkAsPaid = isLiqpayOrder && statusId === KEYCRM_CONFIG.statuses.confirmed;
+  if (KEYCRM_CONFIG.paidStatusIds.includes(statusId) && !skipMarkAsPaid) {
     console.log(
       `Marking Shopify order ${shopifyOrderId} as paid (keyCRM status: ${statusId})`
     );
@@ -568,6 +576,8 @@ export async function handleKeyCrmOrderStatusChange(
     if (!esputnikStatus) {
       capturePostHog("order_confirmed");
     }
+  } else if (skipMarkAsPaid) {
+    console.log(`[keyCRM webhook] skipping markOrderAsPaid for ${shopifyOrderId} — handled by liqpay/capture`);
   }
 
   if (KEYCRM_CONFIG.fulfillStatusIds.includes(statusId)) {
