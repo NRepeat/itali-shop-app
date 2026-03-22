@@ -2,6 +2,8 @@ import type { ActionFunctionArgs } from "react-router";
 import {
   findKeyCrmOrderBySourceUuid,
   updateOrderInKeyCrm,
+  fetchKeyCrmOrderPayments,
+  markKeyCrmPaymentAsPaid,
 } from "@/service/keycrm/keycrm-order.service";
 import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
 import { KEYCRM_CONFIG } from "@shared/config/keycrm";
@@ -63,7 +65,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  // Mark keyCRM order as confirmed + paid
+  // Mark keyCRM order as confirmed + ensure payment record exists
   await updateOrderInKeyCrm(keycrmOrder.id, {
     status_id: KEYCRM_CONFIG.statuses.confirmed,
     payments: [
@@ -75,6 +77,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     ],
   });
+
+  // Fetch payment ID and mark it as paid via dedicated endpoint
+  try {
+    const payments = await fetchKeyCrmOrderPayments(keycrmOrder.id);
+    const payment = payments[0];
+    if (payment?.id) {
+      await markKeyCrmPaymentAsPaid(keycrmOrder.id, payment.id);
+    } else {
+      console.warn(`[internal/confirm-payment] no payment found on keyCRM order ${keycrmOrder.id}`);
+    }
+  } catch (err) {
+    console.error(`[internal/confirm-payment] failed to mark payment as paid for keyCRM order ${keycrmOrder.id}:`, err);
+  }
 
   console.log(
     `[internal/confirm-payment] keyCRM order ${keycrmOrder.id} confirmed + paid (${orderName})`

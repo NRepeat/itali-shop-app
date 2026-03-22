@@ -559,6 +559,59 @@ export async function fetchKeyCrmOrderTracking(
     : undefined;
 }
 
+export async function fetchKeyCrmOrderPayments(
+  keycrmOrderId: number,
+): Promise<Array<{ id: number; status: string }>> {
+  const response = await fetch(
+    `${KEYCRM_CONFIG.baseUrl}/order/${keycrmOrderId}?include=payments`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: KEYCRM_CONFIG.authHeader,
+        Accept: "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `keyCRM API error (GET /order/${keycrmOrderId}?include=payments): ${response.status} ${response.statusText} — ${body}`,
+    );
+  }
+
+  const data = await response.json();
+  const order = data?.data ?? data;
+  return order?.payments ?? [];
+}
+
+export async function markKeyCrmPaymentAsPaid(
+  keycrmOrderId: number,
+  paymentId: number,
+): Promise<void> {
+  const response = await fetch(
+    `${KEYCRM_CONFIG.baseUrl}/order/${keycrmOrderId}/payment/${paymentId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: KEYCRM_CONFIG.authHeader,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ status: "paid" }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `keyCRM API error (PUT /order/${keycrmOrderId}/payment/${paymentId}): ${response.status} ${response.statusText} — ${body}`,
+    );
+  }
+
+  console.log(`keyCRM payment ${paymentId} on order ${keycrmOrderId} marked as paid`);
+}
+
 export async function findKeyCrmOrderBySourceUuid(
   sourceUuid: string,
 ): Promise<{ id: number } | null> {
