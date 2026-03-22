@@ -40,8 +40,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   const { orderName, amount, currency, paymentMethod = "liqpay", shopifyPayload, shop } = body;
-  if (!orderName) {
-    return Response.json({ error: "Missing orderName" }, { status: 400 });
+  if (!orderName || typeof orderName !== "string") {
+    return Response.json({ error: "Missing or invalid orderName" }, { status: 400 });
+  }
+  if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
+    return Response.json({ error: "Missing or invalid amount" }, { status: 400 });
   }
 
   // Retry up to 5x with 1s delay — keyCRM order may not be created yet
