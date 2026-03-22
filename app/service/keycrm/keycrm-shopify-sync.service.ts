@@ -610,6 +610,22 @@ export async function handleKeyCrmOrderStatusChange(
       capturePostHog("order_cancelled");
     }
 
+    // Release LiqPay hold if the order was not yet captured
+    if (isLiqpayOrder) {
+      const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
+      const secret = process.env.INTERNAL_API_SECRET;
+      const voidHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (secret) voidHeaders["Authorization"] = `Bearer ${secret}`;
+      console.log(`[keyCRM webhook] triggering LiqPay void for ${shopifyOrderId}`);
+      fetch(`${nnshopUrl}/api/liqpay/void`, {
+        method: "POST",
+        headers: voidHeaders,
+        body: JSON.stringify({ shopifyOrderId }),
+      })
+        .then((r) => console.log(`[keyCRM webhook] void triggered for ${shopifyOrderId}: ${r.status}`))
+        .catch((err) => console.error(`[keyCRM webhook] void failed:`, err));
+    }
+
     try {
       await cancelOrder(shopifyOrderId, shop, accessToken);
     } catch (err: any) {
