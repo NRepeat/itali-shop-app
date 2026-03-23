@@ -2,6 +2,7 @@ import { KEYCRM_CONFIG } from "@shared/config/keycrm";
 import { prisma } from "@shared/lib/prisma/prisma.server";
 import { client } from "../sync/client/shopify";
 import { esputnikOrderQueue } from "@shared/lib/queue/esputnik-order.queue";
+import { liqpayCaptureQueue } from "@shared/lib/queue/liqpay-capture.queue";
 import { fetchKeyCrmOrderTracking } from "./keycrm-order.service";
 import { posthog } from "@shared/lib/posthog/posthog.server";
 import type { FulfillmentInput, OrderCloseInput } from "@/types";
@@ -417,7 +418,19 @@ export async function handleKeyCrmOrderStatusChange(
       headers,
       body: JSON.stringify({ shopifyOrderId: mapping.shopifyOrderId }),
     })
-      .then((r) => console.log(`[keyCRM webhook] capture triggered for ${mapping.shopifyOrderId}: ${r.status}`))
+      .then(async (r) => {
+        console.log(`[keyCRM webhook] capture response for ${mapping.shopifyOrderId}: ${r.status}`);
+        if (r.status === 202) {
+          // Payment still in wait_secure — add to polling queue, will retry every 60s
+          const numericId = mapping.shopifyOrderId.replace("gid://shopify/Order/", "");
+          await liqpayCaptureQueue.add(
+            "retry-capture",
+            { shopifyOrderId: numericId, orderName: mapping.shopifyOrderId },
+            { delay: 60_000 }
+          );
+          console.log(`[keyCRM webhook] added ${mapping.shopifyOrderId} to liqpay-capture-queue`);
+        }
+      })
       .catch((err) => console.error(`[keyCRM webhook] capture failed:`, err));
   } else if (statusId === KEYCRM_CONFIG.statuses.confirmed) {
     console.log(`[keyCRM webhook] order ${mapping.shopifyOrderId} is not LiqPay — skipping capture`);

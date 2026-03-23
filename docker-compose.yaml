@@ -193,6 +193,28 @@ services:
     env_file:
       - .env
 
+  worker-liqpay-capture:
+    build:
+      context: .
+      labels:
+        - "image-name=itali-shop-app"
+    container_name: itali-worker-liqpay-capture
+    restart: always
+    command: ["npx", "tsx", "app/liqpay-capture-worker.ts"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./service-account.json:/app/service-account.json
+    environment:
+      DATABASE_URL: "postgresql://${DATABASE_USER:-user}:${DATABASE_PASS:-password}@db:5432/${DATABASE_NAME:-italy-db}?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    env_file:
+      - .env
+
 volumes:
   postgres_data:
   redis_data:

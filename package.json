@@ -23,6 +23,7 @@
     "start:esputnik-worker": "dotenv -e .env tsx app/esputnik-order-worker.ts",
     "start:keycrm-worker": "dotenv -e .env tsx app/keycrm-order-worker.ts",
     "start:webhook-worker": "dotenv -e .env tsx app/webhook.worker.ts",
+    "start:liqpay-capture-worker": "dotenv -e .env tsx app/liqpay-capture-worker.ts",
     "typecheck": "react-router typegen && tsc --noEmit"
   },
   "type": "module",
