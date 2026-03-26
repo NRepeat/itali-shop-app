@@ -393,7 +393,7 @@ export async function processGoogleMerchantTask(job: Job) {
       const additionalImageLinks = allImages.filter((url: string) => url !== mainImageLink).slice(0, 10);
 
       // Формируем ссылку с параметром variant, как в manual sync
-      const productLink = `${baseUrl}/${locale}/product/${handle}?variant=${variantId}`;
+      const productLink = `${baseUrl}/${locale}/product/${handle}`;
 
       const productInput: any = {
         offerId: offerId,
