@@ -378,13 +378,7 @@ export async function processGoogleMerchantTask(job: Job) {
       : null;
     console.log(data.category, mappedGoogleCategory, "data.category");
 
-    const googleProductCategory =
-      (mappedGoogleCategory &&
-        mappedGoogleCategory.length > 0 &&
-        mappedGoogleCategory[0].id) ||
-      data.category?.fullName ||
-      data.productType ||
-      (isUk ? "Взуття та аксесуари" : "Обувь и аксессуары");
+    const googleProductCategory = mappedGoogleCategory || "";
 
     const vendor = data.vendor || "MioMio";
     const productTranslations = isUk
