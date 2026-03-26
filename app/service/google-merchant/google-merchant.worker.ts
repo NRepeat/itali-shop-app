@@ -380,7 +380,7 @@ export async function processGoogleMerchantTask(job: Job) {
 
     const googleProductCategory =
       mappedGoogleCategory && mappedGoogleCategory.length > 0
-        ? mappedGoogleCategory[0].id
+        ? mappedGoogleCategory[0].full_name
         : "";
 
     const vendor = data.vendor || "MioMio";
