@@ -378,7 +378,10 @@ export async function processGoogleMerchantTask(job: Job) {
       : null;
     console.log(data.category, mappedGoogleCategory, "data.category");
 
-    const googleProductCategory = mappedGoogleCategory || "";
+    const googleProductCategory =
+      mappedGoogleCategory && mappedGoogleCategory.length > 0
+        ? mappedGoogleCategory[0].id
+        : "";
 
     const vendor = data.vendor || "MioMio";
     const productTranslations = isUk
