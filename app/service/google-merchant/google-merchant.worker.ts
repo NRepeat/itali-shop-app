@@ -380,7 +380,7 @@ export async function processGoogleMerchantTask(job: Job) {
 
     const googleProductCategory =
       mappedGoogleCategory && mappedGoogleCategory.length > 0
-        ? mappedGoogleCategory[0].full_name
+        ? mappedGoogleCategory[0].id
         : "";
 
     const vendor = data.vendor || "MioMio";
@@ -579,7 +579,7 @@ export async function processGoogleMerchantTask(job: Job) {
       }
 
       const result = await insertProduct(productInput);
-      console.log(`[Worker] API Response for ${offerId}`);
+      console.log(`[Worker] API Response for ${offerId}`, result);
     }
   } catch (error: any) {
     console.error(`[Worker Error] Failed to process product:`, error);
