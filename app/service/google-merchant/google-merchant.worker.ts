@@ -412,7 +412,7 @@ export async function processGoogleMerchantTask(job: Job) {
           },
           availability: availability,
           condition: "NEW",
-          googleProductCategory: googleProductCategory,
+          // googleProductCategory: googleProductCategory,
           gender: gender,
           ageGroup: "ADULT",
           itemGroupId: data.id.toString().split("/").pop()?.replace(/\D/g, ""),
