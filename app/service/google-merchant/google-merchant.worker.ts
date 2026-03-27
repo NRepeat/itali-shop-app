@@ -376,7 +376,7 @@ export async function processGoogleMerchantTask(job: Job) {
     const mappedGoogleCategory = shopifyCategoryId
       ? getGoogleProductCategory(shopifyCategoryId)
       : null;
-    console.log(data.category, mappedGoogleCategory, "data.category");
+    console.log(mappedGoogleCategory, "data.category");
 
     const googleProductCategory =
       mappedGoogleCategory && mappedGoogleCategory.length > 0
@@ -579,7 +579,7 @@ export async function processGoogleMerchantTask(job: Job) {
       }
 
       const result = await insertProduct(productInput);
-      console.log(`[Worker] API Response for ${offerId}`, result);
+      console.log(`[Worker] API Response for ${offerId}`);
     }
   } catch (error: any) {
     console.error(`[Worker Error] Failed to process product:`, error);
