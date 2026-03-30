@@ -136,12 +136,6 @@ async function main() {
       const current = res.product.category;
       const title = res.product.title;
 
-      if (current?.id === TARGET_CATEGORY) {
-        console.log(`${prefix}: ${title} — already correct (${current.fullName})`);
-        ok++;
-        continue;
-      }
-
       console.log(
         `${prefix}: ${title} — ${current?.id ?? "none"} (${current?.fullName ?? "no category"}) → ${TARGET_CATEGORY}${FIX ? "" : " [DRY RUN]"}`,
       );
