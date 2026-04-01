@@ -21,6 +21,17 @@ export async function processKeyCrmOrderTask(
 
   try {
     if (status === "INITIALIZED") {
+      // Dedup: skip if a keyCRM order already exists for this Shopify order
+      const existingMapping = await prisma.keyCrmOrderMap.findUnique({
+        where: { shopifyOrderId },
+      });
+      if (existingMapping) {
+        console.log(
+          `keyCRM order already exists for Shopify ${shopifyOrderId} → keyCRM ${existingMapping.keycrmOrderId}, skipping creation`
+        );
+        return;
+      }
+
       const order = await mapShopifyOrderToKeyCrm(payload, shop);
       const created = await createOrderInKeyCrm(order);
 

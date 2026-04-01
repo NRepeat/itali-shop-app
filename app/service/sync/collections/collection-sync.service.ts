@@ -397,12 +397,15 @@ export async function syncCollectionToSanity(
 
   console.log(`Sanity document to save:`, JSON.stringify(sanityDocument, null, 2));
 
-  // Upsert to Sanity
-  const result = await sanityClient.createOrReplace(sanityDocument);
+  // Upsert to Sanity — use createIfNotExists + patch to preserve editorial fields (image, vector, hero, modules, etc.)
+  const { _id, _type, ...fieldsToSync } = sanityDocument;
 
-  console.log(`Sanity createOrReplace result:`, JSON.stringify(result, null, 2));
+  await sanityClient.createIfNotExists({ _id, _type, ...fieldsToSync });
+  const result = await sanityClient.patch(_id).set(fieldsToSync).commit();
+
+  console.log(`Sanity patch result:`, JSON.stringify(result, null, 2));
   console.log(
-    `Successfully synced collection ${collectionId} to Sanity as ${sanityDocument._id}`
+    `Successfully synced collection ${collectionId} to Sanity as ${_id}`
   );
 }
 
