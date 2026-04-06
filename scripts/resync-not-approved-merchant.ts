@@ -130,9 +130,8 @@ async function main() {
     const isDisapproved = status?.destinationStatuses?.some(
       (ds: any) => ds.status === "DISAPPROVED" || ds.status === "REJECTED",
     );
-    const hasIssues = (status?.itemLevelIssues?.length || 0) > 0;
 
-    if (isDisapproved || hasIssues) {
+    if (isDisapproved) {
       const issues = (status?.itemLevelIssues || []).map(
         (i: any) => `${i.description} (${i.severity})`,
       );
