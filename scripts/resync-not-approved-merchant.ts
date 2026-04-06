@@ -25,7 +25,7 @@ async function listProductsREST() {
   let pageToken: string | undefined;
 
   do {
-    const url = new URL(`https://merchantapi.googleapis.com/products/v1beta/accounts/${MERCHANT_ID}/products`);
+    const url = new URL(`https://merchantapi.googleapis.com/products/v1/accounts/${MERCHANT_ID}/products`);
     url.searchParams.set("pageSize", "1000");
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
