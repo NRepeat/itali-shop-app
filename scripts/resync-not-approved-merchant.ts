@@ -6,10 +6,42 @@
  * Dry: npx dotenv-cli -e .env -- tsx scripts/resync-not-approved-merchant.ts --dry-run
  */
 
-import { listProducts, deleteProduct } from "../app/service/google-merchant/client";
+import { GoogleAuth } from "google-auth-library";
+import { MERCHANT_ID, deleteProduct } from "../app/service/google-merchant/client";
 import { googleMerchantSyncQueue } from "../app/service/sync/queues";
 import { prisma } from "../app/shared/lib/prisma/prisma.server";
 import { client } from "../app/shared/lib/shopify/client/client";
+
+// Use REST API instead of gRPC — gRPC has auth issues in this environment
+const auth = new GoogleAuth({
+  keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_PATH || "/app/service-account.json",
+  scopes: ["https://www.googleapis.com/auth/content"],
+});
+
+async function listProductsREST() {
+  const authClient = await auth.getClient();
+  const token = await authClient.getAccessToken();
+  const allProducts: any[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const url = new URL(`https://merchantapi.googleapis.com/products/v1beta/accounts/${MERCHANT_ID}/products`);
+    url.searchParams.set("pageSize", "1000");
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token.token}` },
+    });
+
+    if (!res.ok) throw new Error(`Merchant API ${res.status}: ${await res.text()}`);
+
+    const data = await res.json();
+    if (data.products) allProducts.push(...data.products);
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return allProducts;
+}
 
 const PRODUCT_METAFIELDS_FRAGMENT = `#graphql
   fragment ProductMetafields on Product {
@@ -109,8 +141,8 @@ async function main() {
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.miomio.com.ua";
 
-  console.log("Fetching products from Google Merchant Center...");
-  const products = await listProducts();
+  console.log("Fetching products from Google Merchant Center (REST)...");
+  const products = await listProductsREST();
   console.log(`Found ${products.length} products total.`);
 
   // Collect disapproved offerIds grouped by Shopify product ID
@@ -128,7 +160,9 @@ async function main() {
     const label = product.feedLabel;
 
     const isDisapproved = status?.destinationStatuses?.some(
-      (ds: any) => ds.status === "DISAPPROVED" || ds.status === "REJECTED",
+      (ds: any) =>
+        ds.status === "DISAPPROVED" || ds.status === "REJECTED" ||
+        ds.disapprovedCountries?.length > 0,
     );
 
     if (isDisapproved) {
