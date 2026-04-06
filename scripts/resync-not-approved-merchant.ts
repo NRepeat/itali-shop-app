@@ -40,10 +40,11 @@ const PRODUCT_METAFIELDS_FRAGMENT = `#graphql
   }
 `;
 
-const GET_PRODUCT_BY_ID = `#graphql
+const GET_PRODUCT_BY_VARIANT_ID = `#graphql
   ${PRODUCT_METAFIELDS_FRAGMENT}
-  query GetProductById($id: ID!) {
-    product(id: $id) {
+  query GetProductByVariantId($id: ID!) {
+    productVariant(id: $id) {
+      product {
       id
       title
       handle
@@ -87,6 +88,7 @@ const GET_PRODUCT_BY_ID = `#graphql
           }
         }
       }
+    }
     }
   }
 `;
@@ -145,59 +147,68 @@ async function main() {
     process.exit(0);
   }
 
-  // Extract unique Shopify product IDs from offerIds
-  // offerId format: shopify_UA_9557639528738_49147989909794 or similar
-  // We need the product numeric ID (3rd segment)
-  const productIdsToResync = new Set<string>();
+  // offerId = Shopify variant numeric ID
+  // Collect unique variant IDs, then resolve to parent products
+  const variantIdsToResync = new Set<string>();
 
   for (const entry of disapproved) {
     console.log(`${DRY_RUN ? "[DRY] Would delete" : "Deleting"}: ${entry.offerId} (${entry.lang}~${entry.label})`);
     entry.issues.forEach((issue) => console.log(`   - ${issue}`));
     if (!DRY_RUN) await deleteProduct(entry.offerId, entry.lang, entry.label);
 
-    // Parse Shopify product ID from offerId
-    const parts = entry.offerId.split("_");
-    if (parts.length >= 3) {
-      productIdsToResync.add(parts[2]);
-    }
+    variantIdsToResync.add(entry.offerId);
   }
 
-  console.log(`\nRe-syncing ${productIdsToResync.size} unique products to Google Merchant...\n`);
+  // Resolve variant IDs to unique products via Shopify
+  const seenProductIds = new Set<string>();
+  const productsToQueue: any[] = [];
 
-  let queued = 0;
+  console.log(`\nResolving ${variantIdsToResync.size} unique variants to products...\n`);
 
-  for (const numericId of productIdsToResync) {
-    const shopifyGid = `gid://shopify/Product/${numericId}`;
+  for (const variantId of variantIdsToResync) {
+    const variantGid = `gid://shopify/ProductVariant/${variantId}`;
 
     try {
       const response: any = await client.request({
-        query: GET_PRODUCT_BY_ID,
-        variables: { id: shopifyGid },
+        query: GET_PRODUCT_BY_VARIANT_ID,
+        variables: { id: variantGid },
         accessToken: session.accessToken,
         shopDomain: session.shop,
       });
 
-      const product = response.product;
+      const product = response.productVariant?.product;
       if (!product) {
-        console.log(`Product ${numericId} not found in Shopify, skipping.`);
+        console.log(`Variant ${variantId} not found in Shopify, skipping.`);
         continue;
       }
 
-      if (!DRY_RUN) {
-        await googleMerchantSyncQueue.add(`resync-${product.handle}`, {
-          product,
-          baseUrl,
-        }, {
-          jobId: `${numericId}${Date.now()}`,
-          removeOnComplete: true,
-        });
-      }
-
-      queued++;
-      console.log(`${DRY_RUN ? "[DRY] Would queue" : "Queued"}: ${product.handle} (${queued}/${productIdsToResync.size})`);
+      if (seenProductIds.has(product.id)) continue;
+      seenProductIds.add(product.id);
+      productsToQueue.push(product);
     } catch (err: any) {
-      console.error(`Failed to fetch/queue product ${numericId}: ${err.message}`);
+      console.error(`Failed to fetch variant ${variantId}: ${err.message}`);
     }
+  }
+
+  console.log(`Found ${productsToQueue.length} unique products to resync.\n`);
+
+  let queued = 0;
+
+  for (const product of productsToQueue) {
+    const numericId = product.id.split("/").pop();
+
+    if (!DRY_RUN) {
+      await googleMerchantSyncQueue.add(`resync-${product.handle}`, {
+        product,
+        baseUrl,
+      }, {
+        jobId: `${numericId}${Date.now()}`,
+        removeOnComplete: true,
+      });
+    }
+
+    queued++;
+    console.log(`${DRY_RUN ? "[DRY] Would queue" : "Queued"}: ${product.handle} (${queued}/${productsToQueue.length})`);
   }
 
   console.log(`\n${DRY_RUN ? "[DRY RUN] Would have deleted" : "Deleted"} ${disapproved.length} entries, ${DRY_RUN ? "would queue" : "queued"} ${queued} products for resync.`);
