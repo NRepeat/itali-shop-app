@@ -15,7 +15,7 @@ import { client } from "../app/shared/lib/shopify/client/client";
 // Use REST API instead of gRPC — gRPC has auth issues in this environment
 const auth = new GoogleAuth({
   keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_PATH || "/app/service-account.json",
-  scopes: ["https://www.googleapis.com/auth/content"],
+  scopes: ["https://www.googleapis.com/auth/content", "https://www.googleapis.com/auth/cloud-platform"],
 });
 
 async function listProductsREST() {
