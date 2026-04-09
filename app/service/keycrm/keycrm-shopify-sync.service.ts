@@ -403,25 +403,32 @@ export async function handleKeyCrmOrderStatusChange(
     `keyCRM order ${keycrmOrderId} mapped to Shopify order ${mapping.shopifyOrderId}`
   );
 
-  // Trigger LiqPay hold_completion when manager confirms a LiqPay order
-  // Only fire for LiqPay payments — other methods (bank transfer, COD) have no hold to capture
+  // Trigger payment hold capture when manager confirms a held payment order (LiqPay or NovaPay)
   // paymentMethod is saved in KeyCrmOrderMap at order creation time from Shopify's payment_gateway_names
   const isLiqpayOrder = mapping.paymentMethod === 'liqpay';
-  if (statusId === KEYCRM_CONFIG.statuses.confirmed && isLiqpayOrder) {
+  const isNovapayOrder = mapping.paymentMethod === 'novapay';
+  const isHeldPayment = isLiqpayOrder || isNovapayOrder;
+  if (statusId === KEYCRM_CONFIG.statuses.confirmed && isHeldPayment) {
     const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
     const secret = process.env.INTERNAL_API_SECRET;
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (secret) headers["Authorization"] = `Bearer ${secret}`;
-    console.log(`[keyCRM webhook] triggering LiqPay capture for ${mapping.shopifyOrderId}`);
-    fetch(`${nnshopUrl}/api/liqpay/capture`, {
+
+    const captureEndpoint = isLiqpayOrder
+      ? `${nnshopUrl}/api/liqpay/capture`
+      : `${nnshopUrl}/api/novapay/capture`;
+    const providerName = isLiqpayOrder ? 'LiqPay' : 'NovaPay';
+
+    console.log(`[keyCRM webhook] triggering ${providerName} capture for ${mapping.shopifyOrderId}`);
+    fetch(captureEndpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({ shopifyOrderId: mapping.shopifyOrderId }),
     })
       .then(async (r) => {
-        console.log(`[keyCRM webhook] capture response for ${mapping.shopifyOrderId}: ${r.status}`);
-        if (r.status === 202) {
-          // Payment still in wait_secure — add to polling queue, will retry every 60s
+        console.log(`[keyCRM webhook] ${providerName} capture response for ${mapping.shopifyOrderId}: ${r.status}`);
+        if (r.status === 202 && isLiqpayOrder) {
+          // LiqPay: Payment still in wait_secure — add to polling queue, will retry every 60s
           const numericId = mapping.shopifyOrderId.replace("gid://shopify/Order/", "");
           await liqpayCaptureQueue.add(
             "retry-capture",
@@ -430,10 +437,11 @@ export async function handleKeyCrmOrderStatusChange(
           );
           console.log(`[keyCRM webhook] added ${mapping.shopifyOrderId} to liqpay-capture-queue`);
         }
+        // NovaPay 202: marked as capture_pending — callback will auto-trigger capture when holded arrives
       })
-      .catch((err) => console.error(`[keyCRM webhook] capture failed:`, err));
+      .catch((err) => console.error(`[keyCRM webhook] ${providerName} capture failed:`, err));
   } else if (statusId === KEYCRM_CONFIG.statuses.confirmed) {
-    console.log(`[keyCRM webhook] order ${mapping.shopifyOrderId} is not LiqPay — skipping capture`);
+    console.log(`[keyCRM webhook] order ${mapping.shopifyOrderId} is not a held payment — skipping capture`);
   }
 
   const { shop, accessToken } = await getShopAndToken();
@@ -601,8 +609,8 @@ export async function handleKeyCrmOrderStatusChange(
   }
 
   // 2. Shopify actions
-  // Skip markOrderAsPaid for LiqPay confirmed orders — /api/liqpay/capture handles it
-  const skipMarkAsPaid = isLiqpayOrder && statusId === KEYCRM_CONFIG.statuses.confirmed;
+  // Skip markOrderAsPaid for held payment orders (LiqPay/NovaPay) on confirm — capture endpoint handles it
+  const skipMarkAsPaid = isHeldPayment && statusId === KEYCRM_CONFIG.statuses.confirmed;
   if (KEYCRM_CONFIG.paidStatusIds.includes(statusId) && !skipMarkAsPaid) {
     console.log(
       `Marking Shopify order ${shopifyOrderId} as paid (keyCRM status: ${statusId})`
@@ -614,7 +622,7 @@ export async function handleKeyCrmOrderStatusChange(
       capturePostHog("order_confirmed");
     }
   } else if (skipMarkAsPaid) {
-    console.log(`[keyCRM webhook] skipping markOrderAsPaid for ${shopifyOrderId} — handled by liqpay/capture`);
+    console.log(`[keyCRM webhook] skipping markOrderAsPaid for ${shopifyOrderId} — handled by ${isLiqpayOrder ? 'liqpay' : 'novapay'}/capture`);
   }
 
   if (KEYCRM_CONFIG.fulfillStatusIds.includes(statusId)) {
@@ -641,20 +649,26 @@ export async function handleKeyCrmOrderStatusChange(
       capturePostHog("order_cancelled");
     }
 
-    // Release LiqPay hold if the order was not yet captured
-    if (isLiqpayOrder) {
+    // Release payment hold if the order was not yet captured (LiqPay or NovaPay)
+    if (isHeldPayment) {
       const nnshopUrl = process.env.NEXT_APP_URL || "https://www.miomio.com.ua";
       const secret = process.env.INTERNAL_API_SECRET;
       const voidHeaders: Record<string, string> = { "Content-Type": "application/json" };
       if (secret) voidHeaders["Authorization"] = `Bearer ${secret}`;
-      console.log(`[keyCRM webhook] triggering LiqPay void for ${shopifyOrderId}`);
-      fetch(`${nnshopUrl}/api/liqpay/void`, {
+
+      const voidEndpoint = isLiqpayOrder
+        ? `${nnshopUrl}/api/liqpay/void`
+        : `${nnshopUrl}/api/novapay/void`;
+      const providerName = isLiqpayOrder ? 'LiqPay' : 'NovaPay';
+
+      console.log(`[keyCRM webhook] triggering ${providerName} void for ${shopifyOrderId}`);
+      fetch(voidEndpoint, {
         method: "POST",
         headers: voidHeaders,
         body: JSON.stringify({ shopifyOrderId }),
       })
-        .then((r) => console.log(`[keyCRM webhook] void triggered for ${shopifyOrderId}: ${r.status}`))
-        .catch((err) => console.error(`[keyCRM webhook] void failed:`, err));
+        .then((r) => console.log(`[keyCRM webhook] ${providerName} void triggered for ${shopifyOrderId}: ${r.status}`))
+        .catch((err) => console.error(`[keyCRM webhook] ${providerName} void failed:`, err));
     }
 
     try {
