@@ -37,12 +37,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     shop,
   });
 
-  await esputnikOrderQueue.add("esputnik-order-sync", {
-    payload,
-    status: "INITIALIZED",
-    shop,
-  });
+  // Skip eSputnik for pay-now methods — event fires after payment via confirm-payment
+  const payNowGateways = ["liqpay", "payparts", "novapay"];
+  const gateways: string[] = payload.payment_gateway_names || [];
+  const isPayNow = gateways.some((g: string) => payNowGateways.includes(g));
 
-  console.log(`[internal/process-order] queued INITIALIZED for order ${payload.name}`);
+  if (!isPayNow) {
+    await esputnikOrderQueue.add("esputnik-order-sync", {
+      payload,
+      status: "INITIALIZED",
+      shop,
+    });
+  }
+
+  console.log(
+    `[internal/process-order] queued INITIALIZED for order ${payload.name}${isPayNow ? " (eSputnik deferred until payment)" : ""}`
+  );
   return Response.json({ ok: true }, { status: 200 });
 };

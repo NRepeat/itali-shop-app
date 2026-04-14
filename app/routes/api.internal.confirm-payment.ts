@@ -98,14 +98,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     `[internal/confirm-payment] keyCRM order ${keycrmOrder.id} confirmed + paid (${orderName})`
   );
 
-  // Queue eSputnik CONFIRMED email
+  // Queue eSputnik INITIALIZED (order confirmation) for pay-now orders
+  // This was deferred from process-order until payment was confirmed
   if (shopifyPayload && shop) {
     await esputnikOrderQueue.add("esputnik-order-sync", {
       payload: shopifyPayload,
-      status: "CONFIRMED",
+      status: "INITIALIZED",
       shop,
     });
-    console.log(`[internal/confirm-payment] eSputnik CONFIRMED queued for ${orderName}`);
+    console.log(`[internal/confirm-payment] eSputnik INITIALIZED queued for ${orderName}`);
   }
 
   return Response.json({ ok: true, keycrmOrderId: keycrmOrder.id }, { status: 200 });
