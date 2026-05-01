@@ -247,11 +247,7 @@ export async function generateGoogleMerchantXml(
         const imageLink = formatImageUrl(
           variant.image?.url || product.featuredImage?.url || "",
         );
-        const availability =
-          variant.availableForSale &&
-          (variant.quantityAvailable === null || variant.quantityAvailable > 0)
-            ? "in_stock"
-            : "out_of_stock";
+        const availability = variant.availableForSale ? "in_stock" : "out_of_stock";
 
         const colorOpt = variant.selectedOptions.find((o: any) =>
           ["color", "колір", "цвет"].includes(o.name.toLowerCase()),

@@ -465,16 +465,10 @@ export async function processGoogleMerchantTask(job: Job) {
       const hasSale =
         parseFloat(originalPriceMicros) > parseFloat(finalPriceMicros);
 
-      const availability =
-        variant.availableForSale &&
-        (variant.inventoryQuantity === null ||
-          variant.inventoryQuantity === undefined ||
-          variant.inventoryQuantity > 0)
-          ? "IN_STOCK"
-          : "OUT_OF_STOCK";
+      const availability = variant.availableForSale ? "IN_STOCK" : "OUT_OF_STOCK";
 
       console.log(
-        `[Worker] variant=${variant.id} availableForSale=${variant.availableForSale} inventoryQuantity=${variant.inventoryQuantity} → ${availability}`,
+        `[Worker] variant=${variant.id} availableForSale=${variant.availableForSale} → ${availability}`,
       );
 
       const tags = data.tags || [];
