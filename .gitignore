@@ -13,8 +13,8 @@ prisma/generated
 .env
 .env.*
 
-
-
+all_mappings.json
+scripts/*
 
 
 /extensions/*/dist
