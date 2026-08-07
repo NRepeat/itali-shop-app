@@ -23,6 +23,17 @@ export const KEYCRM_CONFIG = {
     cancelled: 19,
   },
 
+  // Storefront delivery method → keyCRM delivery service id.
+  // IDs come from GET /v1/order/delivery-service on this account.
+  // keyCRM does NOT infer the carrier from the address text: an order sent
+  // without an explicit id lands with delivery_service_id = null, so no
+  // waybill is generated and a manager has to set the service by hand.
+  // Verified 2026-08-07 with two otherwise-identical API orders.
+  deliveryServices: {
+    novaPoshta: 1,
+    meest: 2,
+  } as Record<string, number>,
+
   // keyCRM → Shopify (inbound webhook mapping)
   paidStatusIds: [3, 21] as number[],           // Підтверджено, Оплачено → mark as paid
   fulfillStatusIds: [12] as number[],             // Виконано → fulfill order in Shopify (Відправлено does NOT fulfill — only sends eSputnik email)

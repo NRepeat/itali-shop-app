@@ -189,6 +189,7 @@ interface KeyCrmProduct {
 }
 
 interface KeyCrmShipping {
+  delivery_service_id?: number;
   shipping_address_city?: string;
   shipping_address_country?: string;
   shipping_address_region?: string;
@@ -394,8 +395,21 @@ export async function mapShopifyOrderToKeyCrm(
     expectedTotalPrice,
     "orderLevelDiscount,originTotalCatalogTotal,expectedTotalPrice",
   );
+  // The storefront names the carrier in note_attributes._delivery_method.
+  // Without this keyCRM leaves delivery_service_id null and cuts no waybill.
+  // typeof guard, not a bare lookup: this key comes off an HTTP payload, and
+  // `deliveryServices["__proto__"]` would otherwise yield Object.prototype —
+  // truthy, so it would ship `delivery_service_id: [object Object]` to keyCRM.
+  const deliveryServiceRaw =
+    KEYCRM_CONFIG.deliveryServices[noteAttr("_delivery_method") ?? ""];
+  const deliveryServiceId =
+    typeof deliveryServiceRaw === "number" ? deliveryServiceRaw : undefined;
+
   const shipping: KeyCrmShipping | undefined = shippingAddress
     ? {
+        ...(deliveryServiceId
+          ? { delivery_service_id: deliveryServiceId }
+          : {}),
         ...(shippingAddress.city
           ? { shipping_address_city: shippingAddress.city }
           : {}),
